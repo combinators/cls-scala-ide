@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     Resolver.typesafeRepo("snapshots")
   ),
 
-  headerLicense := Some(HeaderLicense.ALv2("2018", "Anna Vasilieva")),
+  headerLicense := Some(HeaderLicense.ALv2("2018", "Anna Vasileva")),
 
   scalacOptions ++= Seq(
     "-unchecked",
