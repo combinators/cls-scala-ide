@@ -1,4 +1,4 @@
-# cls-scala
+# cls-scala-ide
 [![Maven Central](https://img.shields.io/maven-central/v/org.combinators/cls-scala-ide_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.combinators%22%20AND%20%22cls-scala-ide%22)
 [![build status](https://travis-ci.com/combinators/cls-scala-ide.svg?branch=master)](https://travis-ci.com/combinators/cls-scala-ide)
 [![Coverage Status](https://coveralls.io/repos/github/combinators/cls-scala-ide/badge.svg?branch=master)](https://coveralls.io/github/combinators/cls-scala-ide?branch=master)
