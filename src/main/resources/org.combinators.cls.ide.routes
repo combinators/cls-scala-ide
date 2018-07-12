@@ -1,0 +1,2 @@
+GET /ide/*file controllers.Assets.at(path="/org/combinators/cls/ide/", file)
+-> / org.combinators.cls.git.Routes

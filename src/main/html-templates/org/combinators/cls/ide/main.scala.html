@@ -1,0 +1,278 @@
+@import org.combinators.cls.inhabitation.Tree
+@import org.combinators.cls.types.Type
+@import shapeless.feat.Enumeration
+@import controllers.Assets
+@import play.api.mvc.Call
+
+@(webJarsUtil: org.webjars.play.WebJarsUtil,
+asset: Assets,
+combinators: Map[String, (Type, String)],
+infinite: Boolean,
+targets: Seq[Type],
+path: String,
+projectName: String)
+
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <!--<script src="https://unpkg.com/tippy.js/dist/tippy.all.min.js"></script>-->
+    <!--<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>-->
+
+    <!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/qtip2/3.0.3/jquery.qtip.min.js"></script>
+    <link href="http://cdn.jsdelivr.net/qtip2/3.0.3/jquery.qtip.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-qtip/2.7.1/cytoscape-qtip.js"></script>
+
+    <script src="http://cdn.jsdelivr.net/qtip2/3.0.3/jquery.qtip.js"></script>-->
+    <!--<script src="https://unpkg.com/popper.js"></script>-->
+    <!--<script src="cytoscape-qtip.js"></script>-->
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>CLS Debugger</title>
+
+    <!-- Bootstrap core CSS -->
+    @Html(webJarsUtil.script("jquery.js"))
+    @Html(webJarsUtil.css("css/bootstrap.min.css"))
+    @Html(webJarsUtil.script("bootstrap.min.js"))
+    @Html(webJarsUtil.script("cytoscape.min.js"))
+
+
+    <!-- Custom styles for this template-->
+    <link href="/ide/css/dashboard.css" rel="stylesheet" type="text/css" />
+    @Html(webJarsUtil.requireJs(Call("GET", "/ide/js/main.js")))
+
+
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <!--<span class="sr-only">Toggle navigation</span>-->
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#" id="projectName">Projectname: @projectName</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse ">
+            <ul class="nav navbar-nav navbar-right">
+                <!--<li><a href="#">Dashboard</a></li>
+                <li><a href="#">Settings</a></li>
+                <li><a href="#">Profile</a></li>
+                <li><a href="#help">Help</a></li>-->
+            </ul>
+            <form class="navbar-form navbar-right">
+                <input type="text" class="form-control" placeholder="Search...">
+            </form>
+        </div>
+    </div>
+
+</nav>
+
+<div class="container-fluid" id="main-div">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 col-lg-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li class="active"><a data-toggle="pill" href="#graph">Result Overview</a>
+
+                </li>
+            <!--    <li><a data-toggle="pill" href="#graph">Graph Overview<span class="sr-only">(current)</span></a></li>-->
+                <li><a class="nav-link" data-toggle="pill" href="#steps">Debug Overview</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
+
+               <!-- <li>
+                    <a href="#">Analytics </a>
+
+                </li>
+                <li><a href="#">Export</a></li>-->
+            </ul>
+            <div class="row justify-content-end">
+                <div class="col-md-8">
+                    <h1>Layout:</h1>
+
+                        <div class="dropdown" id="layout-dropdown">
+                            <button id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true"
+                                    aria-expanded="false">
+                                Breadthfirst
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dLabel">
+                                <li><a href="#">Breadthfirst</a></li>
+                                <li><a href="#">Circle</a></li>
+                                <li><a href="#">Cose</a></li>
+                                <li><a href="#">Grid</a></li>
+                                <li><a href="#">Concentric</a></li>
+                                <li><a href="#">Preset</a></li>
+                                <li><a href="#">Dagre</a></li>
+                                <li><a href="#">Random</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#">Custom</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+
+        </div>
+    </div>
+
+        <div clas="panel-body">
+            <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 main ">
+                <div class="row justify-content-between">
+                    <form class="form-row">
+
+                            <label for="request"><h3>Inhabitation Requests:</h3></label>
+                            <!-- <label class="col-sm-6 col-md-10 control-label">Inhabitation Requests:</label>-->
+                            <div class="form-group well">
+                                <label for="request">&Gamma; &vdash; ? :</label>
+                                <textarea class="form-control" id="request" type="text">@for(ty <- targets) {@ty &#10;}</textarea>
+                                <!--<p>&nbsp;</p>-->
+                                <button class="btn btn-primary" type="submit" id="submit">New Request</button>
+                            </div>
+
+
+                        </form>
+                </div>
+            </div>
+        </div>
+
+</div>
+<!--<h1 class="page-header">Dashboard</h1>-->
+
+
+
+
+<div class="row">
+    <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 tab-content main">
+        <!-- Shows variations
+        <div id="results" class="tab-pane fade in active">
+            <h4>
+                <h3>Solutions:</h3>
+                @for(i <- 0 to (if (infinite) 100 else 0 /*rawTerms.values.flatMap(_._2).size - 1*/)) {
+                <nav class="navbar navbar-default">
+                    <div class="container-fluid">
+                        <div class="navbar-header">
+                            <a href="javascript:raw(@Html(i.toString))">
+                            <button class="btn btn-primary" type="variation_@Html(i.toString)" id="variation_@Html(i.toString)" value="@Html(i.toString)" >Variation @Html(i.toString):</button>
+                            </a><div id="solutions_@Html(i.toString)"></div>
+
+                        </div>
+                    </div>
+                </nav>
+                }
+            </h4>
+        </div>-->
+
+        <div id="graph" class="tab-pane fade in active">
+            <h3>
+                <span id="position"></span></h3>
+               <h3><div id="showVaration"></div>
+            <div id="cy-graph">
+            </div>
+               </h3>
+
+        </div>
+        <div id="steps" class="tab-pane fade">
+            <h3>
+                <span id="position1"></span></h3>
+           <!--// Show the a variation of solutions-->
+          <!-- <h3>
+                <div class="row">
+                    <div class="col-sm-9 col-sm-3 col-md-8" id="showPosition">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-9 col-sm-3 col-md-6 text-danger" id="showUnusablePosition">
+                    </div>
+                </div>
+            </h3>-->
+            <div class="row">
+                <div class="col-sm-3 col-sm-3 col-md-3  pull-right">
+                    <div class="container">
+                        <button type="button" class="btn btn-primary btn-lg active" id="backwardButton"><span
+                                class="glyphicon glyphicon-menu-left" aria-hidden="true"></span></button>
+                        <button type="button" class="btn btn-primary btn-lg" id="forwardButton"><span
+                                class="glyphicon glyphicon-menu-right" aria-hidden="true"></span></button>
+                        <button type="button" class="btn btn-primary btn-lg" id="toggleCyclesButton">Toggle Cycles</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 col-sm-3 col-md-3 pull-right main container" id="debMess">
+                <div class="panel-group" id = "myCollapse">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" id="unusableTy">
+                            <h4 class="panel-title">
+                                <a class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse1"   aria-expanded="true" aria-controls="collapse1">Uninhabited Types</a>
+                            </h4>
+                        </div>
+                        <div id="collapse1" class="collapse" aria-labelledby="headingOne"data-parent="#myCollapse">
+                            <div class="panel-body" id="debuggerMessages">
+                                                           </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading" id="unusableCom">
+                            <h4 class="panel-title">
+                                <a class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse2" aria-expanded="true" aria-controls="collapse2">Unusable Combinators</a>
+                            </h4>
+                        </div>
+                        <div id="collapse2" class="collapse" aria-labelledby="headingTwo" data-parent="#myCollapse">
+                            <div class="panel-body">
+                                <div id="debuggerM"></div>
+                            </div>
+
+                        </div>
+                    </div>
+                   </div>
+            </div>
+
+            <div class="col-sm-3 col-sm-4 col-md-9  tab-content main">
+                <div id="cy-steps"></div>
+            </div>
+        </div>
+        <div id="repo" class="tab-pane fade">
+            <h4><h3>Repository:</h3>
+                <pre>
+                &Gamma; = {
+                     @for((name, (ty, position)) <- combinators) {
+        <span data-toggle="tooltip" title="@position">@name : @ty</span>}
+                    }
+                </pre>
+            </h4>
+        </div>
+        <div id="mess" class="tab-pane fade">
+            <h4>
+                <h3>Debugger Messages:</h3>
+                <pre>
+                <div id="showDebuggerMessages"></div>
+                </pre>
+            </h4>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</body>
+</html>
+
+
+
