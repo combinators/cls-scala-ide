@@ -1,13 +1,10 @@
-
 package org.combinators.cls.ide.inhabitation
 
+import org.scalatest._
 import org.combinators.cls.types._
-import org.scalatest.FunSpec
 
-/**
-  * Created by Anna on 25.08.2017.
-  */
-class DebuggerWithBCLTest extends FunSpec {
+class BCLTest extends FunSpec {
+
   val mapTest =
     Map(
       "map" ->
@@ -22,7 +19,7 @@ class DebuggerWithBCLTest extends FunSpec {
       "f" -> Arrow(Constructor("Char"), Constructor("String"))
     )
 
-  val taxonomy =
+  val taxonomy: Taxonomy =
     Taxonomy
       .empty
       .merge(Taxonomy("Char")
@@ -34,30 +31,19 @@ class DebuggerWithBCLTest extends FunSpec {
       .addOption(Constructor("Int"))
       .addOption(Constructor("String"))
 
-  val kinding =
+  val kinding: Kinding =
     addAll(Kinding(Variable("alpha"))).merge(addAll(Kinding(Variable("beta"))))
+  val testChannel = new TestChannel()
+  val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
 
-  lazy val testChannel = new TestChannel()
-
-  val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding , SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
-
-describe(Gamma.toString){
-    describe("|- ? : impossible") {
-      val tgt = Constructor("List", Constructor("impossible"))
-    testChannel.reset()
-
-    val cannotInhabitType = CannotInhabitType(tgt)
-    val results = Gamma.inhabit(tgt)
-
-    it("should be empty") {
-      assert(results.isEmpty)
+  describe(Gamma.toString) {
+    describe("|- ? : String") {
+      val tgt = Constructor("List", Constructor("String"))
+      val results = Gamma.inhabit(tgt)
+      println("XXXXXXXXX")
+      it("should not be empty") {
+        assert(results.nonEmpty)
+      }
     }
-
-    it(s"should push $cannotInhabitType") {
-      assert(testChannel.debugOutput.contains(cannotInhabitType))
     }
   }
-}
-
-}
-
