@@ -53,6 +53,7 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+      "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % "test",
       "org.webjars" %% "webjars-play" % "2.6.1",
       "org.webjars" % "bootstrap" % "3.3.7-1",
       "org.webjars.bower" % "cytoscape" % "3.2.5",

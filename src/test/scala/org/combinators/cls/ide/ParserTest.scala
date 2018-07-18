@@ -4,6 +4,7 @@ package org.combinators.cls.ide
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._
 import org.scalatest.FunSpec
+import scala.util.parsing.combinator.Parsers
 
 
 
@@ -37,12 +38,9 @@ class ParserTest extends FunSpec {
     it("should pretty print almost identically") {
       assert(('a('b, Omega) :&: 'x).toString == "a(b, omega) & x")
     }
-
-
-    /*it("should test failure"){
-
-      assertThrows[NoSuccess]{(parsing.compute(":::")}
-    }*/
+    it("should test failure"){
+      assert(parsing.compute("---") == Seq.empty)
+    }
   }
 
 }
