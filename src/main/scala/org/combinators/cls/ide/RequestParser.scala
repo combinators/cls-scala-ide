@@ -51,6 +51,7 @@ object NewRequestParser extends RequestParser {
 
   def compute(request: String): Seq[Type] = parseAll(tgts, request) match {
     case Success(result, _) => result
-    case failure: NoSuccess => scala.sys.error(failure.msg)
+    case failure: NoSuccess =>
+     Seq.empty
   }
 }
