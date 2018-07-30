@@ -20,8 +20,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
      // Ajax to data
 
      $.get("graph", function(data){
-        console.log("got graph");
-        console.log(data);
 
          try {
          var graph = JSON.parse(data)
@@ -33,6 +31,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
      });
 
   var stepsNr = 0;
+  var toggle = true;
   $(function(){
     $(".nav-sidebar a").click(function(){
         $(this).tab('show');
@@ -78,24 +77,34 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
 
 });
+
+
+
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){
 
         if(this.id == 'toggleCyclesButton'){
-                toggleCycle(stepsNr);
-                }else{
-
+            if (toggle == true){
+              toggleCycle(stepsNr);
+              toggle = false;
+            }else{
+              mkSteps(stepsNr);
+              toggle = true;
+             }
+        }
         if(this.id == 'forwardButton'){
             stepsNr ++;
+            toggle = true;
+            mkSteps(stepsNr);
         }else{
             if(this.id == 'backwardButton'){
             stepsNr --;
-            }
+            toggle = true;
+            mkSteps(stepsNr);
+           }
         }
 
-        mkSteps(stepsNr);
-        }
 
-   });
+      });
 
    function toggleCycle(stepNr){
         $.getJSON("toggleCycle/" + stepsNr, function(data){
@@ -114,15 +123,11 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
     function computeNewRequest(request) {
     if (request.includes("[")){
-    console.log("JA", request.replace(/\[/g, '&#91;'))
     }else {
-    console.log("Nein", request)
     } var req = request.replace(/\[/g, '91')
     req = req.replace(/\]/g, '93')
-    console.log("req", req)
         $.get("computeRequest/" + req, function(data){
             $.get("graph", function(data){
-                    console.log("req", req)
                      var graph = JSON.parse(data)
                      $("#cy-graph").html(" ");
                      mkGraph(graph, "#cy-graph");
@@ -131,7 +136,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
     }
 
       function mkSteps(stepsNr) {
-        console.log("Step", parseInt(stepsNr));
             $.getJSON("steps/" + stepsNr, function(data){
                 mkGraph(data, "#cy-steps")
             });
@@ -296,7 +300,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         fit: false,
                         padding: 75,
                         avoidOverlapPadding: 75,
-                        ready: function() { console.log("resized"); }
+                       // ready: function() { console.log("resized"); }
                      }).run();}
 
                      cy.layout({
@@ -306,7 +310,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         animate: true,
                         avoidOverlap: true,
                         avoidOverlapPadding: 75,
-                        ready: function()  {console.log("bf resized") } }).run()
+                      //  ready: function()  {console.log("bf resized")
+                          }).run()
                  }
 
                  adjustLayout();
