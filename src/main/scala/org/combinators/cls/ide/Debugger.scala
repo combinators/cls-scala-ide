@@ -247,11 +247,15 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
                 }
             }
         }.toSet
-
-      uninhabitedTypes = unusableCombinator.flatMap(_._2)
-      graphObj = Json.toJson[Graph](toGraph(grammar, tgts.toSet, uninhabitedTypes, unusableCombinator))
-      Ok(graphObj.toString())
-    } catch {
+      tgts.isEmpty match {
+        case true => Ok("No more steps!")
+        case false =>
+          uninhabitedTypes = unusableCombinator.flatMap(_._2)
+          graphObj = Json.toJson[Graph](toGraph(grammar, tgts.toSet, uninhabitedTypes, unusableCombinator))
+          Ok(graphObj.toString())
+      }
+    }
+    catch {
       case _: NoSuchElementException => Ok("No such element")
     }
   }
@@ -297,6 +301,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
       }
       graphObj = Json.toJson[Graph](toGraph(newgrammarWithoutTypes, tgts.toSet, uninhabitedTypes, unusableCombinator))
       Ok(graphObj.toString())
+
     } catch {
       case _: NoSuchElementException => Ok("No such element")
     }
@@ -330,7 +335,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   def computeRequest(request: String) = Action {
     testChannel.reset()
     var newRequest = request.replaceAll("91", "[")
-     newRequest = newRequest.replaceAll("93", "]")
+    newRequest = newRequest.replaceAll("93", "]")
 
     newTargets = NewRequestParser.compute(newRequest)
     newGraph = inhabitResult(newTargets)

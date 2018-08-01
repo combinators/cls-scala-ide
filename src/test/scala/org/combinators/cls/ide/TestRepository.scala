@@ -1,5 +1,7 @@
 package org.combinators.cls.ide
 
+import java.nio.file.{Path, Paths}
+
 import org.combinators.cls.git.{EmptyResults, Results}
 import org.combinators.cls.ide.inhabitation.TestChannel
 import org.combinators.cls.interpreter.ReflectedRepository
@@ -34,10 +36,21 @@ class TestRepository {
       .merge(Taxonomy("Goal"))
 
   lazy val testChannel = new TestChannel()
-  val Gamma = ReflectedRepository(garbageCombinators, substitutionSpace = FiniteSubstitutionSpace.empty, classLoader = this.getClass.getClassLoader)
+  val Gamma = Expected.expectedPaths.foldLeft(ReflectedRepository(garbageCombinators, substitutionSpace = FiniteSubstitutionSpace.empty, classLoader = this.getClass.getClassLoader)){
+    (repo, path) => repo.addCombinator(new TestCombinator(path))
+  }
   val target: Constructor = Constructor("impossible")
 
   lazy val jobs = Gamma.InhabitationBatchJob[Unit]('Int)
   lazy val resultsIntabit: Results = EmptyResults().addAll(jobs.run())
 
+}
+object Expected {
+  val expectedPaths: Set[Path] = Set(
+    Paths.get("test.txt"),
+    Paths.get("test", "test.txt")
+  )
+}
+class TestCombinator(path: Path) {
+  def apply: Path = path
 }

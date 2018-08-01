@@ -48,7 +48,7 @@ trait RoutingEntries extends SimpleRouter { self: Debugger =>
       case GET(p"/showUnusableBecauseOfTy") => showUnusableBecauseOfTy()
       case GET(p"/steps/${int(step)}") => showSteps(step)
       case GET(p"/computeRequest/${label}") => computeRequest(label)
-      case GET(p"/showResult/${long(index)}") => showResult(index)
+      //case GET(p"/showResult/${long(index)}") => showResult(index)
       case GET(p"/showPosition/${label}") => showPosition(label)
     }
     new SimpleRouter { def routes: RRoutes = directRoutes }.withPrefix(prefixWithSlash).routes

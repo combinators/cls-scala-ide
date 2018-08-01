@@ -108,7 +108,19 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
   }
   "Calling the test toggleCycles" must {
     "result in a valid response" in {
-      val request = s"/test/toggleCycle/1"
+      for(resultNumber <- Expected.expectedPaths.toSeq.indices) {
+        val request = s"/test/toggleCycle/$resultNumber"
+        val url = s"http://localhost:$port$request"
+        val testPaymentGatewayURL = s"http://$url"
+        val response = await(ws.url(url).get())
+        response.status mustBe OK
+      }
+    }
+  }
+
+  "Calling the test showPosition" must {
+    "result in a valid response" in {
+      val request = s"/test/showPosition/Garbage2"
       val url = s"http://localhost:$port$request"
       val testPaymentGatewayURL = s"http://$url"
       val response = await(ws.url(url).get())
