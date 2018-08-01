@@ -309,25 +309,27 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
 
   def showGraph = Action {
     newGraph = inhabitResult(newTargets)
-    if (newGraph.nonEmpty) {
-      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-      Ok(graphObj.toString)
-    }
-    else {
-      Ok("Inhabitant not found!")
+    newGraph.nonEmpty match {
+      case true =>
+        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+        Ok(graphObj.toString)
+
+      case false =>
+        Ok("Inhabitant not found!")
+
     }
   }
 
   // show a list of solutions
-  def showResult(index: Long) = Action {
+  /*def showResult(index: Long) = Action {
     try {
       Ok(results.raw.index(index).mkString("\n"))
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
-  }
+  }*/
 
-  def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
+  private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
     bcl.algorithm.inhabit(tgt: _*)
   }
 
@@ -336,15 +338,13 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     testChannel.reset()
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
-
     newTargets = NewRequestParser.compute(newRequest)
     newGraph = inhabitResult(newTargets)
-    if (newGraph.nonEmpty) {
-      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-      Ok(graphObj.toString)
-    }
-    else {
-      Ok("Inhabitant not found!")
+    newGraph.nonEmpty match {
+      case true =>
+        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+        Ok(graphObj.toString)
+      case false => Ok("Inhabitant not found!")
     }
   }
 
