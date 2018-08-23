@@ -81,14 +81,5 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
     prune(grammar, Set.empty)
   }
 
-  override def removeEntriesWithArgument(grammar: TreeGrammar, arg: Type): TreeGrammar =
-    grammar.mapValues(entries => entries.filterNot {
-      case (c, args) if ((args.contains(arg))) =>
-        debugChannel(CannotInhabitBacauseOfSubtype(c, args))
-        false
-      case _ =>
-        true
-
-    })
   // TODO nextgen -> TypeNameStatistics: Combinators should have the same arity
 }

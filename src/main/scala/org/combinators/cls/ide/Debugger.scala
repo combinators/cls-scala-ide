@@ -16,17 +16,22 @@
 
 package org.combinators.cls.ide
 
+import java.lang
+
 import org.combinators.cls.git.Results
 import org.combinators.cls.ide.inhabitation._
 import org.combinators.cls.inhabitation._
-import org.combinators.cls.interpreter.{CombinatorInfo, DynamicCombinatorInfo, ReflectedRepository, StaticCombinatorInfo}
+import org.combinators.cls.interpreter._
 import org.combinators.cls.types._
 import org.webjars.play.WebJarsUtil
 import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
+import org.combinators.templating.persistable.Persistable
+import shapeless.feat.Enumeration
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
                         val combinators: Map[String, (Type, String)], val substitutionSpace: FiniteSubstitutionSpace,
@@ -50,7 +55,6 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   lazy val bcl = new BoundedCombinatoryLogicDebugger(testChannel, substitutionSpace, subtypes, combinators.mapValues(_._1))
   var newGraph: TreeGrammar = Map()
   var newTargets: Seq[Type] = targets
-  var toggle: Boolean = false
   var graphObj: JsValue = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
 
 
@@ -63,9 +67,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
 
   case object UnusableCombinatorNode extends Style
 
-  case object UnvisibleCombinatorNode extends Style
+  case object InvisibleCombinatorNode extends Style
 
-  case object UnvisibleTypeNode extends Style
+  case object InvisibleTypeNode extends Style
 
   case object ArgumentNode extends Style
 
@@ -96,13 +100,16 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     case TypeNode => Json.toJson[String]("type-node")
     case CombinatorNode => Json.toJson[String]("combinator-node")
     case UnusableCombinatorNode => Json.toJson[String]("unusable-combinator-node")
-    case UnvisibleCombinatorNode => Json.toJson[String]("unvisible-unusable-combinator-node")
-    case UnvisibleTypeNode => Json.toJson[String]("unvisible-uninhabited-type-node")
+    case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
+    case InvisibleTypeNode => Json.toJson[String]("invisible-uninhabited-type-node")
     case ArgumentNode => Json.toJson[String]("argument-node")
     case TargetNode => Json.toJson[String]("target-node")
     case UninhabitedTypeNode => Json.toJson[String]("uninhabited-type-node")
   }
 
+  /**
+    * Generates a hypergraph
+    */
   def toGraph(treeGrammar: TreeGrammar, tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
 
     val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, UninhabitedTypeNode) }.toMap
@@ -131,7 +138,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
-
+  /**
+    * Returns the repository
+    */
   def showRepo: Action[AnyContent] = Action {
     val repo = combinators
     if (combinators.nonEmpty) {
@@ -143,6 +152,10 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     else Ok("Empty Repository")
   }
 
+  /**
+    * Shows in the debug overview the implementation of the combinator
+    * @param label the chosen combinator
+    */
   def showPosition(label: String) = Action {
     var newEntry = ""
     for ((name, (ty, position)) <- combinators) {
@@ -153,7 +166,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Ok(newEntry.mkString(""))
   }
 
-
+  /**
+    * Returns the uninhabited types
+    */
   def showUninhabitedTy() = Action {
     val messages = showDebuggerMessage().map {
       case CannotInhabitType(ty) => ty
@@ -178,6 +193,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Ok(newMsg.mkString("\n"))
   }
 
+  /**
+    * Returns messages for unusable combinators
+    */
   def showUnusableCMsg() = Action {
     val message = showDebuggerMessage().map {
       case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
@@ -195,6 +213,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     testChannel.debugOutput
   }
 
+  /**
+    * Returns debugger messages
+    */
   def showDebuggerMessages: Action[AnyContent] = Action {
     if (testChannel.debugOutput.nonEmpty) {
       val newSet = testChannel.debugOutput.collect {
@@ -217,36 +238,20 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     grammar.keys.find(k => k.isSupertypeOf(ty) && k.isSubtypeOf(ty))
   }
 
+  /**
+    * Computes the steps for the step-wise visualisation
+    */
   def showSteps(step: Int) = Action {
-    toggle = false
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = bcl.algorithm.inhabitRec(newTargets: _*)
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
     try {
       val (oldGrammar, oldTgts) = newInhabitStep.splitAt(step)._2.head
-      val (grammar, tgts) = oldTgts.flatten.foldLeft((oldGrammar, Stream.empty[Type])) {
-        case ((g, tgts), tgt) =>
-          findEqualEntries(g, tgt) match {
-            case Some(ty) => (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
-            case None => (g, tgt +: tgts)
-          }
-      }
+      val (grammar, tgts) = computeGrammarAndTgts(oldGrammar, oldTgts)
       testChannel.reset()
       bcl.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
-
       unusableCombinator =
-        grammar.toSeq.flatMap {
-          case (ty, options) =>
-            options.filter {
-              case (c, args) =>
-
-                testChannel.debugOutput.exists {
-                  case CannotUseCombinator(uc, tgt, uninhabitedArgs) =>
-                    (c == uc) && (tgt == ty) && args.exists(uArg => uninhabitedArgs.contains(uArg))
-                  case _ => false
-                }
-            }
-        }.toSet
+        computeUnusableCombinator(grammar)
       tgts.isEmpty match {
         case true => Ok("No more steps!")
         case false =>
@@ -260,34 +265,20 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
+  /**
+    * Toggles all unproductive cycles and provides a clean view
+    */
   def toggleCycles(step: Int) = Action {
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = bcl.algorithm.inhabitRec(newTargets: _*)
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
     try {
       val (oldGrammar, oldTgts) = newInhabitStep.splitAt(step)._2.head
-      val (grammar, tgts) = oldTgts.flatten.foldLeft((oldGrammar, Stream.empty[Type])) {
-        case ((g, tgts), tgt) =>
-          findEqualEntries(g, tgt) match {
-            case Some(ty) => (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
-            case None => (g, tgt +: tgts)
-          }
-      }
+      val (grammar, tgts) = computeGrammarAndTgts(oldGrammar, oldTgts)
       testChannel.reset()
       val prunedGrammar = bcl.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
       unusableCombinator =
-        grammar.toSeq.flatMap {
-          case (ty, options) =>
-            options.filter {
-              case (c, args) =>
-
-                testChannel.debugOutput.exists {
-                  case CannotUseCombinator(uc, tgt, uninhabitedArgs) =>
-                    (c == uc) && (tgt == ty) && args.exists(uArg => uninhabitedArgs.contains(uArg))
-                  case _ => false
-                }
-            }
-        }.toSet
+        computeUnusableCombinator(grammar)
 
       uninhabitedTypes = unusableCombinator.flatMap(_ match {
         case (com, arg) =>
@@ -295,11 +286,11 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
       }
       )
 
-      val newgrammarWithoutTypes = prunedGrammar.filterNot {
+      val newGrammarWithoutTypes = prunedGrammar.filterNot {
         case (ty, r) =>
           uninhabitedTypes.contains(ty)
       }
-      graphObj = Json.toJson[Graph](toGraph(newgrammarWithoutTypes, tgts.toSet, uninhabitedTypes, unusableCombinator))
+      graphObj = Json.toJson[Graph](toGraph(newGrammarWithoutTypes, tgts.toSet, uninhabitedTypes, unusableCombinator))
       Ok(graphObj.toString())
 
     } catch {
@@ -307,6 +298,40 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
+  /**
+    * Returns tree grammar and the new targets
+    */
+  private def computeGrammarAndTgts(oldGrammar: TreeGrammar, oldTgts: Stream[Stream[Type]]) = {
+    oldTgts.flatten.foldLeft((oldGrammar, Stream.empty[Type])) {
+      case ((g, tgts), tgt) =>
+        findEqualEntries(g, tgt) match {
+          case Some(ty) => (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
+          case None => (g, tgt +: tgts)
+        }
+    }
+  }
+
+  /**
+    * Computes the unusable combinators
+    */
+  private def computeUnusableCombinator(grammar: TreeGrammar) = {
+    grammar.toSeq.flatMap {
+      case (ty, options) =>
+        options.filter {
+          case (c, args) =>
+
+            testChannel.debugOutput.exists {
+              case CannotUseCombinator(uc, tgt, uninhabitedArgs) =>
+                (c == uc) && (tgt == ty) && args.exists(uArg => uninhabitedArgs.contains(uArg))
+              case _ => false
+            }
+        }
+    }.toSet
+  }
+
+  /**
+    * Returns a result overview
+    */
   def showGraph = Action {
     newGraph = inhabitResult(newTargets)
     newGraph.nonEmpty match {
@@ -320,20 +345,64 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
-  // show a list of solutions
-  /*def showResult(index: Long) = Action {
+  /**
+    * Shows a list of inhabitants
+    */
+  def showResult(index: Long) = Action {
     try {
       Ok(results.raw.index(index).mkString("\n"))
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
-  }*/
+  }
 
+  def countsSolutions = Action {
+    lazy val numbers = if (results.infinite) 100 else results.raw.values.flatMap(_._2).size - 1
+    Ok(numbers.toString)
+  }
+
+  /**
+    * Generates a graph for an inhabitant
+    * @param index number of inhabitant
+    *
+    */
+  def inhabitantToGraph(index: Long) = Action {
+    var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
+    allPartGrammars.clear()
+    try {
+      val partTree: Seq[Tree] = results.raw.index(index)
+      def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
+        var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
+        trees.map {
+          case t => val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
+            var in: TreeGrammar = Map(t.target -> Set(c))
+            allPartGrammars.add(in)
+            partTreeGrammar = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
+            mkTreeMap(t.arguments)
+        }
+        partTreeGrammar
+      }
+      mkTreeMap(partTree)
+      newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
+      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      newGraph = Map()
+      Ok(graphObj.toString)
+    } catch {
+      case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
+    }
+  }
+
+  /**
+    * Generates a tree grammar
+    */
   private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
     bcl.algorithm.inhabit(tgt: _*)
   }
 
-  //Compute request
+  /**
+    * Computes a new request
+    * @param request new target
+    */
   def computeRequest(request: String) = Action {
     testChannel.reset()
     var newRequest = request.replaceAll("91", "[")
@@ -348,6 +417,10 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
+  /**
+    * Renders an overview page
+    * @return the html code of the page
+    */
   def index() = Action { request =>
     Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, combinators, infinite, newTargets, request.path, projectName))
   }

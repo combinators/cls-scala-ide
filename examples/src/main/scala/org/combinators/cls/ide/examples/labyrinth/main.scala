@@ -11,7 +11,7 @@ import play.api.routing.sird._
 import Helpers._
 import org.combinators.cls.ide.{Debugger, RoutingEntries}
 
-class LabRouter @Inject()(controller: LabyrinthDebugger)
+/*class LabRouter @Inject()(controller: LabyrinthDebugger)
   extends SimpleRouter {
   override def routes: Routes = {
     case GET(p"/") => controller.index()
@@ -24,12 +24,12 @@ class LabRouter @Inject()(controller: LabyrinthDebugger)
     case GET(p"/showUnusableBecauseOfTy") => controller.showUnusableBecauseOfTy()
     case GET(p"/steps/${int(step)}") => controller.showSteps(step)
     case GET(p"/computeRequest/${label}") => controller.computeRequest(label)
-    case GET(p"/showResult/${long(index)}") => controller.showResult(index)
+    //case GET(p"/showResult/${long(index)}") => controller.showResult(index)
     case GET(p"/showPosition/${label}") => controller.showPosition(label)
   }
-}
+}*/
 
-abstract class LabyrinthDebugger(labyrinthName: String, labyrinth: Repository, webJars: WebJarsUtil, assets: Assets)
+class LabyrinthDebugger(labyrinthName: String, labyrinth: Repository, webJars: WebJarsUtil, assets: Assets)
   extends Debugger(
     webJars,
     assets,

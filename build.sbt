@@ -49,7 +49,7 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
 
     libraryDependencies ++= Seq(
       "org.combinators" %% "cls-scala-presentation-play-git" % "1.0.0-RC1+1-00659e19",
-      "org.combinators" %% "cls-scala" % "2.0.0+24-c86dc4cf",
+      "org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",

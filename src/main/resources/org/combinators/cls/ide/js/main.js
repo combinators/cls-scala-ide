@@ -28,12 +28,20 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         }
      });
 
+
+
+
+             });
+  var text = document.createTextNode("");
   var stepsNr = 0;
   var toggle = true;
   $(function(){
     $(".nav-sidebar a").click(function(){
         $(this).tab('show');
         });
+
+
+
         $('.nav-sidebar a[href="#steps"]').on('shown.bs.tab', function(){
             mkSteps(stepsNr);
             $.get("showUninhabitedTy", function(data){
@@ -56,6 +64,55 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                 $("#deM").html(data.replace(/\n/g, '<br />'));
             });
         });
+        $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
+
+                 $.get("countSolutions", function(number){
+                 console.log("Number", number);
+                     for (var item = 0; item < number ; item ++) {
+                         var nav = document.createElement("nav");
+                         nav.className = "navbar navbar-default"
+
+                         var div = document.createElement("div");
+                         div.className = "container-fluid";
+
+                         var divNavbar = document.createElement("navBar");
+                         divNavbar.className = "navbar-header";
+                         divNavbar.id = item;
+
+                      //create variation buttons
+                         var divBtn = document.createElement("divBtn");
+                         var txt = document.createTextNode("Variation "+ item + ":");
+                         var btn = document.createElement("button");
+                         btn.className = "btn btn-primary";
+                         btn.id = item;
+
+                      //on click shows one solution
+                         btn.addEventListener("click", function(e){
+                             $("solution").remove();
+                           var divSol = document.createElement("divSol");
+                           divSol.className = "container-fluid";
+                           divSol.id =  "solutionSol" + e.target.id;
+
+                           var solution = document.createElement("solution");
+                           divSol.appendChild(solution);
+                           solution.appendChild(text);
+                           $.get("showResult/" + e.target.id, function(data){
+                           showPartGraph(e.target.id);
+                             var text = document.createTextNode(data);
+                             divSol.appendChild(solution);
+                             solution.appendChild(text);
+                           });
+                           document.getElementById(e.target.id).appendChild(divSol);
+                         });
+                         div.appendChild(divNavbar);
+                         nav.appendChild(div);
+                         divBtn.appendChild(btn);
+                         btn.appendChild(txt);
+                         divNavbar.appendChild(divBtn);
+                         document.getElementById("results").appendChild(nav);
+                     }
+                  });
+        });
 
         $('.nav-sidebar a[href="#repo"]').on('shown.bs.tab', function(){
             $.get("repository", function(data){
@@ -72,7 +129,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         $(".collapse").collapse('hide');
             $("#collapse").on("shown.bs.collapse", function(){
              });
-    });
+
 
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){
         if(this.id == 'toggleCyclesButton'){
@@ -103,6 +160,24 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
            }
         }
     });
+
+   function showPartGraph(index){
+        console.log("Index",index);
+      $.get("showOnePossibleSolutionGraph/" + index, function(data){
+         try {
+         console.log("try");
+                  var graph = JSON.parse(data);
+
+         console.log(graph);
+                  mkGraph(graph, "#cy-part-graph");
+                 }
+              catch{
+              console.log("catch");
+                 $("#cy--part-graph").html(data.replace(/\n/g, '<br />'));
+                }
+        });
+   }
+
    function toggleCycle(stepNr){
         $.getJSON("toggleCycle/" + stepsNr, function(data){
         mkGraph(data, "#cy-steps")
@@ -222,7 +297,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         }
                       },
                       {
-                         selector: 'node[style = "unvisible-unusable-combinator-node"]',
+                         selector: 'node[style = "invisible-unusable-combinator-node"]',
                          css: {
                            'visibility': 'hidden',
                            'text-valign': 'top',
@@ -232,7 +307,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                            'padding-bottom': '10px',
                            'padding-right': '10px',
                            'background-color': '#FF3100',
-                           'shape' : 'ellipse'
+                           'shape' : 'ellipse',
+                           'opacity' : '0'
                          }
                      },
                      {
@@ -357,6 +433,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         $("#position1").text(data);
                     });
                });
+}
 
-        }
 });

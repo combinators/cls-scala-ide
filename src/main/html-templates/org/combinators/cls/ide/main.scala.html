@@ -108,9 +108,9 @@ projectName: String)
         <div class="col-sm-3 col-md-2 col-lg-2 sidebar">
             <ul class="nav nav-sidebar">
                 <li class="active"><a data-toggle="pill" href="#graph">Result Overview</a>
-
                 </li>
             <!--    <li><a data-toggle="pill" href="#graph">Graph Overview<span class="sr-only">(current)</span></a></li>-->
+                <li><a class="nav-link" data-toggle="pill" href="#results">Solutions Overview</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#steps">Debug Overview</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
@@ -179,48 +179,26 @@ projectName: String)
 
 <div class="row">
     <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 tab-content main">
-        <!-- Shows variations
-        <div id="results" class="tab-pane fade in active">
-            <h4>
-                <h3>Solutions:</h3>
-                @for(i <- 0 to (if (infinite) 100 else 0 /*rawTerms.values.flatMap(_._2).size - 1*/)) {
-                <nav class="navbar navbar-default">
-                    <div class="container-fluid">
-                        <div class="navbar-header">
-                            <a href="javascript:raw(@Html(i.toString))">
-                            <button class="btn btn-primary" type="variation_@Html(i.toString)" id="variation_@Html(i.toString)" value="@Html(i.toString)" >Variation @Html(i.toString):</button>
-                            </a><div id="solutions_@Html(i.toString)"></div>
-
-                        </div>
-                    </div>
-                </nav>
-                }
-            </h4>
-        </div>-->
+        <!-- Shows variations-->
 
         <div id="graph" class="tab-pane fade in active">
             <h3>
                 <span id="position"></span></h3>
-               <h3><div id="showVaration"></div>
+               <h3>
             <div id="cy-graph">
             </div>
                </h3>
-
+        </div>
+        <div id="results" class="tab-pane fade" >
+            <div id="cy-part-graph">
+            </div>
+            <h4>
+                <h3>Solutions:</h3>
+            </h4>
         </div>
         <div id="steps" class="tab-pane fade">
             <h3>
                 <span id="position1"></span></h3>
-           <!--// Show the a variation of solutions-->
-          <!-- <h3>
-                <div class="row">
-                    <div class="col-sm-9 col-sm-3 col-md-8" id="showPosition">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-9 col-sm-3 col-md-6 text-danger" id="showUnusablePosition">
-                    </div>
-                </div>
-            </h3>-->
             <div class="row">
                 <div class="col-sm-3 col-sm-3 col-md-3  pull-right">
                     <div class="container">
