@@ -10,10 +10,6 @@ import org.webjars.play.WebJarsUtil
 import play.api.inject.ApplicationLifecycle
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import play.api.mvc._
-import play.api.test._
-
-import scala.concurrent.Future
 
 
 class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
@@ -92,7 +88,7 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
 
   "Calling the test steps" must {
     "result in a valid response" in {
-      val request = s"/test/steps/2"
+      val request = s"/test/steps/1"
       val url = s"http://localhost:$port$request"
       val testPaymentGatewayURL = s"http://$url"
       val response = await(ws.url(url).get())
@@ -100,16 +96,7 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
 
     }
   }
-  "Calling the test noMoreSteps" must {
-    "result in a valid response" in {
-      val request = s"/test/steps/20"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
 
-    }
-  }
   "Calling the test computeRequest" must {
     "result in a valid response" in {
       val request = s"/test/computeRequest/test"
@@ -118,23 +105,10 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
       val response = await(ws.url(url).get())
       response.status mustBe OK
     }
-
-
   }
   "Calling the test toggleCycles" must {
     "result in a valid response" in {
-      for(resultNumber <- Expected.expectedPaths.toSeq.indices) {
-        val request = s"/test/toggleCycle/$resultNumber"
-        val url = s"http://localhost:$port$request"
-        val testPaymentGatewayURL = s"http://$url"
-        val response = await(ws.url(url).get())
-        response.status mustBe OK
-      }
-    }
-  }
-  "Calling the test showPosition" must {
-    "result in a valid response" in {
-      val request = s"/test/showPosition/Garbage2"
+      val request = s"/test/toggleCycle/1"
       val url = s"http://localhost:$port$request"
       val testPaymentGatewayURL = s"http://$url"
       val response = await(ws.url(url).get())
@@ -158,8 +132,6 @@ class EmptyTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: 
     "test") with RoutingEntries {
   override val controllerAddress: String = "test"
 }
-
-
 
 
 

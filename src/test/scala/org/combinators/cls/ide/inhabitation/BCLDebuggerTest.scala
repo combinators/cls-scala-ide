@@ -40,6 +40,7 @@ class BCLTest extends FunSpec {
     describe("|- ? : String") {
       val tgt = Constructor("List", Constructor("String"))
       val results = Gamma.inhabit(tgt)
+      println("XXXXXXXXX")
       it("should not be empty") {
         assert(results.nonEmpty)
       }

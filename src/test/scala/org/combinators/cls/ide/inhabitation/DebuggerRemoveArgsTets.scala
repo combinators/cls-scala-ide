@@ -35,7 +35,10 @@ class DebuggerRemoveWithArgsTest extends FunSpec {
       val pruneTest = Set(CannotInhabitType(Constructor("B")), CannotUseCombinator("Two", Constructor("C"), Seq(Constructor("B"))), CannotInhabitType(Constructor("C")))
       val cannotInhabitSubtype = CannotInhabitBacauseOfSubtype("One", Seq(Constructor("A")))
 
-
+      /*
+      it(s"should push $cannotInhabitSubtype") {
+        assert(testChannel.debugOutput.contains(cannotInhabitSubtype))
+      }*/
       it(s"should not push $pruneTest") {
         assert(!testChannel.debugOutput.sameElements(pruneTest))
       }
