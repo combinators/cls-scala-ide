@@ -96,13 +96,14 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                            var solution = document.createElement("solution");
                            divSol.appendChild(solution);
                            solution.appendChild(text);
-                           $.get("showResult/" + e.target.id, function(data){
-                           showPartGraph(e.target.id);
+                           console.log("Index", $.get("showResult/" +  parseInt(e.target.id)))
+                           $.get("showResult/" +  parseInt(e.target.id), function(data){
+                           showPartGraph(parseInt(e.target.id));
                              var text = document.createTextNode(data);
                              divSol.appendChild(solution);
                              solution.appendChild(text);
                            });
-                           document.getElementById(e.target.id).appendChild(divSol);
+                           document.getElementById(parseInt(e.target.id)).appendChild(divSol);
                          });
                          div.appendChild(divNavbar);
                          nav.appendChild(div);
@@ -162,17 +163,12 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
     });
 
    function showPartGraph(index){
-        console.log("Index",index);
       $.get("showOnePossibleSolutionGraph/" + index, function(data){
          try {
-         console.log("try");
                   var graph = JSON.parse(data);
-
-         console.log(graph);
                   mkGraph(graph, "#cy-part-graph");
                  }
               catch{
-              console.log("catch");
                  $("#cy--part-graph").html(data.replace(/\n/g, '<br />'));
                 }
         });

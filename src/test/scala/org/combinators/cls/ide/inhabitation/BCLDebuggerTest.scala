@@ -34,15 +34,27 @@ class BCLTest extends FunSpec {
   val kinding: Kinding =
     addAll(Kinding(Variable("alpha"))).merge(addAll(Kinding(Variable("beta"))))
   val testChannel = new TestChannel()
-  val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
 
-  describe(Gamma.toString) {
+  val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
+  val Gamma2 = BoundedCombinatoryLogicDebugger.algorithm(testChannel)
+  val tree = Gamma2.apply(kinding,SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
+
+  describe(Gamma2.toString) {
     describe("|- ? : String") {
+      testChannel.reset()
       val tgt = Constructor("List", Constructor("String"))
+      val tgt1 = Seq(tgt)
       val results = Gamma.inhabit(tgt)
-      println("XXXXXXXXX")
+      val algResult = tree.apply(tgt1)
+      val cannotUseCombinator = CannotUseCombinator("map", Constructor("List", Constructor("Char")), Seq(Constructor("List", Arrow(Constructor("Int"), Constructor("Char")))))
+      it(s"should push $cannotUseCombinator") {
+        assert(!testChannel.debugOutput.contains(cannotUseCombinator))
+      }
       it("should not be empty") {
         assert(results.nonEmpty)
+      }
+      it("should be equal") {
+        assert(algResult.equals(results))
       }
     }
     }

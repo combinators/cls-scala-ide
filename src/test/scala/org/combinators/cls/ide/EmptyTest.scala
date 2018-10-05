@@ -1,5 +1,6 @@
 package org.combinators.cls.ide
 
+import java.nio.file.Path
 import javax.inject.Inject
 
 import controllers.Assets
@@ -10,110 +11,55 @@ import org.webjars.play.WebJarsUtil
 import play.api.inject.ApplicationLifecycle
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
+import org.combinators.cls.ide.Helpers._
+import org.combinators.cls.git.EmptyResults
+import org.combinators.templating.persistable.Persistable
 
 
 class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
-  val ws = app.injector.instanceOf[WSClient]
-  "Calling the emptytest index" must {
-      "result in a valid response" in {
-        val request = s"/test/ide"
+
+  val index: Int = 100
+  val client = app.injector.instanceOf[WSClient]
+  "Calling the emptyTest index" must {
+    "result in a valid response" in {
+      val request = s"/testPrefix/emptytest/ide"
+      val url = s"http://localhost:$port$request"
+      val response = await(client.url(url).get())
+      response.status mustBe OK
+    }
+  }
+  "Calling the test graphEmpty" must {
+    "result in a valid response" in {
+      val request = s"/testPrefix/emptytest/graph"
+      val url = s"http://localhost:$port$request"
+      val response = await(client.url(url).get())
+      response.status mustBe OK
+    }
+  }
+  "Calling the test showResultEmpty" must {
+    "result in a valid response" in {
+        val request = s"/testPrefix/emptytest/showResult/$index"
         val url = s"http://localhost:$port$request"
-        val testPaymentGatewayURL = s"http://$url"
-        val response = await(ws.url(url).get())
-        response.status mustBe OK
-        response.body.toLowerCase.indexOf("repository") must be > 0
+        val response = await(client.url(url).get())
+        response.status mustBe NOT_FOUND
       }
-    }
-
-  "Calling the test graph" must {
+      }
+  "Calling the test showOnePossibleSolutionGraph" must {
     "result in a valid response" in {
-      val request = s"/test/graph"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
+        val request = s"/testPrefix/emptytest/showOnePossibleSolutionGraph/$index"
+        val url = s"http://localhost:$port$request"
+        val response = await(client.url(url).get())
+        response.status mustBe NOT_FOUND
+
+      }
   }
-
-  "Calling the test repository" must {
+  "Calling the test computeRequestEmpty" must {
     "result in a valid response" in {
-      val request = s"/test/repository"
+      val request = s"/testDebugger/computeRequest/test"
       val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
+      val response = await(client.url(url).get())
       response.status mustBe OK
-      response.body.toLowerCase.indexOf("repository") must be > 0
-    }
-  }
-  "Calling the test showDebuggerMessages" must {
-    "result in a valid response" in {
-      val request = s"/test/showDebuggerMessages"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-
-  "Calling the test showUninhabitedTy" must {
-    "result in a valid response" in {
-      val request = s"/test/showUninhabitedTy"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-
-  "Calling the test showUnusableCMsg" must {
-    "result in a valid response" in {
-      val request = s"/test/showUnusableCMsg"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-
-  "Calling the test showUnusableBecauseOfTy" must {
-    "result in a valid response" in {
-      val request = s"/test/showUnusableBecauseOfTy"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-
-
-  "Calling the test steps" must {
-    "result in a valid response" in {
-      val request = s"/test/steps/1"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-
-    }
-  }
-
-  "Calling the test computeRequest" must {
-    "result in a valid response" in {
-      val request = s"/test/computeRequest/test"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-  "Calling the test toggleCycles" must {
-    "result in a valid response" in {
-      val request = s"/test/toggleCycle/1"
-      val url = s"http://localhost:$port$request"
-      val testPaymentGatewayURL = s"http://$url"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-
+      response.body.toLowerCase.indexOf("not found!") must be > 0
     }
   }
   }
@@ -122,15 +68,21 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
 class EmptyTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: ApplicationLifecycle, assets: Assets, example: TestRepository, exampleName: String)
   extends Debugger(webJars,
     assets,
-    example.Gamma.substitutionSpace,
-    SubtypeEnvironment(example.Gamma.nativeTypeTaxonomy.addNativeType[Unit].taxonomy.merge(example.Gamma.semanticTaxonomy).underlyingMap),
-    example.jobs.targets,
-    example.resultsIntabit.infinite,
-    example.Gamma.combinatorComponents,
-    example.resultsIntabit,
+    Kinding.empty,
+    example.GammaFin.repository,
+    example.GammaFin.subtypes,
+    Seq(Constructor("Impossible")),
+    example.resultsInhabit1.infinite,
+    EmptyResults().add(example.results),
     example.testChannel,
     "test") with RoutingEntries {
-  override val controllerAddress: String = "test"
+  override val controllerAddress: String = "emptytest"
+  override val routingPrefix: Option[String] = Some("testPrefix")
+  implicit val persistable: Persistable.Aux[Path] = new Persistable {
+    override type T = Path
+    override def rawText(elem: T): Array[Byte] = elem.toString.getBytes
+    override def path(elem: T): Path = elem
+  }
 }
 
 

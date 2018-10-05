@@ -348,7 +348,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   /**
     * Shows a list of inhabitants
     */
-  def showResult(index: Long) = Action {
+  def showResult(index: Int) = Action {
     try {
       Ok(results.raw.index(index).mkString("\n"))
     } catch {
@@ -366,7 +366,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     * @param index number of inhabitant
     *
     */
-  def inhabitantToGraph(index: Long) = Action {
+  def inhabitantToGraph(index: Int) = Action {
     var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
     allPartGrammars.clear()
     try {

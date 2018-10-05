@@ -30,30 +30,29 @@ trait RoutingEntries extends SimpleRouter { self: Debugger =>
     */
   val controllerAddress: String
 
-  private def withSlash(address: String): String =
-    if (address.startsWith("/")) address else s"/$address"
-
   override def routes: RRoutes = {
-    val prefixWithSlash: String =
-      routingPrefix.map(withSlash).getOrElse("") ++ withSlash(controllerAddress)
-
     val directRoutes: RRoutes = {
-      case GET(p"/ide") => index()
-      case GET(p"/graph") => showGraph()
-      case GET(p"/repository") => showRepo()
-      case GET(p"/toggleCycle/${int(step)}") => toggleCycles(step)
-      case GET(p"/showDebuggerMessages") => showDebuggerMessages()
-      case GET(p"/showUninhabitedTy") => showUninhabitedTy()
-      case GET(p"/showUnusableCMsg") => showUnusableCMsg()
-      case GET(p"/showUnusableBecauseOfTy") => showUnusableBecauseOfTy()
-      case GET(p"/steps/${int(step)}") => showSteps(step)
-      case GET(p"/computeRequest/${label}") => computeRequest(label)
-      case GET(p"/showResult/${long(index)}") => showResult(index)
-      case GET(p"/showPartGraph/${long(index)}") => inhabitantToGraph(index)
-      case GET(p"/showPosition/${label}") => showPosition(label)
-      case GET(p"/countSolutions") => countsSolutions()
-      case GET(p"/showOnePossibleSolutionGraph/${long(index)}") => inhabitantToGraph(index)
+      case GET(p"/$prefix") if prefix == controllerAddress => index()
+      case GET(p"/$prefix/ide") if prefix == controllerAddress => index()
+      case GET(p"/$prefix/graph") if prefix == controllerAddress => showGraph()
+      case GET(p"/$prefix/repository") if prefix == controllerAddress => showRepo()
+      case GET(p"/$prefix/steps/${int(step)}") if prefix == controllerAddress => showSteps(step)
+      case GET(p"/$prefix/toggleCycle/${int(step)}") if prefix == controllerAddress => toggleCycles(step)
+      case GET(p"/$prefix/computeRequest/${label}") if prefix == controllerAddress => computeRequest(label)
+      case GET(p"/$prefix/showResult/${int(index)}") if prefix == controllerAddress => showResult(index)
+      case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
+      case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
+      case GET(p"/$prefix/showDebuggerMessages") if prefix == controllerAddress => showDebuggerMessages()
+      case GET(p"/$prefix/showUninhabitedTy") if prefix == controllerAddress => showUninhabitedTy()
+      case GET(p"/$prefix/showUnusableCMsg") if prefix == controllerAddress => showUnusableCMsg()
+      case GET(p"/$prefix/showUnusableBecauseOfTy") if prefix == controllerAddress => showUnusableBecauseOfTy()
+      case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
     }
-    new SimpleRouter { def routes: RRoutes = directRoutes }.withPrefix(prefixWithSlash).routes
+    routingPrefix match {
+      case None => directRoutes
+      case Some(prefix) =>
+        val prefixWithSlash = if (prefix.startsWith("/")) prefix else s"/$prefix"
+        new SimpleRouter { def routes: RRoutes = directRoutes }.withPrefix(prefixWithSlash).routes
+    }
   }
 }

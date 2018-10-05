@@ -73,7 +73,7 @@ class DebuggerPruneTest extends FunSpec{
     it(s"should push $cannotUseGarbage1") {
       assert(testChannel.debugOutput.contains(cannotUseGarbage1))
     }
-    it(s"schould not push $canUseCombinator") {
+    it(s"should not push $canUseCombinator") {
       assert(!testChannel.debugOutput.contains(canUseCombinator))
     }
     it(s"should not push $canUseCombinator1") {
