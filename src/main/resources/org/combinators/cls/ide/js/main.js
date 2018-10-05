@@ -67,7 +67,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
 
                  $.get("countSolutions", function(number){
-                 console.log("Number", number);
                      for (var item = 0; item < number ; item ++) {
                          var nav = document.createElement("nav");
                          nav.className = "navbar navbar-default"
@@ -96,9 +95,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                            var solution = document.createElement("solution");
                            divSol.appendChild(solution);
                            solution.appendChild(text);
-                           console.log("Index", $.get("showResult/" +  parseInt(e.target.id)))
                            $.get("showResult/" +  parseInt(e.target.id), function(data){
-                           showPartGraph(parseInt(e.target.id));
+                             showPartGraph(parseInt(e.target.id));
                              var text = document.createTextNode(data);
                              divSol.appendChild(solution);
                              solution.appendChild(text);
@@ -165,13 +163,13 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
    function showPartGraph(index){
       $.get("showOnePossibleSolutionGraph/" + index, function(data){
          try {
-                  var graph = JSON.parse(data);
-                  mkGraph(graph, "#cy-part-graph");
-                 }
-              catch{
-                 $("#cy--part-graph").html(data.replace(/\n/g, '<br />'));
-                }
-        });
+             var graph = JSON.parse(data);
+             mkGraph(graph, "#cy-part-graph");
+         }
+         catch{
+             $("#cy--part-graph").html(data.replace(/\n/g, '<br />'));
+         }
+       });
    }
 
    function toggleCycle(stepNr){
@@ -369,7 +367,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         fit: false,
                         padding: 75,
                         avoidOverlapPadding: 75,
-                       // ready: function() { console.log("resized"); }
                      }).run();}
 
                      cy.layout({
@@ -379,7 +376,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         animate: true,
                         avoidOverlap: true,
                         avoidOverlapPadding: 75,
-                      //  ready: function()  {console.log("bf resized")
                           }).run()
                  }
 
