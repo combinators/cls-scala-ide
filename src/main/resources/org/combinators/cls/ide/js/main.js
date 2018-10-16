@@ -367,6 +367,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         fit: false,
                         padding: 75,
                         avoidOverlapPadding: 75,
+                        ready: function() { console.log("resized"); }
                      }).run();}
 
                      cy.layout({
@@ -376,7 +377,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                         animate: true,
                         avoidOverlap: true,
                         avoidOverlapPadding: 75,
-                          }).run()
+                        ready: function()  {console.log("bf resized") } }).run()
+
                  }
 
                  adjustLayout();
