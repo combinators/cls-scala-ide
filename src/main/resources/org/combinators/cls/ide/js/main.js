@@ -17,30 +17,48 @@
 require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
   $(function() {
+     var news = loadDoc();
+
      // Ajax to data
      $.get("graph", function(data){
-         try {
+        $("#progress").html(" ");
+        try {
          var graph = JSON.parse(data)
          mkGraph(graph, "#cy-graph");
         }
-     catch{
-        $("#cy-graph").html(data.replace(/\n/g, '<br />'));
+        catch{
+            var news = loadDoc();
+            $("#cy-graph").html(data.replace(/\n/g, '<br />'));
         }
      });
+   });
 
 
+   function loadDoc() {
+        $.ajax({
+         url:"GET",
+         async: true,
+         xhr: function () {
+              var xhr = new window.XMLHttpRequest();
+              //Upload Progress
+              xhr.addEventListener("progress", function (evt) {
+                 if (evt.lengthComputable) {
+                var percentComplete = (evt.loaded / evt.total) * 100; $("#dynamic").css({ "width": percentComplete + "%" });
+                percentComplete;} }, false);
+        return xhr;
+        }
+    });
+   }
 
 
-             });
   var text = document.createTextNode("");
   var stepsNr = 0;
   var toggle = true;
+
   $(function(){
     $(".nav-sidebar a").click(function(){
         $(this).tab('show');
         });
-
-
 
         $('.nav-sidebar a[href="#steps"]').on('shown.bs.tab', function(){
             mkSteps(stepsNr);
@@ -200,6 +218,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
             });
         });
     }
+
 
       function mkSteps(stepsNr) {
             $.getJSON("steps/" + stepsNr, function(data){
