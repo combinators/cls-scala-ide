@@ -69,16 +69,6 @@ class DebuggerTest extends PlaySpec with GuiceOneServerPerSuite {
     }
   }
 
-  "Calling the test showUnusableBecauseOfTy" must {
-    "result in a valid response" in {
-      val request = s"/testDebugger/showUnusableBecauseOfTy"
-      val url = s"http://localhost:$port$request"
-      val response = await(ws.url(url).get())
-      response.status mustBe OK
-    }
-  }
-
-
   "Calling the test steps" must {
     "result in a valid response" in {
       val size: Int = 10

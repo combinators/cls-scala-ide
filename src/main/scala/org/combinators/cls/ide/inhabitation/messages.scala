@@ -25,6 +25,8 @@ case class CannotUseCombinator(combinatorName: String, tgt: Type, uninhabitedAgr
 
 case class CannotInhabitType(ty: Type) extends DebugMessage
 
-case class CannotInhabitBacauseOfSubtype(combinatorName: String, uninhabitedArgs: Seq[Type]) extends DebugMessage
+//case class CannotInhabitBecauseOfSubtype(combinatorName: String, uninhabitedArgs: Seq[Type]) extends DebugMessage
+
+case class SubtypeOf(tgt: Type, syTy: Type) extends DebugMessage
 
 

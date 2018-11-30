@@ -302,12 +302,9 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
         findEqualEntries(g, tgt) match {
           case Some(ty) =>
             testChannel(SubtypeOf(tgt, ty))
-            //println("Xx", findEqualEntries(g, tgt), oldTgts)
-            //println("subtypes", testChannel.debugOutput)
             testChannel.reset()
             (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
-          case None =>  //println("Xx", findEqualEntries(g, tgt), tgt, oldTgts)
-            (g, tgt +: tgts)
+          case None => (g, tgt +: tgts)
         }
     }
   }
@@ -356,10 +353,10 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
-
+  //Todo: If there are infinitely many inhabitants, the representation is very slow
+  //Todo: Idea: Choose the length of the path
   def countsSolutions = Action {
     lazy val numbers = if (results.infinite) 3 else  1 //results.raw.values.flatMap(_._2).size - 1
-    println("Solutions", numbers)
     Ok(numbers.toString)
   }
 
@@ -424,7 +421,6 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     * @return the html code of the page
     */
   def index() = Action { request =>
-    println("halloIndex")
     Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, combinators, infinite, newTargets, request.path, projectName))
   }
 }
