@@ -32,6 +32,7 @@ import shapeless.feat.Enumeration
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.tools.nsc.doc.html.Page
 
 abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
                         val combinators: Map[String, (Type, String)], val substitutionSpace: FiniteSubstitutionSpace,
@@ -181,18 +182,6 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Ok(newMsg.mkString("\n"))
   }
 
-  def showUnusableBecauseOfTy() = Action {
-    val messages = showDebuggerMessage().map {
-      case CannotInhabitBacauseOfSubtype(combinatorName, uninhabitedArgs) => combinatorName
-      case _ =>
-    }
-    val newMsg = messages.toList.filter {
-      case () => false
-      case _ => true
-    }
-    Ok(newMsg.mkString("\n"))
-  }
-
   /**
     * Returns messages for unusable combinators
     */
@@ -298,6 +287,12 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
+
+  private def findAllSubtypes(grammar: TreeGrammar, ty: Type): Option[Type] = {
+    import bcl.algorithm.subtypes._
+    grammar.keys.find(k => k.isSubtypeOf(ty))
+  }
+
   /**
     * Returns tree grammar and the new targets
     */
@@ -305,8 +300,14 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     oldTgts.flatten.foldLeft((oldGrammar, Stream.empty[Type])) {
       case ((g, tgts), tgt) =>
         findEqualEntries(g, tgt) match {
-          case Some(ty) => (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
-          case None => (g, tgt +: tgts)
+          case Some(ty) =>
+            testChannel(SubtypeOf(tgt, ty))
+            //println("Xx", findEqualEntries(g, tgt), oldTgts)
+            //println("subtypes", testChannel.debugOutput)
+            testChannel.reset()
+            (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
+          case None =>  //println("Xx", findEqualEntries(g, tgt), tgt, oldTgts)
+            (g, tgt +: tgts)
         }
     }
   }
@@ -357,7 +358,8 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   }
 
   def countsSolutions = Action {
-    lazy val numbers = if (results.infinite) 100 else results.raw.values.flatMap(_._2).size - 1
+    lazy val numbers = if (results.infinite) 3 else  1 //results.raw.values.flatMap(_._2).size - 1
+    println("Solutions", numbers)
     Ok(numbers.toString)
   }
 
@@ -422,6 +424,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     * @return the html code of the page
     */
   def index() = Action { request =>
+    println("halloIndex")
     Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, combinators, infinite, newTargets, request.path, projectName))
   }
 }

@@ -15,9 +15,9 @@
  */
 
 require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
-
-  $(function() {
-     var news = loadDoc();
+    loadDoc();
+    $(function() {
+        loadDoc();
 
      // Ajax to data
      $.get("graph", function(data){

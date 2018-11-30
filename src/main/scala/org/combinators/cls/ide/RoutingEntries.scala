@@ -33,7 +33,7 @@ trait RoutingEntries extends SimpleRouter { self: Debugger =>
   override def routes: RRoutes = {
     val directRoutes: RRoutes = {
       case GET(p"/$prefix") if prefix == controllerAddress => index()
-      case GET(p"/$prefix/ide") if prefix == controllerAddress => index()
+      case GET(p"/$prefix/ide") if prefix == controllerAddress =>index()
       case GET(p"/$prefix/graph") if prefix == controllerAddress => showGraph()
       case GET(p"/$prefix/repository") if prefix == controllerAddress => showRepo()
       case GET(p"/$prefix/steps/${int(step)}") if prefix == controllerAddress => showSteps(step)
@@ -45,7 +45,7 @@ trait RoutingEntries extends SimpleRouter { self: Debugger =>
       case GET(p"/$prefix/showDebuggerMessages") if prefix == controllerAddress => showDebuggerMessages()
       case GET(p"/$prefix/showUninhabitedTy") if prefix == controllerAddress => showUninhabitedTy()
       case GET(p"/$prefix/showUnusableCMsg") if prefix == controllerAddress => showUnusableCMsg()
-      case GET(p"/$prefix/showUnusableBecauseOfTy") if prefix == controllerAddress => showUnusableBecauseOfTy()
+    //  case GET(p"/$prefix/showUnusableBecauseOfTy") if prefix == controllerAddress => showUnusableBecauseOfTy()
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
     }
     routingPrefix match {
