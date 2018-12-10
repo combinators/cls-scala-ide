@@ -18,7 +18,7 @@ package org.combinators.cls.ide
 
 import java.lang
 
-import org.combinators.cls.git.Results
+import org.combinators.cls.git.{Results, InhabitationController}
 import org.combinators.cls.ide.inhabitation._
 import org.combinators.cls.inhabitation._
 import org.combinators.cls.interpreter._
@@ -51,6 +51,20 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
            combinators: Map[String, Type], subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
            results: Results, testChannel: TestChannel, projectName: String) =
     this(webjarsUtil, assets, combinators.mapValues(ty => (ty, "")), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
+
+  /*def this(webjarsUtil: WebJarsUtil, assets: Assets, reflectedRepository: ReflectedRepository[_], results: Results, testChannel: TestChannel,  projectName: String) =
+    this(
+      webjarsUtil = webjarsUtil,
+      assets = assets,
+      combinators = reflectedRepository.combinators,
+      substitutionSpace = reflectedRepository.substitutionSpace,
+      subtypes = SubtypeEnvironment(reflectedRepository.nativeTypeTaxonomy.addNativeTypes().toSet).taxonomy.merge(reflectedRepository.semanticTaxonomy).underlyingMap),
+      targets = results.targets.map(_._1),
+      infinite = results.infinite,
+      results = results,
+      testChannel = testChannel,
+      projectName = projectName)*/
+
 
 
   lazy val bcl = new BoundedCombinatoryLogicDebugger(testChannel, substitutionSpace, subtypes, combinators.mapValues(_._1))

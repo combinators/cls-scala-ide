@@ -41,7 +41,9 @@ class RequestParser extends RegexParsers {
 
   def ctor: Parser[Type] = word ~ opt("("~ repsep(ty, ",".r) ~ ")") ^^ {
     case name ~ None => Constructor(name)
-    case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys:_*)
+
+   //TODO case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys:_*)
+    case name ~ Some(_ ~ tys ~ _) => Constructor(name)
   }
 
   def tgts: Parser[Seq[Type]] = rep(ty)

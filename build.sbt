@@ -9,7 +9,7 @@ import play.twirl.sbt.SbtTwirl
 lazy val commonSettings = Seq(
   organization := "org.combinators",
 
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.7",
   crossScalaVersions := Seq("2.11.12", scalaVersion.value),
 
   resolvers ++= Seq(
@@ -49,7 +49,8 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
 
     libraryDependencies ++= Seq(
       "org.combinators" %% "cls-scala-presentation-play-git" % "1.0.0-RC1+1-00659e19",
-      "org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
+      //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
+      "org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
@@ -60,7 +61,7 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       "com.typesafe.play" %% "play-json" % "2.6.2",
       guice
     ),
-
+    resolvers += "LocalCLS" at "file:///C:\\Users/Anna/.ivy2/local/org.combinators",
     sourceDirectories in (Compile, TwirlKeys.compileTemplates) := Seq(sourceDirectory.value / "main" / "html-templates"),
     sources in (Test, play.sbt.routes.RoutesKeys.routes) ++= ((unmanagedResourceDirectories in Test).value * "routes").get,
     PlayKeys.playMonitoredFiles ++= (sourceDirectories in (Compile, TwirlKeys.compileTemplates)).value,
