@@ -22,8 +22,6 @@
 
 @(webJarsUtil: org.webjars.play.WebJarsUtil,
 asset: Assets,
-combinators: Map[String, (Type, String)],
-infinite: Boolean,
 targets: Seq[Type],
 path: String,
 projectName: String)
@@ -70,29 +68,6 @@ projectName: String)
         </div>
         <div id="navbar" class="collapse navbar-collapse ">
             <ul class="nav navbar-nav navbar-right">
-                <li> <div class="dropdown" id="layout-dropdown">
-                <a>Layout:</a>
-
-                    <button id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true"
-                            aria-expanded="false">
-                        Breadthfirst
-                        <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="dLabel">
-                        <li><a href="#">Breadthfirst</a></li>
-                        <li><a href="#">Circle</a></li>
-                        <li><a href="#">Cose</a></li>
-                        <li><a href="#">Grid</a></li>
-                        <li><a href="#">Concentric</a></li>
-                        <li><a href="#">Preset</a></li>
-                        <li><a href="#">Dagre</a></li>
-                        <li><a href="#">Random</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">Custom</a></li>
-                    </ul>
-
-
-                </div></li>
                 <li><input type="text" class="form-control" placeholder="Search..."></li>
             </ul>
             </div>
@@ -126,7 +101,7 @@ projectName: String)
             </ul>
             <div class="row justify-content-end">
                 <div class="col-md-8">
-                   <!-- <h1>Layout:</h1>
+                    <h1>Layout:</h1>
 
                         <div class="dropdown" id="layout-dropdown">
                             <button id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true"
@@ -147,7 +122,7 @@ projectName: String)
                                 <li><a href="#">Custom</a></li>
                             </ul>
                         </div>
-                    </div>-->
+                    </div>
 
                 </div>
             </div>
@@ -161,7 +136,7 @@ projectName: String)
                             <label for="request"><h3>Inhabitation Requests:</h3></label>
                             <!-- <label class="col-sm-6 col-md-10 control-label">Inhabitation Requests:</label>-->
                             <div class="form-group well">
-                                <label for="request">&Gamma; &vdash; ? :</label>
+                                <label for="request"><h4>&Gamma; &vdash; ? :</h4></label>
                                 <textarea class="form-control" id="request" type="text">@for(ty <- targets) {@ty &#10;}</textarea>
                                 <!--<p>&nbsp;</p>-->
                                 <button class="btn btn-primary" type="submit" id="submit">New Request</button>
@@ -198,11 +173,12 @@ projectName: String)
                </h3>
         </div>
         <div id="results" class="tab-pane fade" >
-            <div id="cy-part-graph">
-            </div>
+
             <h4>
                 <h3>Solutions:</h3>
             </h4>
+            <div id="cy-part-graph">
+            </div>
         </div>
         <div id="steps" class="tab-pane fade">
             <h3>
@@ -254,10 +230,10 @@ projectName: String)
         <div id="repo" class="tab-pane fade">
             <h4><h3>Repository:</h3>
                 <pre>
-                &Gamma; = {
-                     @for((name, (ty, position)) <- combinators) {
-        <span data-toggle="tooltip" title="@position">@name : @ty</span>}
-                    }
+                   <h4> &Gamma; = {</h4>
+                    <div id="repository"></div>
+                     <h4>  }</h4>
+
                 </pre>
             </h4>
         </div>

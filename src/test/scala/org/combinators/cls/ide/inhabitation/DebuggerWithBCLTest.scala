@@ -41,23 +41,23 @@ class DebuggerWithBCLTest extends FunSpec {
 
   val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding , SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
 
-describe(Gamma.toString){
+
+  describe(Gamma.toString){
     describe("|- ? : impossible") {
       val tgt = Constructor("List", Constructor("impossible"))
-    testChannel.reset()
+      testChannel.reset()
+      val cannotInhabitType = CannotInhabitType(tgt)
+      val results = Gamma.inhabit(tgt)
 
-    val cannotInhabitType = CannotInhabitType(tgt)
-    val results = Gamma.inhabit(tgt)
+      it("should be empty") {
+        assert(results.isEmpty)
+      }
 
-    it("should be empty") {
-      assert(results.isEmpty)
-    }
-
-    it(s"should push $cannotInhabitType") {
-      assert(testChannel.debugOutput.contains(cannotInhabitType))
+      it(s"should push $cannotInhabitType") {
+        assert(testChannel.debugOutput.contains(cannotInhabitType))
+      }
     }
   }
-}
 
 }
 

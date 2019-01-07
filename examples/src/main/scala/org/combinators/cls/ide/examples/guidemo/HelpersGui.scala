@@ -6,11 +6,10 @@ import java.nio.file.Paths
 
 import com.github.javaparser.ast.CompilationUnit
 import org.combinators.templating.persistable.{BundledResource, ResourcePersistable}
-import org.combinators.cls.git.{InhabitationController, Results}
 import org.combinators.templating.twirl.Java
 
 object Helpers {
-  //implicit val persistable: ResourcePersistable.Aux = ResourcePersistable.apply
+  implicit val persistable: ResourcePersistable.Aux = ResourcePersistable.apply
   type Form = CompilationUnit
   type OptionSelection = Form => Runnable
 

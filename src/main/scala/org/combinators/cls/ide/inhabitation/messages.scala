@@ -16,7 +16,8 @@
 
 package org.combinators.cls.ide.inhabitation
 
-import org.combinators.cls.types.Type
+import org.combinators.cls.inhabitation.Repository
+import org.combinators.cls.types.{FiniteSubstitutionSpace, SubtypeEnvironment, Type}
 
 
 sealed trait DebugMessage
@@ -30,3 +31,4 @@ case class CannotInhabitType(ty: Type) extends DebugMessage
 case class SubtypeOf(tgt: Type, syTy: Type) extends DebugMessage
 
 
+case class BclDebugger(bclDebugger: BoundedCombinatoryLogicDebugger, substitutionSpace: FiniteSubstitutionSpace, subtypes: SubtypeEnvironment, Gamma: Repository, targets: Seq[Type]) extends DebugMessage

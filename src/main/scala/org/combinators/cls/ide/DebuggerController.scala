@@ -16,9 +16,8 @@
 
 package org.combinators.cls.ide
 
-import java.lang
+import java.nio.file.{Files, Path}
 
-import org.combinators.cls.git.{Results, InhabitationController}
 import org.combinators.cls.ide.inhabitation._
 import org.combinators.cls.inhabitation._
 import org.combinators.cls.interpreter._
@@ -27,51 +26,92 @@ import org.webjars.play.WebJarsUtil
 import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
-import org.combinators.templating.persistable.Persistable
+import org.apache.commons.io.FileUtils
+import org.combinators.cls.git
+import org.combinators.cls.git.{EmptyResults, InhabitationController, Results}
+import play.api.inject.ApplicationLifecycle
 import shapeless.feat.Enumeration
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
-import scala.tools.nsc.doc.html.Page
+import scala.concurrent.Future
+import scala.util.Try
 
-abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
-                        val combinators: Map[String, (Type, String)], val substitutionSpace: FiniteSubstitutionSpace,
-                        val subtypes: SubtypeEnvironment, var targets: Seq[Type], val infinite: Boolean,
-                        val results: Results, val testChannel: TestChannel, val projectName: String) extends InjectedController {
+class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController {
 
 
-  def this(webjarsUtil: WebJarsUtil, assets: Assets,
-           substitutionSpace: FiniteSubstitutionSpace,
-           subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
-           combinatorComponents: Map[String, CombinatorInfo], results: Results, testChannel: TestChannel, projectName: String) =
-    this(webjarsUtil, assets, Debugger.toCombinatorsWithDeclarationInfo(combinatorComponents), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
-
-  def this(webjarsUtil: WebJarsUtil, assets: Assets,
-           substitutionSpace: FiniteSubstitutionSpace,
-           combinators: Map[String, Type], subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
-           results: Results, testChannel: TestChannel, projectName: String) =
-    this(webjarsUtil, assets, combinators.mapValues(ty => (ty, "")), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
-
-  /*def this(webjarsUtil: WebJarsUtil, assets: Assets, reflectedRepository: ReflectedRepository[_], results: Results, testChannel: TestChannel,  projectName: String) =
-    this(
-      webjarsUtil = webjarsUtil,
-      assets = assets,
-      combinators = reflectedRepository.combinators,
-      substitutionSpace = reflectedRepository.substitutionSpace,
-      subtypes = SubtypeEnvironment(reflectedRepository.nativeTypeTaxonomy.addNativeTypes().toSet).taxonomy.merge(reflectedRepository.semanticTaxonomy).underlyingMap),
-      targets = results.targets.map(_._1),
-      infinite = results.infinite,
-      results = results,
-      testChannel = testChannel,
-      projectName = projectName)*/
+  /*(val webjarsUtil: WebJarsUtil, val assets: Assets,
+                            val combinators: Map[String, (Type, String)], val substitutionSpace: FiniteSubstitutionSpace,
+                            val subtypes: SubtypeEnvironment, var targets: Seq[Type], val infinite: Boolean,
+                            val results: Results, val testChannel: TestChannel, val projectName: String) extends InjectedController {
 
 
+      def this(webjarsUtil: WebJarsUtil, assets: Assets,
+               substitutionSpace: FiniteSubstitutionSpace,
+               subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
+               combinatorComponents: Map[String, CombinatorInfo], results: Results, testChannel: TestChannel, projectName: String) =
+        this(webjarsUtil, assets, Debugger.toCombinatorsWithDeclarationInfo(combinatorComponents), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
 
-  lazy val bcl = new BoundedCombinatoryLogicDebugger(testChannel, substitutionSpace, subtypes, combinators.mapValues(_._1))
+      def this(webjarsUtil: WebJarsUtil, assets: Assets,
+               substitutionSpace: FiniteSubstitutionSpace,
+               combinators: Map[String, Type], subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
+               results: Results, testChannel: TestChannel, projectName: String) =
+        this(webjarsUtil, assets, combinators.mapValues(ty => (ty, "")), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
+
+
+      def this(webjarsUtil: WebJarsUtil, assets: Assets, reflectedRepository: ReflectedRepository[_], results: Results, testChannel: TestChannel,  projectName: String) =
+        this(
+          webjarsUtil = webjarsUtil,
+          assets = assets,
+          combinators = reflectedRepository.combinators,
+          substitutionSpace = reflectedRepository.substitutionSpace,
+          subtypes = SubtypeEnvironment(reflectedRepository.nativeTypeTaxonomy.addNativeTypes().toSet).taxonomy.merge(reflectedRepository.semanticTaxonomy).underlyingMap),
+          targets = results.targets.map(_._1),
+          infinite = results.infinite,
+          results = results,
+          testChannel = testChannel,
+          projectName = projectName)*/
+
+  var combinatorComponents: Map[String, CombinatorInfo] = Map()
   var newGraph: TreeGrammar = Map()
-  var newTargets: Seq[Type] = targets
   var graphObj: JsValue = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+  val infinite: Boolean = true
+  var newTargets: Seq[Type] = Seq()
+  var combinators: Repository = Map()
+  val projectName: String = ""
+  var bcl: BoundedCombinatoryLogicDebugger = null
+  var testChannel = new TestChannel
+  var refRepo: ReflectedRepository[_] = null
+  lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
 
+  def apply(): InhabitationAlgorithm = {
+    BoundedCombinatoryLogicDebugger.algorithm(testChannel)
+  }
+  /**
+    * Generates a tree grammar
+    */
+  private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
+    testChannel.reset()
+    newGraph = refRepo.algorithm.apply(FiniteSubstitutionSpace.empty,
+      SubtypeEnvironment(Map.empty), combinators).apply(tgt)
+    newGraph
+  }
+
+  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Repository) = {
+    refRepo = Gamma
+    newTargets = target
+    newGraph = Gamma.algorithm.apply(
+      FiniteSubstitutionSpace.empty,
+      SubtypeEnvironment(Map.empty),
+      repository).apply(newTargets)
+    combinatorComponents = Gamma.combinatorComponents
+    showDebuggerMessage().foreach {case BclDebugger(b, _, _,re,_) =>
+      bcl = b
+      combinators = re
+    case _ =>
+    }
+    newGraph
+  }
 
   // create Graph
   trait Style
@@ -140,7 +180,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
           r.map { case (c, args) =>
             val combinatorNode = Node(c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
             val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null)
-            var argsTyNode = args.zipWithIndex map { case (ty, pos) =>
+            val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
               val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
               val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
               (node, edgeFrom)
@@ -153,28 +193,35 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
+
   /**
     * Returns the repository
     */
   def showRepo: Action[AnyContent] = Action {
-    val repo = combinators
+    var repo = ""
+    var newRepo: Set[String] = Set.empty
     if (combinators.nonEmpty) {
-      val toShow = repo map {
-        case (c, ty) => c + ": " + ty
-      }
-      Ok(toShow.mkString("\n"))
+      for ((name, ty) <- combinators) {
+        repo = s"$name: $ty"
+        newRepo += repo}
+      Ok(newRepo.mkString("\n"))
     }
     else Ok("Empty Repository")
   }
-
   /**
     * Shows in the debug overview the implementation of the combinator
     * @param label the chosen combinator
     */
   def showPosition(label: String) = Action {
     var newEntry = ""
-    for ((name, (ty, position)) <- combinators) {
+    println("show Position", label)
+    val combinatorToString = DebuggerController.toCombinatorsWithDeclarationInfo(combinatorComponents)
+    println("Info", combinatorToString)
+    println("combinators", combinatorComponents)
+    for ((name, (ty, position)) <- combinatorToString) {
+      println("Show me", name, ty, position)
       if (name == label || ty.toString() == label) {
+        println("Position", position)
         newEntry = name + ": " + ty
       }
     }
@@ -201,7 +248,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     */
   def showUnusableCMsg() = Action {
     val message = showDebuggerMessage().map {
-      case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
+      case CannotUseCombinator(combinatorName, _, _) =>
         combinatorName
       case _ =>
     }
@@ -212,7 +259,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     Ok(newMsg.mkString("\n"))
   }
 
-  private def showDebuggerMessage(): mutable.Set[DebugMessage] = {
+  private def showDebuggerMessage() = {
     testChannel.debugOutput
   }
 
@@ -236,10 +283,6 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
-  def findEqualEntries(grammar: TreeGrammar, ty: Type): Option[Type] = {
-    import bcl.algorithm.subtypes._
-    grammar.keys.find(k => k.isSupertypeOf(ty) && k.isSubtypeOf(ty))
-  }
 
   /**
     * Computes the steps for the step-wise visualisation
@@ -302,10 +345,10 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   }
 
 
-  private def findAllSubtypes(grammar: TreeGrammar, ty: Type): Option[Type] = {
+  /*private def findAllSubtypes(grammar: TreeGrammar, ty: Type): Option[Type] = {
     import bcl.algorithm.subtypes._
     grammar.keys.find(k => k.isSubtypeOf(ty))
-  }
+  }*/
 
   /**
     * Returns tree grammar and the new targets
@@ -321,6 +364,12 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
           case None => (g, tgt +: tgts)
         }
     }
+  }
+  private def findEqualEntries(grammar: TreeGrammar, ty: Type): Option[Type] = {
+    val newBcl = bcl
+    import newBcl.algorithm.subtypes._
+
+    grammar.keys.find(k => k.isSupertypeOf(ty) && k.isSubtypeOf(ty))
   }
 
   /**
@@ -345,12 +394,10 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     * Returns a result overview
     */
   def showGraph = Action {
-    newGraph = inhabitResult(newTargets)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
         Ok(graphObj.toString)
-
       case false =>
         Ok("Inhabitant not found!")
 
@@ -362,7 +409,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     */
   def showResult(index: Int) = Action {
     try {
-      Ok(results.raw.index(index).mkString("\n"))
+      Ok(result.terms.index(index).toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
@@ -370,20 +417,20 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
   //Todo: If there are infinitely many inhabitants, the representation is very slow
   //Todo: Idea: Choose the length of the path
   def countsSolutions = Action {
-    lazy val numbers = if (results.infinite) 3 else  1 //results.raw.values.flatMap(_._2).size - 1
+    lazy val numbers = if (result.isInfinite) 3 else  1 //results.raw.values.flatMap(_._2).size - 1
     Ok(numbers.toString)
   }
 
-  /**
+   /**
     * Generates a graph for an inhabitant
     * @param index number of inhabitant
     *
     */
-  def inhabitantToGraph(index: Int) = Action {
+ def inhabitantToGraph(index: Int) = Action {
     var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
     allPartGrammars.clear()
     try {
-      val partTree: Seq[Tree] = results.raw.index(index)
+      val partTree: Seq[Tree] = Seq(result.terms.index(index))
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
         trees.map {
@@ -405,12 +452,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     }
   }
 
-  /**
-    * Generates a tree grammar
-    */
-  private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
-    bcl.algorithm.inhabit(tgt: _*)
-  }
+
 
   /**
     * Computes a new request
@@ -421,7 +463,7 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    newGraph = inhabitResult(newTargets)
+    newGraph = computeResults(refRepo, newTargets, combinators)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -435,11 +477,13 @@ abstract class Debugger(val webjarsUtil: WebJarsUtil, val assets: Assets,
     * @return the html code of the page
     */
   def index() = Action { request =>
-    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, combinators, infinite, newTargets, request.path, projectName))
+
+    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, newTargets, request.path, projectName))
   }
 }
 
-object Debugger {
+object DebuggerController {
+
   def toCombinatorsWithDeclarationInfo(combinatorComponents: Map[String, CombinatorInfo]): Map[String, (Type, String)] =
     combinatorComponents.mapValues {
       case staticInfo: StaticCombinatorInfo =>

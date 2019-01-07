@@ -26,7 +26,7 @@ class RequestParser extends RegexParsers {
   val word: Regex =
     """[a-zA-Z0-9=>\. \[\]]*[a-zA-Z0-9=>\.\[\]]""".r
 
-  def ty: Parser[Type] = tyInter ~ opt("->" ~ tyInter) ^^ {
+  def ty: Parser[Type] = tyInter ~ opt("->" ~ (tyInter|product)) ^^ {
     case lhs ~ Some(_ ~ rhs) => Arrow(lhs, rhs)
     case lhs ~ None => lhs
   }
@@ -39,11 +39,14 @@ class RequestParser extends RegexParsers {
   def tyS: Parser[Type] = ctor | "(" ~ ty ~ ")" ^^ { case _ ~ ty ~ _ =>  ty }
 
 
-  def ctor: Parser[Type] = word ~ opt("("~ repsep(ty, ",".r) ~ ")") ^^ {
+  def ctor: Parser[Type] = word ~ opt("("~ product ~ ")") ^^ {
     case name ~ None => Constructor(name)
+    case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys)
 
-   //TODO case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys:_*)
-    case name ~ Some(_ ~ tys ~ _) => Constructor(name)
+  }
+  def product: Parser[Type] = tyS ~ opt("*" ~ tyS) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
+    case lhs ~ None => lhs
   }
 
   def tgts: Parser[Seq[Type]] = rep(ty)
@@ -52,8 +55,9 @@ class RequestParser extends RegexParsers {
 object NewRequestParser extends RequestParser {
 
   def compute(request: String): Seq[Type] = parseAll(tgts, request) match {
-    case Success(result, _) => result
-    case failure: NoSuccess =>
+    case Success(result, _) => println("RequestCompute", result)
+      result
+    case failure: NoSuccess =>println("RequestCompute", failure.msg)
      Seq.empty
   }
 }
