@@ -66,16 +66,8 @@ class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
 
 
 class EmptyTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: ApplicationLifecycle, assets: Assets, example: TestRepository, exampleName: String)
-  extends Debugger(webJars,
-    assets,
-    Kinding.empty,
-    example.GammaFin.repository,
-    example.GammaFin.subtypes,
-    Seq(Constructor("Impossible")),
-    example.resultsInhabit1.infinite,
-    EmptyResults().add(example.results),
-    example.testChannel,
-    "test") with RoutingEntries {
+  extends DebuggerController(webJars,
+    assets) with DebuggerEnabled {
   override val controllerAddress: String = "emptytest"
   override val routingPrefix: Option[String] = Some("testPrefix")
   implicit val persistable: Persistable.Aux[Path] = new Persistable {

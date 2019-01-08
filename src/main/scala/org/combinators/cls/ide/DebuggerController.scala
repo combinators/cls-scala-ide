@@ -83,6 +83,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var testChannel = new TestChannel
   var refRepo: ReflectedRepository[_] = null
   lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
+  var repo: Map[String, Type] = Map()
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(testChannel)
@@ -97,15 +98,23 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     newGraph
   }
 
-  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Repository) = {
+  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]]=None) = {
     refRepo = Gamma
     newTargets = target
-    newGraph = Gamma.algorithm.apply(
-      FiniteSubstitutionSpace.empty,
-      SubtypeEnvironment(Map.empty),
-      repository).apply(newTargets)
     combinatorComponents = Gamma.combinatorComponents
-    showDebuggerMessage().foreach {case BclDebugger(b, _, _,re,_) =>
+    repo = repository match {
+      case Some(x) => x
+      case None => infoToString.map{
+        case (name, (ty, _)) => (name, ty)
+      }
+    }
+    lazy val infoToString = DebuggerController.toCombinatorsWithDeclarationInfo(combinatorComponents)
+    val subSpace = Gamma.substitutionSpace
+    newGraph = Gamma.algorithm.apply(
+      subSpace,
+      SubtypeEnvironment(Map.empty),
+      repo).apply(newTargets)
+    showDebuggerMessage().foreach { case BclDebugger(b, _, _,re,_) =>
       bcl = b
       combinators = re
     case _ =>
@@ -214,13 +223,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def showPosition(label: String) = Action {
     var newEntry = ""
-    println("show Position", label)
     val combinatorToString = DebuggerController.toCombinatorsWithDeclarationInfo(combinatorComponents)
-    println("Info", combinatorToString)
-    println("combinators", combinatorComponents)
+
     for ((name, (ty, position)) <- combinatorToString) {
-      println("Show me", name, ty, position)
-      if (name == label || ty.toString() == label) {
+      if (position.contains(label) || ty.toString() == label) {
         println("Position", position)
         newEntry = name + ": " + ty
       }
@@ -400,7 +406,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         Ok(graphObj.toString)
       case false =>
         Ok("Inhabitant not found!")
-
     }
   }
 
@@ -463,7 +468,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    newGraph = computeResults(refRepo, newTargets, combinators)
+    newGraph = computeResults(refRepo, newTargets)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -477,7 +482,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return the html code of the page
     */
   def index() = Action { request =>
-
     Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, newTargets, request.path, projectName))
   }
 }

@@ -1,7 +1,6 @@
 package org.combinators.cls.ide.examples.labyrinth
 
-import org.combinators.cls.ide.inhabitation.{FiniteCombinatoryLogicDebugger, TestChannel}
-import org.combinators.cls.interpreter.InhabitationResult
+
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._
 
@@ -38,11 +37,11 @@ class Repository(val labyrinth: Array[Array[Boolean]], val start: (Int, Int), va
     "left" -> intersect(possibleMoves(-1, 0)),
     "right" -> intersect(possibleMoves(1, 0))
   )
-  val testChannel = new TestChannel
+  /*val testChannel = new TestChannel
   val Gamma = new FiniteCombinatoryLogicDebugger(testChannel,SubtypeEnvironment(Map.empty), moves)
 
   val target: Type = position(goal)
-  val results: InhabitationResult[Unit] = InhabitationResult[Unit](Gamma.inhabit(target), target, x => ())
+  val results: InhabitationResult[Unit] = InhabitationResult[Unit](Gamma.inhabit(target), target, x => ())*/
 
 
 }

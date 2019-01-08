@@ -25,6 +25,7 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/showUnusableCMsg") if prefix == controllerAddress => showUnusableCMsg()
       case GET(p"/$prefix/showResult/${int(index)}") if prefix == controllerAddress => showResult(index)
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
+      case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
     }
     routingPrefix match {

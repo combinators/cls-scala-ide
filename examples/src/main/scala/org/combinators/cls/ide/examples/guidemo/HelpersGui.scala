@@ -8,7 +8,7 @@ import com.github.javaparser.ast.CompilationUnit
 import org.combinators.templating.persistable.{BundledResource, ResourcePersistable}
 import org.combinators.templating.twirl.Java
 
-object Helpers {
+object HelpersGui {
   implicit val persistable: ResourcePersistable.Aux = ResourcePersistable.apply
   type Form = CompilationUnit
   type OptionSelection = Form => Runnable

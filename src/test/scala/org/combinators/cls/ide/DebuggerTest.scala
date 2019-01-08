@@ -141,17 +141,10 @@ class DebuggerTest extends PlaySpec with GuiceOneServerPerSuite {
 
 }
 
-class DebuggerTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: ApplicationLifecycle, assets: Assets, example: TestRepository, exampleName: String)
-  extends Debugger(
+class DebuggerTestController @Inject()(webJars: WebJarsUtil, assets: Assets)
+  extends DebuggerController(
     webJars,
-    assets,
-    example.Gamma.substitutionSpace,
-   example.GammaFin.repository,
-    example.GammaFin.subtypes,
-    Seq(example.target),
-    example.results.isInfinite,
-    EmptyResults().add(example.results),
-    example.testChannel,
-    exampleName) with RoutingEntries {
+    assets
+  ) with DebuggerEnabled {
   override val controllerAddress: String = "testDebugger"
 }

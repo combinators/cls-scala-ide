@@ -8,7 +8,7 @@ import org.combinators.cls.types.{Kinding, Type, Variable}
 import org.combinators.cls.types.syntax._
 import org.combinators.templating.twirl.Java
 
-import Helpers._
+import HelpersGui._
 
 class Repository {
   lazy val alpha = Variable("alpha")

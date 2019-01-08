@@ -50,17 +50,9 @@ class MessagesTest extends PlaySpec with GuiceOneServerPerSuite {
 }
 
 class MessageTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: ApplicationLifecycle, assets: Assets, example: TestRepository, exampleName: String)
-  extends Debugger(
+  extends DebuggerController(
     webJars,
-      assets,
-      example.Gamma.substitutionSpace,
-      SubtypeEnvironment(example.Gamma.nativeTypeTaxonomy.addNativeType[Unit].taxonomy.merge(example.Gamma.semanticTaxonomy).underlyingMap),
-      example.jobs1.targets,
-      example.resultsInhabit1.infinite,
-      example.Gamma.combinatorComponents,
-      example.resultsInhabit1,
-      example.testChannel,
-      "test") with RoutingEntries {
+      assets) with DebuggerEnabled {
   override val controllerAddress: String = "testMessages"
   override val routingPrefix: Option[String] = Some("/testPrefix")
   implicit val persistable: Persistable.Aux[Path] = new Persistable {

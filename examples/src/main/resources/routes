@@ -1,12 +1,13 @@
 ->     /         org.combinators.cls.ide.Routes
 
-#->     /         org.combinators.cls.ide.examples.temperature.TemperatureDebugger
-->     /         org.combinators.cls.ide.examples.guidemo.GuiDemoDebugger
-#->     /         org.combinators.cls.ide.examples.labyrinthDemo.LabRouter
+->     /         org.combinators.cls.ide.examples.temperature.Temperature
+->     /          org.combinators.cls.ide.examples.labyrinth.LabDebugger
+->     /         org.combinators.cls.ide.examples.guidemo.GuiDebugger
+->     /         org.combinators.cls.ide.examples.labyrinthDemo.LabProductline
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth1
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth2
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth3_1
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth3_2
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth3_3
 
-#->     /         org.combinators.cls.ide.examples.planning.PlanningDebugger
+->     /         org.combinators.cls.ide.examples.planning.Planning

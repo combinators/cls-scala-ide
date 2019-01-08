@@ -2,7 +2,6 @@ package org.combinators.cls.ide.examples.planning
 
 import org.combinators.cls.types.{Kinding, Type, Variable}
 import org.combinators.cls.types.syntax._
-import Helpers._
 import org.combinators.cls.interpreter.combinator
 
 
