@@ -15,6 +15,9 @@
  */
 
 require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
+
+/*    require(['bootstrap', 'cytoscape', 'cytoscape-popper'], function(bootstrap, cytoscape, popper) {
+        popper(cytoscape);*/
     loadDoc();
     $(function() {
         loadDoc();
@@ -32,7 +35,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         }
      });
    });
-
 
    function loadDoc() {
         $.ajax({
@@ -75,17 +77,12 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                 }
                $("#debuggerM").html(data.replace(/\n/g, '<br />'));
             });
-            $.get("showUnusableBecauseOfTy", function(data){
-                if(!data){
-                    $("#unusableSub").addClass('hidden');
-                }
-                $("#deM").html(data.replace(/\n/g, '<br />'));
-            });
         });
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
 
                  $.get("countSolutions", function(number){
                      for (var item = 0; item < number ; item ++) {
+                        if(!document.getElementById("btn"+item)){
                          var nav = document.createElement("nav");
                          nav.className = "navbar navbar-default"
 
@@ -97,11 +94,13 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                          divNavbar.id = item;
 
                       //create variation buttons
+
                          var divBtn = document.createElement("divBtn");
+
                          var txt = document.createTextNode("Variation "+ item + ":");
                          var btn = document.createElement("button");
                          btn.className = "btn btn-primary";
-                         btn.id = item;
+                         btn.id = ("btn"+item);
 
                       //on click shows one solution
                          btn.addEventListener("click", function(e){
@@ -127,7 +126,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                          btn.appendChild(txt);
                          divNavbar.appendChild(divBtn);
                          document.getElementById("results").appendChild(nav);
-                     }
+                     }  }
                   });
         });
 
@@ -143,9 +142,14 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
             });
         });
 
-        $(".collapse").collapse('hide');
-            $("#collapse").on("shown.bs.collapse", function(){
-             });
+
+          $('#uninhabitedBtn, #unusableBtn').click(function(e){
+                               if(this.id == 'uninhabitedBtn'){
+                                    $("#collapse1").collapse('toggle');
+                               }else {
+                                $("#collapse2").collapse('toggle');
+                               }
+                         });
 
 
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){
@@ -366,6 +370,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
                  });
 
+
+
                  var layoutName = 'breadthfirst';
 
                  // Callback for relayout
@@ -427,25 +433,47 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
                  });
 
-                 cy.filter('node[style = "unusable-combinator-node"]').on('tap', function(event){
+                 /*cy.qtip({
+                 	content: 'Example qTip on core bg',
+                 	position: {
+                 		my: 'top center',
+                 		at: 'bottom center'
+                 	},
+                 	show: {
+                 		cyBgOnly: true
+                 	},
+                 	style: {
+                 		classes: 'qtip-bootstrap',
+                 	    tip: {
+                 			width: 16,
+                 			height: 8
+                 		}
+                 	}
+                 });*/
+
+
+                 /*cy.filter('node[style = "unusable-combinator-node"]').on('tap', function(event){
                     var node = event.target._private.data.label
                     $.get('showPosition/' + node, function(data){
                          $('#showUnusablePosition').html(data);});
                  });
 
-                 cy.filter('node[style = "combinator-node"]').on('tap', function(event){
+                 cy.filter('node[style = "combinator-node"]').on('mouseover', function(event){
+                 console.log("Hallo Combinator")
                     var node = event.target._private.data.label
                         $.get('showPosition/' + node, function(data){
                           $('#showPosition').html(data);});
-                        });
+                        });*/
 
 
-                cy.nodes().on('click', function (evt) {
+                /*cy.nodes().on('mouseover', function (evt) {
+                console.log("Hallo mouse", evt)
                     var node = evt.target._private.data.label
                     $.get('showPosition/' + node, function(data){
                         $("#position1").text(data);
                     });
-               });
-}
+               });*/
+
+    }
 
 });
