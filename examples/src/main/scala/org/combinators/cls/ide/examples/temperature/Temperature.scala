@@ -18,7 +18,7 @@ class Temperature @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
   {
 // Note: This will produce two variations; only the first is deemed accurate, and it is interesting
   // to consider how to deny the synthesis of the second one...
-   lazy val repository = new Repository {}
+   val repository = new Repository {}
     import repository._
   override val controllerAddress = "temperature"
   override val projectName = controllerAddress

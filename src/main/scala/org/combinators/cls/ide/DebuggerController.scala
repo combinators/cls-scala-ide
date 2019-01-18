@@ -27,10 +27,6 @@ import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
 import org.apache.commons.io.FileUtils
-import org.combinators.cls.git
-import org.combinators.cls.git.{EmptyResults, InhabitationController, Results}
-import play.api.inject.ApplicationLifecycle
-import shapeless.feat.Enumeration
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -241,12 +237,15 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val messages = showDebuggerMessage().map {
       case CannotInhabitType(ty) => ty
       case _ =>
-    }
-    val newMsg = messages.toList.filter {
+    }.toList.filter{
       case () => false
       case _ => true
     }
-    Ok(newMsg.mkString("\n"))
+
+    println("messa", messages)
+    val htmlMessage = s"""<lu>${(messages.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+    println("1", htmlMessage)
+    Ok(htmlMessage)
   }
 
   /**
@@ -254,15 +253,14 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def showUnusableCMsg() = Action {
     val message = showDebuggerMessage().map {
-      case CannotUseCombinator(combinatorName, _, _) =>
-        combinatorName
+      case CannotUseCombinator(combinatorName, _, _) => combinatorName
       case _ =>
-    }
-    val newMsg = message.toList.filter {
+    }.toList.filter {
       case () => false
       case _ => true
     }
-    Ok(newMsg.mkString("\n"))
+    val htmlMessage = s"""<lu>${(message.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+    Ok(htmlMessage)
   }
 
   private def showDebuggerMessage() = {
@@ -275,20 +273,43 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def showDebuggerMessages: Action[AnyContent] = Action {
     if (testChannel.debugOutput.nonEmpty) {
       val newSet = testChannel.debugOutput.collect {
+        case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
         case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
-          s"""|Combinator $combinatorName cannot be inhabited with target
-              |$tgt because of type
-              |$uninhabitedAgrs
+          s"""Combinator <b>$combinatorName</b> cannot be used with target \n
+              <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
               """.stripMargin
-        case CannotInhabitType(ty) => ty
       }
-      Ok(newSet.mkString)
+      Ok(newSet.mkString("\n"))
     }
     else {
       Ok("No messages")
     }
   }
+  /**
+    * Show the Combinator types
+    */
+   def showPaths = Action {
+     //println("rep", repo)
 
+     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]]  = Map()
+     var newSplit = Map()
+
+     if (splittedRepo.isEmpty) {splittedRepo = repo.mapValues(bcl.algorithm.split)
+        for ((name, ty) <- splittedRepo) {
+          println("Split", name, ty.flatten.map(e=> e._2 match {
+            case Intersection(s, t) => s"$s \n $t"
+            case _ =>
+          }))
+
+         /*newSplit = s"$name: $ty"
+         splittedRepo += newSplit}*/
+
+     }}
+     else {splittedRepo}
+     println("Split",splittedRepo)
+
+   Ok(splittedRepo.mkString("\n"))
+   }
 
   /**
     * Computes the steps for the step-wise visualisation

@@ -37,17 +37,14 @@ projectName: String)
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-
     <link rel="icon" href="../../favicon.ico">
 
     <title>CLS Debugger</title>
 
     <!-- Bootstrap core CSS -->
-    @Html(webJarsUtil.script("jquery.js"))
-    @Html(webJarsUtil.css("css/bootstrap.min.css"))
-    @Html(webJarsUtil.script("bootstrap.min.js"))
     @Html(webJarsUtil.script("cytoscape.min.js"))
 
 
@@ -92,6 +89,7 @@ projectName: String)
                 <li><a class="nav-link" data-toggle="pill" href="#steps">Debug Overview</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#paths">Tests</a></li>
 
                <!-- <li>
                     <a href="#">Analytics </a>
@@ -129,7 +127,7 @@ projectName: String)
     </div>
 
         <div clas="panel-body">
-            <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 main ">
+            <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 collapse in main" id = "inhabRequest">
                 <div class="row justify-content-between">
                     <form class="form-row">
 
@@ -180,51 +178,38 @@ projectName: String)
             <div id="cy-part-graph">
             </div>
         </div>
-        <div id="steps" class="tab-pane fade">
-            <h3>
-                <span id="position1"></span></h3>
-            <div class="row">
-                <div class="col-sm-3 col-sm-3 col-md-3  pull-right">
-                    <div class="container">
+        <div id="steps" class="tab-pane fade flex-items">
+            <div class = "container-show">
+                    <div id="cy-steps"></div>
+
+            <div class ="container-panel">
+                <div class="container-toggle">
                         <button type="button" class="btn btn-primary btn-lg active" id="backwardButton"><span
                                 class="glyphicon glyphicon-menu-left" aria-hidden="true"></span></button>
                         <button type="button" class="btn btn-primary btn-lg" id="forwardButton"><span
                                 class="glyphicon glyphicon-menu-right" aria-hidden="true"></span></button>
                         <button type="button" class="btn btn-primary btn-lg" id="toggleCyclesButton">Toggle Cycles</button>
+
+                </div>
+            <div class="container-panel">
+
+                <div class = "panel panel-primary">
+                    <div id = "uninhabitedTy" class = "panel-heading"><h4>Uninhabited Types</h4></div>
+                        <div id="collapse1" class = "collapse panel-body">
+                            <div id="debuggerMessages"></div>
+                        </div>
+                </div>
+
+                <div class = "panel panel-primary">
+                    <div id = "unusableComb" class = "panel-heading"><h4>Unusable Combinators</h4></div>
+                    <div id="collapse2" class = "collapse panel-body">
+                        <div id="debuggerM"></div>
                     </div>
                 </div>
-            </div>
-            <div class="col-sm-3 col-sm-3 col-md-3 pull-right main container" id="debMess">
-                <div class="panel-group" id = "myCollapse">
-                    <div class="panel panel-default">
-                        <div class="panel-heading" id="unusableTy">
-                            <h4 class="panel-title">
-                                <a class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse1"   aria-expanded="true" aria-controls="collapse1">Uninhabited Types</a>
-                            </h4>
-                        </div>
-                        <div id="collapse1" class="collapse" aria-labelledby="headingOne"data-parent="#myCollapse">
-                            <div class="panel-body" id="debuggerMessages">
-                                                           </div>
-                        </div>
-                    </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading" id="unusableCom">
-                            <h4 class="panel-title">
-                                <a class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse2" aria-expanded="true" aria-controls="collapse2">Unusable Combinators</a>
-                            </h4>
-                        </div>
-                        <div id="collapse2" class="collapse" aria-labelledby="headingTwo" data-parent="#myCollapse">
-                            <div class="panel-body">
-                                <div id="debuggerM"></div>
-                            </div>
 
-                        </div>
-                    </div>
-                   </div>
+            </div>
             </div>
 
-            <div class="col-sm-3 col-sm-4 col-md-9  tab-content main">
-                <div id="cy-steps"></div>
             </div>
         </div>
         <div id="repo" class="tab-pane fade">
@@ -245,6 +230,14 @@ projectName: String)
                 </pre>
             </h4>
         </div>
+
+    <div id="paths" class="tab-pane fade">
+        <h4><h3>Paths:</h3>
+            <pre>
+                <div id="cominatorTys"></div>
+            </pre>
+        </h4>
+    </div>
     </div>
 </div>
 </div>

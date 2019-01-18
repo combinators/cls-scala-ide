@@ -60,26 +60,32 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
   $(function(){
     $(".nav-sidebar a").click(function(){
         $(this).tab('show');
+        $('#inhabRequest').collapse('show');
         });
 
         $('.nav-sidebar a[href="#steps"]').on('shown.bs.tab', function(){
             mkSteps(stepsNr);
+            $('#inhabRequest').collapse('show');
             $.get("showUninhabitedTy", function(data){
-                if(!data){
-                    $("#unusableTy").addClass('hidden');
-                }
-               $("#debuggerMessages").html(data.replace(/\n/g, '<br />'));
-
+                 $('#uninhabitedTy, #unusableComb').click(function(e){
+                      if(this.id == 'uninhabitedTy'){
+                         $('#collapse1').collapse('toggle');
+                         $("#debuggerMessages").html(data.replace(/\n/g, '<br />'));
+                      }
+                 });
             });
             $.get("showUnusableCMsg", function(data){
-                if(!data){
-                    $("#unusableCom").addClass('hidden');
-                }
-               $("#debuggerM").html(data.replace(/\n/g, '<br />'));
+                   $('#uninhabitedTy, #unusableComb').click(function(e){
+                      if(this.id == 'unusableComb'){
+                         $('#collapse2').collapse('toggle');
+                         $("#debuggerM").html(data.replace(/\n/g, '<br />'));
+                      }
+                   });
             });
-        });
-        $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
 
+            });
+        $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
+                 $('#inhabRequest').collapse('show');
                  $.get("countSolutions", function(number){
                      for (var item = 0; item < number ; item ++) {
                         if(!document.getElementById("btn"+item)){
@@ -126,30 +132,40 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                          btn.appendChild(txt);
                          divNavbar.appendChild(divBtn);
                          document.getElementById("results").appendChild(nav);
-                     }  }
-                  });
+                  }  }
+                });
         });
 
         $('.nav-sidebar a[href="#repo"]').on('shown.bs.tab', function(){
+
+            $('#inhabRequest').collapse('show');
             $.get("repository", function(data){
               $("#repository").html(data.replace(/\n/g, '<br />'));
                });
         });
 
+        $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
+                    $.get("showPaths", function(data){
+        $('#inhabRequest').collapse('hide');
+                      $("#cominatorTys").html(data.replace(/\n/g, '<br />'));
+                       });
+                });
+
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
             $.get("showDebuggerMessages", function(data){
-             $("#showDebuggerMessages").html(data.replace(/\n/g, '<br />'));
+            $('#inhabRequest').collapse('show');
+             $("#showDebuggerMessages").html(data);
             });
         });
 
-
+/*
           $('#uninhabitedBtn, #unusableBtn').click(function(e){
                                if(this.id == 'uninhabitedBtn'){
                                     $("#collapse1").collapse('toggle');
                                }else {
                                 $("#collapse2").collapse('toggle');
                                }
-                         });
+                         });*/
 
 
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){

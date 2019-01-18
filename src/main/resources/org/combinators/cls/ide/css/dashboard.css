@@ -125,7 +125,48 @@ div.zebra > div:nth-of-type(even) {
   border-radius: 50%;
 }
 
+.container-toggle {
+display: flex;
+justify-content: flex-end;
+}
 
+.container-show {
+display: flex;
+justify-content: space-between;
+}
+.grid-flex {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  background-color: #2196F3;
+}
+.container-panel {
+display: flex;
+align-items: flex-end;
+flex-direction: column;
+grid-column-start: 1;
+grid-column-end: 3;
+}
+#cy-steps {
+  flex-grow: 2; /* default 0 */
+}
+.flex-items {
+justify-content: flex-start;
+}
+
+
+.btn {
+margin-right: 10px;
+margin-bottom: 20px;
+margin-top: 10px;
+box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+}
+.panel{
+margin-right: 10px;
+}
+
+.panel-title .trigger.collapsed:before {
+  content: '\e081';
+}
 
 #cy {
   width: 100%;
