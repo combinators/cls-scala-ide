@@ -14,6 +14,7 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
 
   override def routes: RRoutes = {
     val directRoutes: RRoutes = {
+      case GET(p"/$prefix/") if prefix == controllerAddress =>index()
       case GET(p"/$prefix/ide") if prefix == controllerAddress =>index()
       case GET(p"/$prefix/graph") if prefix == controllerAddress => showGraph()
       case GET(p"/$prefix/steps/${int(step)}") if prefix == controllerAddress => showSteps(step)
@@ -28,7 +29,8 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
 
-      case GET(p"/$prefix/showPaths") if prefix == controllerAddress => showPaths()
+      case GET(p"/$prefix/showPaths/${combName}") if prefix == controllerAddress => showPaths(combName)
+      case GET(p"/$prefix/getCombinators") if prefix == controllerAddress => getCombinatorNames()
     }
     routingPrefix match {
       case None => directRoutes

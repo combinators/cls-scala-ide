@@ -56,6 +56,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
   var text = document.createTextNode("");
   var stepsNr = 0;
   var toggle = true;
+  var oldData = null;
 
   $(function(){
     $(".nav-sidebar a").click(function(){
@@ -87,53 +88,91 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
                  $('#inhabRequest').collapse('show');
                  $.get("countSolutions", function(number){
-                     for (var item = 0; item < number ; item ++) {
-                        if(!document.getElementById("btn"+item)){
-                         var nav = document.createElement("nav");
-                         nav.className = "navbar navbar-default"
+                                      for (var item = 0; item < number ; item ++) {
+                                          var nav = document.createElement("nav");
+                                          nav.className = "navbar navbar-default"
 
-                         var div = document.createElement("div");
-                         div.className = "container-fluid";
+                                          var div = document.createElement("div");
+                                          div.className = "container-fluid";
 
-                         var divNavbar = document.createElement("navBar");
-                         divNavbar.className = "navbar-header";
-                         divNavbar.id = item;
+                                          var divNavbar = document.createElement("navBar");
+                                          divNavbar.className = "navbar-header";
+                                          divNavbar.id = "divNav" + item;
 
-                      //create variation buttons
+                                       //create variation buttons
 
-                         var divBtn = document.createElement("divBtn");
+                                        if(!document.getElementById(item)){
+                                          var divBtn = document.createElement("divBtn");
+                                          var txt = document.createTextNode("Variation "+ item + ":");
+                                          var btn = document.createElement("button");
+                                          btn.className = "btn btn-primary";
+                                          btn.id = item;
+                                          div.appendChild(divNavbar);
+                                          nav.appendChild(div);
+                                          divBtn.appendChild(btn);
+                                          btn.appendChild(txt);
+                                          divNavbar.appendChild(divBtn);
+                                          document.getElementById("results").appendChild(nav);
 
-                         var txt = document.createTextNode("Variation "+ item + ":");
-                         var btn = document.createElement("button");
-                         btn.className = "btn btn-primary";
-                         btn.id = ("btn"+item);
 
-                      //on click shows one solution
-                         btn.addEventListener("click", function(e){
-                             $("solution").remove();
+                           btn.addEventListener("click", function(e){
+                           $('#inhabRequest').collapse('hide');
+                                var allElements = document.querySelectorAll('*[id]')
+                                var allIds = [];
+                                for (var i = 0, n = allElements.length; i < n; ++i) {
+                                    var el = allElements[i];
+                                    if (el.id != e.target.id) {
+                                        $('#'+el.id).prop('disabled', false);
+                                    }else{
+                                        $('#'+e.target.id).prop('disabled', true);
+                                     }
+                                }
+                             $("divSol").remove();
                            var divSol = document.createElement("divSol");
                            divSol.className = "container-fluid";
+                           $('.divSol').addClass('collapse');
                            divSol.id =  "solutionSol" + e.target.id;
-
                            var solution = document.createElement("solution");
-                           divSol.appendChild(solution);
-                           solution.appendChild(text);
                            $.get("showResult/" +  parseInt(e.target.id), function(data){
                              showPartGraph(parseInt(e.target.id));
-                             var text = document.createTextNode(data);
-                             divSol.appendChild(solution);
-                             solution.appendChild(text);
+                             text = document.createTextNode(data);
+
+                           divSol.appendChild(solution);
+                           solution.appendChild(text);
                            });
-                           document.getElementById(parseInt(e.target.id)).appendChild(divSol);
+                           divSol.appendChild(solution);
+                                                        solution.appendChild(text);
+                           document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
                          });
-                         div.appendChild(divNavbar);
-                         nav.appendChild(div);
-                         divBtn.appendChild(btn);
-                         btn.appendChild(txt);
-                         divNavbar.appendChild(divBtn);
-                         document.getElementById("results").appendChild(nav);
-                  }  }
-                });
+
+
+                                      /* //on click shows one solution
+                                          btn.addEventListener("click", function(e){
+                                            $("solution").remove();
+                                            $('#inhabRequest').collapse('hide');
+
+                                            $.get("showResult/" +  parseInt(e.target.id), function(data){
+                                              showPartGraph(parseInt(e.target.id));
+                                              console.log("true", document.getElementById( "solutionSol" + e.target.id));
+                                              if(document.getElementById( "solutionSol" + e.target.id)==null){
+                                              var divSol = document.createElement("divSol");
+                                              divSol.className = "container-fluid";
+                                              divSol.id =  "solutionSol" + e.target.id;
+                                              var solution = document.createElement("solution");
+                                              divSol.appendChild(solution);
+                                              console.log("true", data);
+                                              var text = document.createTextNode(data);
+                                              solution.appendChild(text);
+                                              document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
+                                               }
+                                            });
+
+
+                                          });*/
+                                        }
+                                      }
+                                   });
+
         });
 
         $('.nav-sidebar a[href="#repo"]').on('shown.bs.tab', function(){
@@ -144,12 +183,38 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                });
         });
 
-        $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
-                    $.get("showPaths", function(data){
-        $('#inhabRequest').collapse('hide');
-                      $("#cominatorTys").html(data.replace(/\n/g, '<br />'));
+        /*$('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
+            if( $('#inhabRequest').is( ":visible" )){
+            console.log("true", $('#inhabRequest').is( ":visible" ));
+                $('#inhabRequest').removeClass('in');
+            }
+                    var combName = "down";
+                    $.get("showPaths/"+combName, function(data){
+                      $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
                        });
+
+                    $.get("getCombinators", function(data){
+                      $("#combinatorName").html(data.replace(/\n/g, '<br />'));
+                                           });
                 });
+*/
+           /*function showPaths(label) {
+
+           $('.nav-sidebar a[href="#paths"]').tab('show');
+          // $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
+                       if( $('#inhabRequest').is( ":visible" )){
+                       console.log("true", $('#inhabRequest').is( ":visible" ));
+                           $('#inhabRequest').removeClass('in');
+                       }
+                               $.get("showPaths/"+label, function(data){
+                                 $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
+                                  });
+
+                               $.get("getCombinators", function(data){
+                                 $("#combinatorName").html(data.replace(/\n/g, '<br />'));
+                                                      });
+                          // });
+           }*/
 
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
             $.get("showDebuggerMessages", function(data){
@@ -198,6 +263,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         }
     });
 
+
    function showPartGraph(index){
       $.get("showOnePossibleSolutionGraph/" + index, function(data){
          try {
@@ -223,11 +289,28 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         var x = document.getElementById("request").value;
         computeNewRequest(x);
     });
+    function showPaths(label) {
+            console.log("Hallo Paths", label);
+           $('.nav-sidebar a[href="#paths"]').tab('show');
+           $("#combinatorName").html(label);
 
+            if( $('#inhabRequest').is( ":visible" )){
+                       console.log("true", $('#inhabRequest').is( ":visible" ));
+                           $('#inhabRequest').removeClass('in');
+                       }
+            $.get("showPaths/"+label, function(data){
+                 $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
+             });
+
+                             //  $.get("getCombinators", function(data){
+
+                               //                       });
+
+           }
 
     function computeNewRequest(request) {
-    if (request.includes("[")){
-    }else {
+        if (request.includes("[")){
+        }else {
     } var req = request.replace(/\[/g, '91')
     req = req.replace(/\]/g, '93')
         $.get("computeRequest/" + req, function(data){
@@ -448,6 +531,36 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                     });
 
                  });
+                 var tappedBefore;
+                 var tappedTimeout;
+                 cy.on('tap', function(event) {
+                   var tappedNow = event.target;
+                   console.log("cyTarget", event);
+                   if (tappedTimeout && tappedBefore) {
+                     clearTimeout(tappedTimeout);
+                   }
+                   if(tappedBefore === tappedNow) {
+                     tappedNow.emit('doubleTap');
+                     tappedBefore = null;
+                   } else {
+                     tappedTimeout = setTimeout(function(){ tappedBefore = null; }, 300);
+                     tappedBefore = tappedNow;
+                   }
+                 });
+
+                 cy.filter('node[style = "combinator-node"], node[style = "unusable-combinator-node"]').on('doubleTap', function (evt) {
+                                 console.log("Hallo mouse", evt.target._private.data.label);
+                                 var combinatorName = evt.target._private.data.label;
+                                //  $('.nav-sidebar a[href="#paths"]').tab('show');
+
+                                  showPaths(combinatorName);
+                                  console.log("I Am In");
+
+                                  /*   var node = evt.target._private.data.label
+                                     $.get('showPosition/' + node, function(data){
+                                         $("#position1").text(data);
+                                     });*/
+                                });
 
                  /*cy.qtip({
                  	content: 'Example qTip on core bg',

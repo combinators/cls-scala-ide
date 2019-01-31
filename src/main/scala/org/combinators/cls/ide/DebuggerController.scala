@@ -84,6 +84,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(testChannel)
   }
+
   /**
     * Generates a tree grammar
     */
@@ -94,13 +95,13 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     newGraph
   }
 
-  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]]=None) = {
+  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]] = None) = {
     refRepo = Gamma
     newTargets = target
     combinatorComponents = Gamma.combinatorComponents
     repo = repository match {
       case Some(x) => x
-      case None => infoToString.map{
+      case None => infoToString.map {
         case (name, (ty, _)) => (name, ty)
       }
     }
@@ -110,7 +111,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       subSpace,
       SubtypeEnvironment(Map.empty),
       repo).apply(newTargets)
-    showDebuggerMessage().foreach { case BclDebugger(b, _, _,re,_) =>
+    showDebuggerMessage().foreach { case BclDebugger(b, _, _, re, _) =>
       bcl = b
       combinators = re
     case _ =>
@@ -208,13 +209,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     if (combinators.nonEmpty) {
       for ((name, ty) <- combinators) {
         repo = s"$name: $ty"
-        newRepo += repo}
+        newRepo += repo
+      }
       Ok(newRepo.mkString("\n"))
     }
     else Ok("Empty Repository")
   }
+
   /**
     * Shows in the debug overview the implementation of the combinator
+    *
     * @param label the chosen combinator
     */
   def showPosition(label: String) = Action {
@@ -223,7 +227,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
     for ((name, (ty, position)) <- combinatorToString) {
       if (position.contains(label) || ty.toString() == label) {
-        println("Position", position)
         newEntry = name + ": " + ty
       }
     }
@@ -237,14 +240,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val messages = showDebuggerMessage().map {
       case CannotInhabitType(ty) => ty
       case _ =>
-    }.toList.filter{
+    }.toList.filter {
       case () => false
       case _ => true
     }
 
-    println("messa", messages)
     val htmlMessage = s"""<lu>${(messages.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
-    println("1", htmlMessage)
     Ok(htmlMessage)
   }
 
@@ -285,31 +286,63 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       Ok("No messages")
     }
   }
+
   /**
     * Show the Combinator types
     */
-   def showPaths = Action {
-     //println("rep", repo)
+  /*def showPaths = Action {
+    //println("rep", repo)
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]]  = Map()
+    var newSplit = Map()
 
-     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]]  = Map()
-     var newSplit = Map()
+    if (splittedRepo.isEmpty) {splittedRepo = repo.mapValues(bcl.algorithm.split)
+      for ((name, ty) <- splittedRepo) {
+        println("Split",name, ty.flatten.filter(e=> e._2 match {
+          case Intersection(s, t) => true
+          case _ =>false
+        }))
+      }}
+    else {splittedRepo}
+    println("Split",splittedRepo)
+    Ok(splittedRepo.mkString("\n"))
+  }*/
+  def showPaths(combinatorName: String) = Action {
 
-     if (splittedRepo.isEmpty) {splittedRepo = repo.mapValues(bcl.algorithm.split)
-        for ((name, ty) <- splittedRepo) {
-          println("Split", name, ty.flatten.map(e=> e._2 match {
-            case Intersection(s, t) => s"$s \n $t"
-            case _ =>
-          }))
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.split)
+    var paths: Set[Type] = Set.empty
+    //var combArgs: Set[(String, Seq[Type])]
+    /*val combArgs: Seq[Seq[(Seq[Type], Type)]] = splittedRepo.map{
+      case (name, tys) => if(name==combinatorName)(tys.flatten.map(elem => elem match {
+        case (Seq(), ty) =>
+          println(ty)
+          ty
+        case _ =>
+        }))
+    }*/
+    val combArgs = splittedRepo.foreach {
+      case (name, tys) => if (name == combinatorName) tys.flatten.foreach {
+        case (Seq(), ty) => paths += ty
+        case _ =>
+      }
+    }
+    var newPath: Set[Type] = Set.empty
+    paths.foreach {
+      case Intersection(s, t) => newPath += (t, s)
+      case x => newPath += x
+    }
+    val htmlArgs = s"""<label>${newPath.map(e => s"""<input type="checkbox">$e""").mkString("\n")}</label>"""
 
-         /*newSplit = s"$name: $ty"
-         splittedRepo += newSplit}*/
+    Ok(htmlArgs)
 
-     }}
-     else {splittedRepo}
-     println("Split",splittedRepo)
+  }
 
-   Ok(splittedRepo.mkString("\n"))
-   }
+  def getCombinatorNames() = Action {
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.split)
+    val combinatorNames = splittedRepo.map {
+      case (name, ty) => name
+    }
+    Ok(combinatorNames.mkString("\n"))
+  }
 
   /**
     * Computes the steps for the step-wise visualisation
@@ -392,6 +425,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         }
     }
   }
+
   private def findEqualEntries(grammar: TreeGrammar, ty: Type): Option[Type] = {
     val newBcl = bcl
     import newBcl.algorithm.subtypes._
@@ -440,23 +474,26 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
+
   //Todo: If there are infinitely many inhabitants, the representation is very slow
   //Todo: Idea: Choose the length of the path
   def countsSolutions = Action {
-    lazy val numbers = if (result.isInfinite) 3 else  1 //results.raw.values.flatMap(_._2).size - 1
+    lazy val numbers = if (result.isInfinite) 3 else 1 //results.raw.values.flatMap(_._2).size - 1
     Ok(numbers.toString)
   }
 
-   /**
+  /**
     * Generates a graph for an inhabitant
+    *
     * @param index number of inhabitant
     *
     */
- def inhabitantToGraph(index: Int) = Action {
+  def inhabitantToGraph(index: Int) = Action {
     var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
     allPartGrammars.clear()
     try {
       val partTree: Seq[Tree] = Seq(result.terms.index(index))
+
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
         trees.map {
@@ -468,6 +505,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         }
         partTreeGrammar
       }
+
       mkTreeMap(partTree)
       newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
       graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -479,9 +517,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
 
-
   /**
     * Computes a new request
+    *
     * @param request new target
     */
   def computeRequest(request: String) = Action {
@@ -500,6 +538,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Renders an overview page
+    *
     * @return the html code of the page
     */
   def index() = Action { request =>

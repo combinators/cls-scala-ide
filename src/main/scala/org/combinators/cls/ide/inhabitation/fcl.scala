@@ -17,7 +17,7 @@
 package org.combinators.cls.ide.inhabitation
 
 import org.combinators.cls.inhabitation.{FiniteCombinatoryLogic, Repository, TreeGrammar}
-import org.combinators.cls.types.{SubtypeEnvironment, Type}
+import org.combinators.cls.types.{Arrow, Intersection, SubtypeEnvironment, Type}
 
 
 class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtypes: SubtypeEnvironment, repository: Repository)
@@ -57,6 +57,31 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
     }
 
   }
+
+  def split(ty:Type): Seq[Seq[(Seq[Type], Type)]] = {
+    def safeSplit[A](xss: Seq[Seq[A]]): (Seq[A], Seq[Seq[A]]) =
+      xss match {
+        case Seq() => (List.empty, List(List.empty))
+        case xs +: Seq() => (xs, List(List.empty))
+        case xs +: xsstl => (xs, xsstl)
+      }
+    def splitRec(ty: Type, srcs: Seq[Type], delta: Seq[Seq[(Seq[Type], Type)]]): Seq[Seq[(Seq[Type], Type)]] = {
+      ty match {
+        case ty if ty.isOmega => delta
+        case Arrow(src, tgt) =>
+          val (xs, xss) = safeSplit(delta)
+          ((src +: srcs, tgt) +: xs) +: splitRec(tgt, src +: srcs, xss)
+        case Intersection(sigma, tau) =>
+          splitRec(sigma, srcs, splitRec(tau, srcs, delta))
+        case _ => delta
+      }
+    }
+    if (ty.isOmega) { List.empty }
+    else splitRec(ty, List.empty, List((List.empty, ty) +: List.empty))
+
+  }
+
+
 
    def groundTypesOf(grammar: TreeGrammar, tgts: Set[Type]): Set[Type] = {
     def groundStep(previousGroundTypes: Set[Type]): Set[Type] = {
