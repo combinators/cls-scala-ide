@@ -330,7 +330,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       case Intersection(s, t) => newPath += (t, s)
       case x => newPath += x
     }
-    val htmlArgs = s"""<label>${newPath.map(e => s"""<input type="checkbox">$e""").mkString("\n")}</label>"""
+    val htmlArgs = s"""${newPath.map(e => s"""<input  class="form-check-input" type= "checkbox" name="checkbox"> $e""").mkString("\n")}"""
 
     Ok(htmlArgs)
 

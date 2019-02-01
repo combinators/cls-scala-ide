@@ -299,6 +299,26 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                            $('#inhabRequest').removeClass('in');
                        }
             $.get("showPaths/"+label, function(data){
+                  /*var input = document.createElement("INPUT");
+                  input.className = "form-check-input";
+                  input.type = "checkbox";
+                   console.log("Check", data);
+                  var newText = document.createTextNode("hallo");
+
+                   console.log("Check", text);
+                   input.appendChild(newText);
+                                  document.getElementById("combinatorTys").appendChild(input);
+
+                    console.log("Check");
+                                  var x = document.createElement("INPUT");
+                                    x.setAttribute("type", "checkbox");
+                                    x.setAttribute("class", "form-check-input");
+                      var label = document.createTextNode(" "+data);
+                      //label.appendChild(document.createTextNode(data));
+
+                                    document.getElementById("combinatorTys").appendChild(x);
+                                    document.getElementById("combinatorTys").appendChild(label);*/
+
                  $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
              });
 
@@ -307,6 +327,22 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                                //                       });
 
            }
+
+$(document).on("change", ".form-check-input", function(){
+                                               if($(this).is(':checked')) {
+                                                          console.log("Hallo");
+                                                  } else {
+                                                          console.log("Tschüß");
+                                                  }
+                                                      });
+    /* $('.form-check-input').change(function(){
+ if($(this).is(':checked')) {
+            console.log("Hallo");
+    } else {
+            console.log("Tschüß");
+    }
+        });*/
+
 
     function computeNewRequest(request) {
         if (request.includes("[")){
