@@ -18,7 +18,7 @@ package org.combinators.cls.ide.inhabitation
 
 
 
-class TestChannel extends Function[DebugMessage, Unit] {
+class DebugMsgChannel extends Function[DebugMessage, Unit] {
   import scala.collection.mutable
 
   val debugOutput: mutable.Set[DebugMessage] = mutable.Set.empty

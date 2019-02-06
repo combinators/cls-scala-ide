@@ -196,8 +196,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                     $.get("getCombinators", function(data){
                       $("#combinatorName").html(data.replace(/\n/g, '<br />'));
                                            });
-                });
-*/
+                });*/
            /*function showPaths(label) {
 
            $('.nav-sidebar a[href="#paths"]').tab('show');
@@ -289,6 +288,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         var x = document.getElementById("request").value;
         computeNewRequest(x);
     });
+
     function showPaths(label) {
             console.log("Hallo Paths", label);
            $('.nav-sidebar a[href="#paths"]').tab('show');
@@ -328,11 +328,18 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
            }
 
-$(document).on("change", ".form-check-input", function(){
-                                               if($(this).is(':checked')) {
-                                                          console.log("Hallo");
-                                                  } else {
-                                                          console.log("Tschüß");
+        $(document).on("change", ".form-check-input", function(e){
+              if($(this).is(':checked')) {
+                var path = ($(this).val()).toString();
+                console.log("Hallo", path);
+                $.get("showOrganizedTy", function(data){
+                console.log("toCover", data);
+                                  $("#targetsToCover").html(data);
+                             });
+
+
+              } else {
+                  console.log("Tschüß", e.value);
                                                   }
                                                       });
     /* $('.form-check-input').change(function(){
@@ -590,7 +597,6 @@ $(document).on("change", ".form-check-input", function(){
                                 //  $('.nav-sidebar a[href="#paths"]').tab('show');
 
                                   showPaths(combinatorName);
-                                  console.log("I Am In");
 
                                   /*   var node = evt.target._private.data.label
                                      $.get('showPosition/' + node, function(data){

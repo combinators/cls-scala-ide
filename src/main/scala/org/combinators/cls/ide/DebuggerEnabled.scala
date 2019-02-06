@@ -30,7 +30,8 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
 
       case GET(p"/$prefix/showPaths/${combName}") if prefix == controllerAddress => showPaths(combName)
-      case GET(p"/$prefix/getCombinators") if prefix == controllerAddress => getCombinatorNames()
+      case GET(p"/$prefix/showToCover/${selection}") if prefix == controllerAddress => showToCover(selection)
+      case GET(p"/$prefix/showOrganizedTy") if prefix == controllerAddress => showOrganizedTy()
     }
     routingPrefix match {
       case None => directRoutes

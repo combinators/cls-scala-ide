@@ -135,6 +135,10 @@ display: flex;
 justify-content: flex-end;
 margin-top: 10px;
 margin-bottom: 20px;
+border-color : #a2c6e5;
+border: 2px solid;
+background-color: #fff;
+color: #337ab7;
 }
 
 .container-panel{
@@ -148,7 +152,12 @@ border-radius: 6px;
 display: flex;
 justify-content: space-between;
 }
-
+.panel-primary .panel-heading{
+border-color : #a2c6e5;
+background-color: #fff;
+color: #337ab7;
+border: 2px solid;
+}
 .container-buttons {
 display: flex;
 flex-wrap: wrap;
@@ -163,6 +172,11 @@ justify-content: flex-start;
   flex-grow: 3; /* default 0 */
 }
 
+.form-group well{
+border: 0;
+box-shadow: 0 2px 6px 0 rgba(0,0,0,0.2);
+}
+
 .flex-items {
 justify-content: flex-start;
 }
@@ -174,7 +188,7 @@ margin-top: 10px;
 }
 
 .btn {
-box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+box-shadow: 0 4px 6px 0 rgba(0,0,0,0.2);
 }
 
 .panel{
@@ -190,7 +204,7 @@ width: 307px;
 }
 .panel-size{
 border-radius: 6px;
-box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+box-shadow: 0 4px 6px 0 rgba(0,0,0,0.2);
 padding-top:0px;
 padding-bottom:0px;
 border: 1px solid transparent;

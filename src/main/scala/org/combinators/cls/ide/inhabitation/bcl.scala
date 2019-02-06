@@ -28,7 +28,7 @@ class BoundedCombinatoryLogicDebugger(debuggerChannel: DebugMessage => Unit, sub
 
 object BoundedCombinatoryLogicDebugger {
  //def algorithm(debuggerChannel: DebugMessage => Unit): InhabitationAlgorithm = {
- def algorithm(debuggerChannel: TestChannel): InhabitationAlgorithm = {
+ def algorithm(debuggerChannel: DebugMsgChannel): InhabitationAlgorithm = {
 
     case (substitutionSpace, subtypes, repository) =>
       targets =>
