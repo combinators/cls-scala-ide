@@ -34,7 +34,7 @@ class DebuggerPruneTest extends FunSpec{
       .merge(Taxonomy("Garbage2"))
       .merge(Taxonomy("Goal"))
 
-  lazy val testChannel = new TestChannel()
+  lazy val testChannel = new DebugMsgChannel()
 
   val Gamma = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(taxonomy.underlyingMap), garbageCombinators)
 

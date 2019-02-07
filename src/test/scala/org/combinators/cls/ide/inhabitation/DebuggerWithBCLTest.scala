@@ -37,7 +37,7 @@ class DebuggerWithBCLTest extends FunSpec {
   val kinding =
     addAll(Kinding(Variable("alpha"))).merge(addAll(Kinding(Variable("beta"))))
 
-  lazy val testChannel = new TestChannel()
+  lazy val testChannel = new DebugMsgChannel()
 
   val Gamma = new BoundedCombinatoryLogicDebugger(testChannel, kinding , SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
 

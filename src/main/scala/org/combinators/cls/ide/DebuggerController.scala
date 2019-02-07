@@ -80,6 +80,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var refRepo: ReflectedRepository[_] = null
   lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
   var repo: Map[String, Type] = Map()
+  var combinatorName = ""
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
@@ -114,6 +115,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     showDebuggerMessage().foreach { case BclDebugger(b, _, _, re, _) =>
       bcl = b
       combinators = re
+
     case _ =>
     }
     newGraph
@@ -244,9 +246,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       case () => false
       case _ => true
     }
-    if(messages.isEmpty){
+    if (messages.isEmpty) {
       Ok("No messages.")
-    }else{
+    } else {
       val htmlMessage = s"""<lu>${(messages.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
       Ok(htmlMessage)
     }
@@ -263,9 +265,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       case () => false
       case _ => true
     }
-    if(message.isEmpty){
+    if (message.isEmpty) {
       Ok("No messages.")
-    }else{
+    } else {
       val htmlMessage = s"""<lu>${(message.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
       Ok(htmlMessage)
     }
@@ -313,7 +315,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     println("Split",splittedRepo)
     Ok(splittedRepo.mkString("\n"))
   }*/
-  def showPaths(combinatorName: String) = Action {
+  def showPaths(comName: String) = Action {
+    combinatorName = comName
     /*var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
     var paths: Set[Type] = Set.empty
     splittedRepo.foreach {
@@ -340,23 +343,42 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       s"""<input class="form-check-input" type= "checkbox" value="$e"> $e""").mkString("\n")}"""
 
     Ok(htmlArgs)*/
-
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
-    val numberOfArgs = 2
+   val numberOfArgs = 1
     var newPaths: Set[(Seq[Type], Type)] = Set()
-    splittedRepo.foreach{
-      case (combName, paths) => if (combName == combinatorName) paths.flatten.foreach{
-        case (args, ty) => if (args.length == numberOfArgs){
+    splittedRepo.foreach {
+      case (combName, paths) => if (combName == comName) paths.flatten.foreach {
+        case (args, ty) => if (args.length == numberOfArgs) {
           val path: (Seq[Type], Type) = (args, ty)
           newPaths += path
-      }
+        }
       }
     }
-    println("newPath", newPaths.head)
-        println("newPath", newPaths)
+
+
     val htmlArgs = s"""${newPaths.map(e => s"""<input class="form-check-input" type= "checkbox" value="$e"> $e""").mkString("\n")}"""
     Ok(htmlArgs)
   }
+
+  def showNumberOfArgs() = Action{
+
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var size: Set[Int] = Set()
+    splittedRepo.foreach {
+      case (combName, paths) => if (combName == combinatorName) paths.flatten.foreach {
+        case (args, ty) =>
+          size += args.size
+      }
+    }
+    val htmlSize =
+      s"""${
+        size.map(e =>
+          s"""<label class="radio-inline">
+      <input type="radio" name="optradio">$e</label>""").mkString
+      }"""
+    Ok(htmlSize)
+  }
+
   def showOrganizedTy() = Action {
 
     val orgTy = Organized(newTargets.head).paths
@@ -381,7 +403,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var selection: (Seq[Type], Type) = null
     splittedRepo.foreach {
       case (name, tys) => tys.flatten.foreach {
-        case (s, ty) =>  selection =(s, ty)
+        case (s, ty) => selection = (s, ty)
           println(Organized(ty))
         //if ((s,ty).toString() == selected) selection =(s, ty)
 

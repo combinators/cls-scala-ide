@@ -298,6 +298,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                        console.log("true", $('#inhabRequest').is( ":visible" ));
                            $('#inhabRequest').removeClass('in');
                        }
+                       var number = 1;
             $.get("showPaths/"+label, function(data){
                   /*var input = document.createElement("INPUT");
                   input.className = "form-check-input";

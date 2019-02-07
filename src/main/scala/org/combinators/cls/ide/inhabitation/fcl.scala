@@ -58,14 +58,14 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
 
   }
 
-  def split(ty:Type): Seq[Seq[(Seq[Type], Type)]] = {
+  def splitsOf(ty: Type): Seq[Seq[(Seq[Type], Type)]] = {
     def safeSplit[A](xss: Seq[Seq[A]]): (Seq[A], Seq[Seq[A]]) =
       xss match {
         case Seq() => (List.empty, List(List.empty))
         case xs +: Seq() => (xs, List(List.empty))
         case xs +: xsstl => (xs, xsstl)
       }
-    def splitRec(ty: Type, srcs: Seq[Type], delta: Seq[Seq[(Seq[Type], Type)]]): Seq[Seq[(Seq[Type], Type)]] = {
+   def splitRec(ty: Type, srcs: Seq[Type], delta: Seq[Seq[(Seq[Type], Type)]]): Seq[Seq[(Seq[Type], Type)]] = {
       ty match {
         case ty if ty.isOmega => delta
         case Arrow(src, tgt) =>
@@ -77,13 +77,10 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
       }
     }
     if (ty.isOmega) { List.empty }
-    else splitRec(ty, List.empty, List((List.empty, ty) +: List.empty))
-
+    else splitRec(ty, List.empty, List(List.empty, (List.empty, ty) +: List.empty))
   }
 
-
-
-   def groundTypesOf(grammar: TreeGrammar, tgts: Set[Type]): Set[Type] = {
+  def groundTypesOf(grammar: TreeGrammar, tgts: Set[Type]): Set[Type] = {
     def groundStep(previousGroundTypes: Set[Type]): Set[Type] = {
       grammar.foldLeft(previousGroundTypes) {
         case (s, (k, vs))
