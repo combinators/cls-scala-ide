@@ -552,13 +552,26 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         Ok("Inhabitant not found!")
     }
   }
-
+  def showUsedCombinators(index: Int) = Action{
+    val tree = Seq(result.terms.index(index))
+    var com: Seq[String] = Seq.empty
+    usedCombinators(tree)
+    def usedCombinators(tree: Seq[Tree]): Seq[String] = {
+      tree.foreach {
+        case t => usedCombinators(t.arguments)//
+          com = t.name +: com
+      }
+      com
+    }
+    Ok(com.mkString("\n"))
+  }
   /**
     * Shows a list of inhabitants
     */
   def showResult(index: Int) = Action {
+    val tree: Tree = result.terms.index(index)
     try {
-      Ok(result.terms.index(index).toString)
+      Ok(tree.toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
@@ -567,8 +580,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   //Todo: If there are infinitely many inhabitants, the representation is very slow
   //Todo: Idea: Choose the length of the path
   def countsSolutions = Action {
-    lazy val numbers = if (result.isInfinite) 3 else 1 //results.raw.values.flatMap(_._2).size - 1
-    Ok(numbers.toString)
+    lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get //.raw.values.flatMap(_._2).size - 1
+    try
+    Ok(results.toString)
+  }
+  def showNumberOfSolutions(number: Int) = Action{
+      Ok(number.toString)
   }
 
   /**

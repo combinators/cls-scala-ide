@@ -174,11 +174,25 @@ projectName: String)
             </h3>
         </div>
         <div id="results" class="tab-pane fade" >
-
             <h4>
                 <h3>Solutions:</h3>
             </h4>
             <div id="cy-part-graph">
+            </div>
+            <div class="modal fade" id="isInfinite" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLongTitle"></h5>
+
+                        </div>
+                        <textarea class="form-control" type="number" min="0" step="1" placeholder="Type only Number" id="message-text" data-bind="value:replyNumber" maxlength="4"></textarea>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id = "save">Save changes</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="steps" class="tab-pane fade flex-items">

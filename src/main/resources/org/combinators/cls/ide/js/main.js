@@ -83,97 +83,113 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                       }
                    });
             });
-
             });
+
+         $('#message-text').keypress(function(evt){
+        		var charCode = (evt.which) ? evt.which : evt.keyCode;
+        		if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57))
+        			return false;
+        			return true;
+        });
+
+
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
                  $('#inhabRequest').collapse('show');
-                 $.get("countSolutions", function(number){
-                                      for (var item = 0; item < number ; item ++) {
-                                          var nav = document.createElement("nav");
-                                          nav.className = "navbar navbar-default"
 
-                                          var div = document.createElement("div");
-                                          div.className = "container-fluid";
-
-                                          var divNavbar = document.createElement("navBar");
-                                          divNavbar.className = "navbar-header";
-                                          divNavbar.id = "divNav" + item;
-
-                                       //create variation buttons
-
-                                        if(!document.getElementById(item)){
-                                          var divBtn = document.createElement("divBtn");
-                                          var txt = document.createTextNode("Variation "+ item + ":");
-                                          var btn = document.createElement("button");
-                                          btn.className = "btn btn-primary";
-                                          btn.id = item;
-                                          div.appendChild(divNavbar);
-                                          nav.appendChild(div);
-                                          divBtn.appendChild(btn);
-                                          btn.appendChild(txt);
-                                          divNavbar.appendChild(divBtn);
-                                          document.getElementById("results").appendChild(nav);
+                 var elements = document.getElementsByClassName("navbar navbar-default");
+                    if(elements.length != 0){
+                        var length = elements.length;
+                        for (var i=0; i<= length-1; i++) {
+                            elements[0].remove();
+                        }
+                    }
+                 $.get("countSolutions", function(result){
+                 if (!parseInt(result)){
+                 $('#isInfinite').modal('show');
+                 $('#exampleModalLongTitle').html(result);
+                 $('#save').click(function(){
+                     var number = document.getElementById("message-text").value;
+                     $('#isInfinite').modal('hide');
+                     makeSolutions(number);
+                   });
+                }else {
+                    makeSolutions(result);
+                }
 
 
-                           btn.addEventListener("click", function(e){
-                           $('#inhabRequest').collapse('hide');
-                                var allElements = document.querySelectorAll('*[id]')
-                                var allIds = [];
-                                for (var i = 0, n = allElements.length; i < n; ++i) {
-                                    var el = allElements[i];
-                                    if (el.id != e.target.id) {
-                                        $('#'+el.id).prop('disabled', false);
-                                    }else{
-                                        $('#'+e.target.id).prop('disabled', true);
-                                     }
-                                }
-                             $("divSol").remove();
-                           var divSol = document.createElement("divSol");
-                           divSol.className = "container-fluid";
-                           $('.divSol').addClass('collapse');
-                           divSol.id =  "solutionSol" + e.target.id;
-                           var solution = document.createElement("solution");
-                           $.get("showResult/" +  parseInt(e.target.id), function(data){
-                             showPartGraph(parseInt(e.target.id));
-                             text = document.createTextNode(data);
 
-                           divSol.appendChild(solution);
-                           solution.appendChild(text);
-                           });
-                           divSol.appendChild(solution);
-                                                        solution.appendChild(text);
-                           document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
-                         });
+               });
 
+            });
+        function makeSolutions(number){
+            for (var item = 0; item < number ; item ++) {
+                var nav = document.createElement("nav");
+                nav.className = "navbar navbar-default";
+                nav.id = "nav";
 
-                                      /* //on click shows one solution
-                                          btn.addEventListener("click", function(e){
-                                            $("solution").remove();
-                                            $('#inhabRequest').collapse('hide');
+                var div = document.createElement("div");
+                div.className = "container-fluid";
 
-                                            $.get("showResult/" +  parseInt(e.target.id), function(data){
-                                              showPartGraph(parseInt(e.target.id));
-                                              console.log("true", document.getElementById( "solutionSol" + e.target.id));
-                                              if(document.getElementById( "solutionSol" + e.target.id)==null){
-                                              var divSol = document.createElement("divSol");
-                                              divSol.className = "container-fluid";
-                                              divSol.id =  "solutionSol" + e.target.id;
-                                              var solution = document.createElement("solution");
-                                              divSol.appendChild(solution);
-                                              console.log("true", data);
-                                              var text = document.createTextNode(data);
-                                              solution.appendChild(text);
-                                              document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
-                                               }
-                                            });
+                var divNavbar = document.createElement("navBar");
+                divNavbar.className = "navbar-header";
+                divNavbar.id = "divNav" + item;
 
+                //create variation buttons
 
-                                          });*/
-                                        }
-                                      }
-                                   });
+                if(!document.getElementById(item)){
+                   var divBtn = document.createElement("divBtn");
+                   var txt = document.createTextNode("Variation "+ item + ":");
+                   var btn = document.createElement("button");
+                   btn.className = "btn btn-primary";
+                   btn.id = item;
+                   div.appendChild(divNavbar);
+                   nav.appendChild(div);
+                   divBtn.appendChild(btn);
+                   btn.appendChild(txt);
+                   divNavbar.appendChild(divBtn);
+                   document.getElementById("results").appendChild(nav);
 
-        });
+                   //on click shows one solution
+                   btn.addEventListener("click", function(e){
+                      $('#inhabRequest').collapse('hide');
+                      var allElements = document.querySelectorAll('*[id]')
+                      var allIds = [];
+                      for (var i = 0, n = allElements.length; i < n; ++i) {
+                         var el = allElements[i];
+                         if (el.id != e.target.id) {
+                             $('#'+el.id).prop('disabled', false);
+                         }else{
+                             $('#'+e.target.id).prop('disabled', true);
+                         }
+                      }
+                      $("divSol").remove();
+                      var divSol = document.createElement("divSol");
+                      divSol.className = "container-fluid";
+                      $('.divSol').addClass('collapse');
+                      divSol.id =  "solutionSol" + e.target.id;
+                      var solution = document.createElement("solution");
+                      $.get("showResult/" +  parseInt(e.target.id), function(data){
+                          showPartGraph(parseInt(e.target.id));
+                          text = document.createTextNode(data);
+
+                          divSol.appendChild(solution);
+                          solution.appendChild(text);
+                      });
+                                                         //You can show the used combinators in the graph
+                                                         //$.get("showUsedCombinators/" +  parseInt(e.target.id), function(data){
+                                                           //showPartGraph(parseInt(e.target.id));
+                                                           /*var text1 = document.createTextNode(data);
+
+                                                         divSol.appendChild(solution);
+                                                         solution.appendChild(text1);
+                                                         });
+                                                         divSol.appendChild(solution);
+                                                                                      solution.appendChild(text);*/
+                      document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
+                   });
+                }
+            }
+        }
 
         $('.nav-sidebar a[href="#repo"]').on('shown.bs.tab', function(){
 
