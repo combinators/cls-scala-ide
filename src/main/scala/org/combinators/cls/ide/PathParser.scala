@@ -23,47 +23,58 @@ import scala.util.parsing.combinator._
 
 
 class PathParser extends RegexParsers {
+  val parser = new RequestParser
+
   val word: Regex = """[a-zA-Z0-9=>\. \[\]]*[a-zA-Z0-9=>\.\[\]]""".r
 
 
-  def ty: Parser[Type] = tyInter ~ opt("->" ~ (tyInter | product )) ^^ {
-      case lhs ~ Some(_ ~ rhs) => Arrow(lhs, rhs)
-      case lhs ~ None => lhs
-    }
-
-  def tyInter: Parser[Type] = tyS ~ opt("&" ~ tyS) ^^ {
-    case lhs ~ Some(_ ~ rhs) => Intersection(lhs, rhs)
+  def ty: Parser[Type] = tyPro ~ opt("->" ~ ty) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Arrow(lhs, rhs)
     case lhs ~ None => lhs
   }
-
-  def tyS: Parser[Type] = ctor | "(" ~ ty ~ ")" ^^ {
-      case _ ~ ty ~ _ => ty
-    }
-
-  def ctor: Parser[Type] = word ~ opt("(" ~ product ~ ")") ^^ {
-    case name ~ None => Constructor(name)
-    case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys)
+  def tyPro: Parser[Type] = tyProduct ~ opt("*" ~ tyProduct) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
+    case lhs ~ None => lhs
   }
-
-  def product: Parser[Type] = tyS ~ opt("*" ~ tyS) ^^ {
+  def tyProduct: Parser[Type] = tyInter ~ opt("*" ~ tyInter) ^^ {
     case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
     case lhs ~ None => lhs
   }
 
-  def tyPath: Parser[Seq[Type]] = word ~ "(" ~ opt(ty) ~ ")" ^^ {
-      case w ~ "(" ~ None ~ ")" => Seq.empty
-      case _ ~ "(" ~ Some(x) ~ ")" => Seq(x)
+  def tyInter: Parser[Type] = tyS ~ opt("&" ~ tyInter) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Intersection(lhs, rhs)
+    case lhs ~ None => lhs
   }
 
-  def tgts: Parser[Seq[(Seq[Type], Type)]] = word ~ "("~ "(" ~ tyPath ~"," ~ ty ~ ")"~")" ^^ {
-    case _ ~ "(" ~ "(" ~ x ~","~ y ~ ")"~")" => Seq((x,y))
+  def tyS: Parser[Type] = ctor | "(" ~ ty ~ ")" ^^ { case _ ~ ty ~ _ =>  ty }
+
+
+  def ctor: Parser[Type] = word ~ opt("("~ tyPro ~ ")") ^^ {
+    case name ~ None => Constructor(name)
+    case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys)
+
+  }
+
+  def args: Parser[Seq[Type]] = ty ~ opt("," ~ args) ^^ {
+    case lhs ~ Some(_ ~ rhs) => val slist: Seq[Type]  = Seq(lhs) ++ rhs
+      slist
+    case lhs ~ None => Seq(lhs)
+  }
+
+  def tyPath: Parser[Seq[Type]] = word ~ "(" ~ opt(args)~ ")" ^^ {
+    case w ~ "("~ None ~ ")" => Seq()
+    case w ~ "("~ Some(t) ~ ")" => t
+  }
+
+  def tgts: Parser[(Seq[Type], Type)] =  "(" ~ tyPath ~"," ~ ty ~")" ^^ {
+    case  "(" ~ x ~","~ y ~")" => (x,y)
   }
 }
 
 object NewPathParser extends PathParser {
-  def compute(selection: String): Seq[(Seq[Type], Type)] = parseAll(tgts, selection) match {
+  def compute(selection: String): (Seq[Type], Type) = parseAll(tgts, selection) match {
     case Success(result, _) => result
-    case failure: NoSuccess => Seq.empty
+    case failure: NoSuccess => null
   }
 }
 

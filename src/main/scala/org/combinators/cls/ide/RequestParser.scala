@@ -26,12 +26,20 @@ class RequestParser extends RegexParsers {
   val word: Regex =
     """[a-zA-Z0-9=>\. \[\]]*[a-zA-Z0-9=>\.\[\]]""".r
 
-  def ty: Parser[Type] = tyInter ~ opt("->" ~ (tyInter|product)) ^^ {
+  def ty: Parser[Type] = tyPro ~ opt("->" ~ ty) ^^ {
     case lhs ~ Some(_ ~ rhs) => Arrow(lhs, rhs)
     case lhs ~ None => lhs
   }
+  def tyPro: Parser[Type] = tyProduct ~ opt("*" ~ tyPro) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
+    case lhs ~ None => lhs
+  }
+  def tyProduct: Parser[Type] = tyInter ~ opt("*" ~ tyInter) ^^ {
+    case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
+    case lhs ~ None => lhs
+  }
 
-  def tyInter: Parser[Type] = tyS ~ opt("&" ~ tyS) ^^ {
+  def tyInter: Parser[Type] = tyS ~ opt("&" ~ tyInter) ^^ {
     case lhs ~ Some(_ ~ rhs) => Intersection(lhs, rhs)
     case lhs ~ None => lhs
   }
@@ -39,25 +47,18 @@ class RequestParser extends RegexParsers {
   def tyS: Parser[Type] = ctor | "(" ~ ty ~ ")" ^^ { case _ ~ ty ~ _ =>  ty }
 
 
-  def ctor: Parser[Type] = word ~ opt("("~ product ~ ")") ^^ {
+  def ctor: Parser[Type] = word ~ opt("("~ tyPro ~ ")") ^^ {
     case name ~ None => Constructor(name)
     case name ~ Some(_ ~ tys ~ _) => Constructor(name, tys)
 
   }
-  def product: Parser[Type] = tyS ~ opt("*" ~ tyS) ^^ {
-    case lhs ~ Some(_ ~ rhs) => Product(lhs, rhs)
-    case lhs ~ None => lhs
-  }
-
   def tgts: Parser[Seq[Type]] = rep(ty)
 }
 
 object NewRequestParser extends RequestParser {
 
   def compute(request: String): Seq[Type] = parseAll(tgts, request) match {
-    case Success(result, _) => println("RequestCompute", result)
-      result
-    case failure: NoSuccess =>println("RequestCompute", failure.msg)
-     Seq.empty
+    case Success(result, _) => result
+    case failure: NoSuccess => Seq.empty
   }
 }

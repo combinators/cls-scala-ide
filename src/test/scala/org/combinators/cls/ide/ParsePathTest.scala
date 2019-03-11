@@ -95,64 +95,68 @@ class ParserPathTest extends FunSpec {
 
   describe("Constructor Parser") {
     it("should parse combinators") {
-      assert(parsing.compute((List((List(), "a"))).toString) == Seq((Seq(),a)))
+      assert(parsing.compute((List(), "a").toString) == (Seq(),a))
     }
     it("should parse parentheses") {
-      assert(parsing.compute((List((List(), (a)))).toString) == Seq((Seq(),a)))
+      assert(parsing.compute((List(), (a)).toString) == (Seq(),a))
     }
     it("should parse constructor with arguments") {
-      assert(parsing.compute((List((List(),('a ('b, 'c))))).toString()) == Seq((Seq(), Constructor("a", Product(b, c)))))
-      assert((List((List(),('a('b, 'c, 'd))))) == Seq((Seq(), Constructor("a", Product(Product(Constructor("b"), Constructor("c")), Constructor("d"))))))
+      assert(parsing.compute((List(),('a ('b, 'c))).toString()) == (Seq(), Constructor("a", Product(b, c))))
+     // assert(parsing.compute((List(),('a('b, 'c, 'd))).toString()) == (Seq(), Constructor("a", Product(Product(Constructor("b"), Constructor("c")), Constructor("d")))))
     }
        it("should parse precedence over products to the left ") {
-         assert((List((List(),(a <*> b :&: c)))) == Seq((Seq(), Product(a, Intersection(b, c)))))
+         assert(parsing.compute((List(),(a <*> b :&: c)).toString()) == (Seq(), Product(a, Intersection(b, c))))
        }
        it("should take precedence over products to the right ") {
-         assert((List((List(),(a :&: b <*> c)))) == Seq((Seq(),Product(Intersection(a, b), c))))
+         assert(parsing.compute((List(),(a :&: b <*> c)).toString()) == (Seq(),Product(Intersection(a, b), c)))
        }
      it("should be right associative") {
-       assert((List((List(),(a =>: b =>: c)))) == Seq((Seq(),Arrow(a, Arrow(b, c)))))
+       assert(parsing.compute((List(),(a =>: b =>: c)).toString()) == (Seq(),Arrow(a, Arrow(b, c))))
      }
       it("should be left associative") {
-        assert((List((List(),(a <*> b <*> c)))) ==  Seq((Seq(), Product(Product(a, b), c))))
+        assert(parsing.compute((List(),(a <*> b <*> c)).toString()) ==  (Seq(), Product(Product(a, b), c)))
       }
         it("should parse constructors combined with arrows") {
-          assert(parsing.compute((List((List(),('a =>: 'b)))).toString()) == Seq((Seq(),Arrow(a, b))))
-          assert(parsing.compute((List((List(),('a('b) =>: 'c)))).toString()) == Seq((Seq(),Arrow(Constructor("a", b), c))))
-          assert(parsing.compute((List((List(),('a =>: 'b('a, 'c))))).toString()) == Seq((Seq(),Arrow(a, Constructor("b", Product(a, c))))))
-          assert((List((List(),(a =>: b <*> c)))) == Seq((Seq(),Arrow(a, Product(b, c)))))
-          assert((List((List(),(a <*> b =>: c)))) == Seq((Seq(),Arrow(Product(a, b), c))))
+          assert(parsing.compute((List(),('a =>: 'b)).toString()) == (Seq(),Arrow(a, b)))
+          assert(parsing.compute((List(),('a('b) =>: 'c)).toString()) == (Seq(),Arrow(Constructor("a", b), c)))
+          assert(parsing.compute((List(),('a =>: 'b('a, 'c))).toString()) == (Seq(),Arrow(a, Constructor("b", Product(a, c)))))
+          assert(parsing.compute((List(),(a =>: b <*> c)).toString()) == (Seq(),Arrow(a, Product(b, c))))
+          assert(parsing.compute((List(),(a <*> b =>: c)).toString()) == (Seq(),Arrow(Product(a, b), c)))
         }
        it("should parse constructors combined with intersections") {
-         assert(parsing.compute((List((List(),('a :&: 'b)))).toString()) == Seq((Seq(),Intersection(a, b))))
-         assert(parsing.compute((List((List(),('a('b) :&: 'c)))).toString()) == Seq((Seq(),Intersection(Constructor("a", b), c))))
-         assert(parsing.compute((List((List(),('a :&: 'b('a, 'c))))).toString()) == Seq((Seq(),Intersection(a, Constructor("b", Product(a, c))))))
+         assert(parsing.compute((List(),('a :&: 'b)).toString()) == (Seq(),Intersection(a, b)))
+         assert(parsing.compute((List(),('a('b) :&: 'c)).toString()) == (Seq(),Intersection(Constructor("a", b), c)))
+         assert(parsing.compute((List(),('a :&: 'b('a, 'c))).toString()) == (Seq(),Intersection(a, Constructor("b", Product(a, c)))))
        }
 
        it("should pretty print almost identically") {
-         assert((List((List(),('a('b, Omega) :&: 'x)))).toString == "List((List(),a(b * omega) & x))")
+         //assert(parsing.compute((List(),('a('b, Omega) :&: 'c)).toString) == "List((List(),a(b * omega) & c))")
        }
        it("should test failure"){
-         assert(parsing.compute("---") == Seq.empty)
+         assert(parsing.compute("---") == null)
        }
 
 
     it("should parse constructors combined with intersections and an argument") {
-      assert(parsing.compute((List((List(a),(b)))).toString()) == Seq((Seq(a), b)))
-      assert((List((List(a),(b =>: c)))) == Seq((Seq(a), Arrow(b, c))))
-      assert(parsing.compute((List((List('a('b)),(c)))).toString()) == Seq((Seq(Constructor("a", b)), c)))
-      assert(parsing.compute((List((List(a),('b('a,'c))))).toString()) == Seq((Seq(a), Constructor("b", Product(a, c)))))
-      assert((List((List(a),(b <*> c)))) == Seq((Seq(a), Product(b, c))))
-      assert((List((List(a,b),(c)))) == Seq((Seq(a,b), c)))
-      assert(parsing.compute((List((List(a),(b =>: c)))).toString()) == Seq((Seq(a), Arrow(b, c))))
-      //assert(parsing.compute((List((List(a),((b =>: c) :&: (d =>: e =>: f))))).toString()) == Seq((Seq(a), Intersection(Arrow(b, c), Arrow(d, Arrow(e, f))))))
+      assert(parsing.compute((List(a),(b)).toString()) == (Seq(a), b))
+      assert(parsing.compute((List(a),(b =>: c)).toString()) == (Seq(a), Arrow(b, c)))
+      assert(parsing.compute((List('a('b)),(c)).toString()) == (Seq(Constructor("a", b)), c))
+      assert(parsing.compute((List(a),('b('a,'c))).toString()) == (Seq(a), Constructor("b", Product(a, c))))
+      assert(parsing.compute((List(a),(b <*> c)).toString()) == (Seq(a), Product(b, c)))
+     // assert(parsing.compute((List(a, b),(c)).toString()) == (Seq(Constructor("a"),Constructor("b")), c))
+      assert(parsing.compute((List(a),(b =>: c)).toString()) == (Seq(a), Arrow(b, c)))
+      assert(parsing.compute((List(a),(b =>: c) :&: (d =>: e =>: f)).toString()) == (Seq(a), Intersection(Arrow(b, c), Arrow(d, Arrow(e, f)))))
 
     }
     it("should parse constructors combined with intersections and two argument") {
-      assert((List((List(a,b),(c)))) == Seq((Seq(a, b), Constructor("c"))))
+      assert(parsing.compute((List(a, b),(c)).toString()) == (Seq(a, b), Constructor("c")))
     }
     it("should parse constructors combined with intersections and three argument") {
-      assert((List((List(a,b, c),(d)))) == Seq((Seq(a, b, c), Constructor("d"))))
+      assert(parsing.compute((List(a,b, c =>: e =>: f),(d)).toString()) == (Seq(a, b, Arrow(c, Arrow(e, f))), Constructor("d")))
+    }
+    it("should parse constructors combined with intersections and four argument") {
+      assert(parsing.compute((List(a,b, c, e),(d)).toString()) == (Seq(a, b, c, e), Constructor("d")))
+      assert(parsing.compute((List(a,b, c, e =>: f),(d)).toString()) == (Seq(a, b, c, Arrow(e, f)), Constructor("d")))
     }
 
   }
