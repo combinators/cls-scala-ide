@@ -238,16 +238,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
             });
         });
 
-/*
-          $('#uninhabitedBtn, #unusableBtn').click(function(e){
-                               if(this.id == 'uninhabitedBtn'){
-                                    $("#collapse1").collapse('toggle');
-                               }else {
-                                $("#collapse2").collapse('toggle');
-                               }
-                         });*/
-
-
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){
         if(this.id == 'toggleCyclesButton'){
             if (toggle == true){
@@ -306,67 +296,36 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
     });
 
     function showPaths(label) {
-            console.log("Hallo Paths", label);
            $('.nav-sidebar a[href="#paths"]').tab('show');
            $("#combinatorName").html(label);
 
             if( $('#inhabRequest').is( ":visible" )){
-                       console.log("true", $('#inhabRequest').is( ":visible" ));
                            $('#inhabRequest').removeClass('in');
                        }
                        var number = 1;
             $.get("showPaths/"+label, function(data){
-                  /*var input = document.createElement("INPUT");
-                  input.className = "form-check-input";
-                  input.type = "checkbox";
-                   console.log("Check", data);
-                  var newText = document.createTextNode("hallo");
-
-                   console.log("Check", text);
-                   input.appendChild(newText);
-                                  document.getElementById("combinatorTys").appendChild(input);
-
-                    console.log("Check");
-                                  var x = document.createElement("INPUT");
-                                    x.setAttribute("type", "checkbox");
-                                    x.setAttribute("class", "form-check-input");
-                      var label = document.createTextNode(" "+data);
-                      //label.appendChild(document.createTextNode(data));
-
-                                    document.getElementById("combinatorTys").appendChild(x);
-                                    document.getElementById("combinatorTys").appendChild(label);*/
-
                  $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
              });
-
-                             //  $.get("getCombinators", function(data){
-
-                               //                       });
-
            }
 
         $(document).on("change", ".form-check-input", function(e){
+              var path = null;
               if($(this).is(':checked')) {
-                var path = ($(this).val()).toString();
-                console.log("Hallo", path);
-                $.get("showOrganizedTy", function(data){
-                console.log("toCover", data);
-                                  $("#targetsToCover").html(data);
-                             });
+                path = ($(this).val()).toString();
+                $.get("showToCover/" + path, function(data){
+                    var path1 = path.replace('*', '&#42;')
+                    $("#targetsToCover").prepend('<li id = "'+ path1 + '">' + data.replace(/\n/g, ' ') + '</li>');
+                });
+
 
 
               } else {
-                  console.log("Tschüß", e.value);
+                  var id = ($(this).val()).toString();
+                  var elem = document.getElementById(id);
+                  elem.remove();
+
                                                   }
                                                       });
-    /* $('.form-check-input').change(function(){
- if($(this).is(':checked')) {
-            console.log("Hallo");
-    } else {
-            console.log("Tschüß");
-    }
-        });*/
-
 
     function computeNewRequest(request) {
         if (request.includes("[")){
@@ -595,7 +554,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                  var tappedTimeout;
                  cy.on('tap', function(event) {
                    var tappedNow = event.target;
-                   console.log("cyTarget", event);
                    if (tappedTimeout && tappedBefore) {
                      clearTimeout(tappedTimeout);
                    }
@@ -609,58 +567,10 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                  });
 
                  cy.filter('node[style = "combinator-node"], node[style = "unusable-combinator-node"]').on('doubleTap', function (evt) {
-                                 console.log("Hallo mouse", evt.target._private.data.label);
                                  var combinatorName = evt.target._private.data.label;
-                                //  $('.nav-sidebar a[href="#paths"]').tab('show');
-
                                   showPaths(combinatorName);
 
-                                  /*   var node = evt.target._private.data.label
-                                     $.get('showPosition/' + node, function(data){
-                                         $("#position1").text(data);
-                                     });*/
                                 });
-
-                 /*cy.qtip({
-                 	content: 'Example qTip on core bg',
-                 	position: {
-                 		my: 'top center',
-                 		at: 'bottom center'
-                 	},
-                 	show: {
-                 		cyBgOnly: true
-                 	},
-                 	style: {
-                 		classes: 'qtip-bootstrap',
-                 	    tip: {
-                 			width: 16,
-                 			height: 8
-                 		}
-                 	}
-                 });*/
-
-
-                 /*cy.filter('node[style = "unusable-combinator-node"]').on('tap', function(event){
-                    var node = event.target._private.data.label
-                    $.get('showPosition/' + node, function(data){
-                         $('#showUnusablePosition').html(data);});
-                 });
-
-                 cy.filter('node[style = "combinator-node"]').on('mouseover', function(event){
-                 console.log("Hallo Combinator")
-                    var node = event.target._private.data.label
-                        $.get('showPosition/' + node, function(data){
-                          $('#showPosition').html(data);});
-                        });*/
-
-
-                /*cy.nodes().on('mouseover', function (evt) {
-                console.log("Hallo mouse", evt)
-                    var node = evt.target._private.data.label
-                    $.get('showPosition/' + node, function(data){
-                        $("#position1").text(data);
-                    });
-               });*/
 
     }
 

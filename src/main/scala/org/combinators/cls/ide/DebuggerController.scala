@@ -355,7 +355,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       }
     }
 
-
+  println(newPaths.map(e => e))
     val htmlArgs = s"""${newPaths.map(e => s"""<input class="form-check-input" type= "checkbox" value="$e"> $e""").mkString("\n")}"""
     Ok(htmlArgs)
   }
@@ -382,7 +382,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def showOrganizedTy() = Action {
 
     val orgTy = Organized(newTargets.head).paths
-    println(orgTy)
+    println("Org ty", orgTy)
     Ok(orgTy.mkString("\n"))
   }
 
@@ -392,7 +392,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val subt = bcl.algorithm.subtypes
     import subt._
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
-
+    var newRequest = selected.replaceAll("91", "[")
+    newRequest = newRequest.replaceAll("93", "]")
+    val newSelection = NewPathParser.compute(newRequest)
+    println("NEW", newSelection)
     /*var selection: (Seq[Type], Type) = null
     splittedRepo.foreach {
       case (name, tys) => tys.flatten.foreach {
@@ -400,36 +403,23 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         case (s, ty) => if (s.nonEmpty) selection =(s, ty)
       }
     }*/
+
+    //Test selection
     var selection: (Seq[Type], Type) = null
     splittedRepo.foreach {
       case (name, tys) => tys.flatten.foreach {
         case (s, ty) => selection = (s, ty)
-          println(Organized(ty))
+         // println("Org ty ", Organized(ty))
         //if ((s,ty).toString() == selected) selection =(s, ty)
 
       }
     }
-    println(selection)
-    val toCover = Organized(newTargets.head).paths.filter(pathInTau => !Seq(selection).exists(splitComponent =>
-      splitComponent._2.isSubtypeOf(pathInTau)))
-    println("selection", selection)
+
+    /*val toCover = Organized(newTargets.head).paths.filter(pathInTau => !newSelection.exists(splitComponent =>
+      splitComponent._2.isSubtypeOf(pathInTau)))*/
+    val toCover = Organized(newTargets.head).paths.filter(pathInTau => !newSelection._2.isSubtypeOf(pathInTau))
+    println("selection2", selection)
     println("toCover", toCover)
-
-    /*var paths: Set[Type] = Set.empty
-    var newPath : Set[Type] = Set.empty
-    newPath = computePath(paths)
-    def computePath(path: Set[Type]): Set[Type] ={
-      path.foreach{
-        case Intersection(s, t) =>
-          newPath += s
-          val newP = Set(t)
-          computePath(newP)
-        case x => newPath += x
-      }
-      newPath
-    }
-
-    println("PATHSlen", paths)*/
 
     Ok(toCover.mkString("\n"))
   }
@@ -611,7 +601,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         }
         partTreeGrammar
       }
-
       mkTreeMap(partTree)
       newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
       graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
