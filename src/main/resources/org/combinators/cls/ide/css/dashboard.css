@@ -163,6 +163,10 @@ display: flex;
 flex-wrap: wrap;
 justify-content: space-between;
 }
+.panel-group {
+
+margin-top: 10px;
+}
 .step-buttons{
 display: flex;
 justify-content: flex-start;

@@ -81,6 +81,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
+  var selectedCombinator: String = ""
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
@@ -296,68 +297,40 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
+
+  def computeNumberOfArgs(selectedComb: String) = Action {
+    selectedCombinator = selectedComb
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var radioNumbers: Set[Int] = Set()
+    splittedRepo.foreach {
+      case (combName, paths) => if (combName == selectedComb) paths.flatten.foreach {
+        case (args, ty) => radioNumbers += args.length
+      }
+    }
+    val radioButtons = s"""${radioNumbers.map(e => s"""<input class = "form-radio" type="radio" name="optradio" value ="$e"> $e </label>""").mkString("\n")}"""
+    Ok(radioButtons)
+  }
   /**
     * Show the Combinator types
     */
-  /*def showPaths = Action {
-    //println("rep", repo)
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]]  = Map()
-    var newSplit = Map()
-
-    if (splittedRepo.isEmpty) {splittedRepo = repo.mapValues(bcl.algorithm.split)
-      for ((name, ty) <- splittedRepo) {
-        println("Split",name, ty.flatten.filter(e=> e._2 match {
-          case Intersection(s, t) => true
-          case _ =>false
-        }))
-      }}
-    else {splittedRepo}
-    println("Split",splittedRepo)
-    Ok(splittedRepo.mkString("\n"))
-  }*/
-  def showPaths(comName: String) = Action {
-    combinatorName = comName
-    /*var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
-    var paths: Set[Type] = Set.empty
-    splittedRepo.foreach {
-      case (name, tys) => if (name == combinatorName) tys.flatten.foreach {
-        case (Seq(), ty) =>
-          paths += ty
-        case _ =>
-      }
-    }
-    var newPath : Set[Type] = Set.empty
-    newPath = computePath(paths)
-    def computePath(path: Set[Type]): Set[Type] ={
-      path.foreach{
-        case Intersection(s, t) =>
-          newPath += s
-          val newP = Set(t)
-          computePath(newP)
-        case x => newPath += x
-      }
-      newPath
-    }
-    println(newPath)
-    val htmlArgs = s"""${newPath.map(e =>
-      s"""<input class="form-check-input" type= "checkbox" value="$e"> $e""").mkString("\n")}"""
-
-    Ok(htmlArgs)*/
+  def showPaths(numbOfArgs: Int) = Action {
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
-   val numberOfArgs = 1
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
-      case (combName, paths) => if (combName == comName) paths.flatten.foreach {
-        case (args, ty) => if (args.length == numberOfArgs) {
+      case (combName, paths) => if (combName == selectedCombinator) paths.flatten.foreach {
+        case (args, ty) => if (args.length == numbOfArgs) {
           val path: (Seq[Type], Type) = (args, ty)
           newPaths += path
         }
       }
     }
-
-  println(newPaths.map(e => e))
-    val htmlArgs = s"""${newPaths.map(e => s"""<input class="form-check-input" type= "checkbox" value="$e"> $e""").mkString("\n")}"""
-    Ok(htmlArgs)
+    val htmlArgs = s"""${newPaths.map(e =>
+      if (toCover(e).isEmpty) {
+        s"""<input class="form-check-input" type= "checkbox" value="$e" disabled> $e"""}
+      else{
+      s"""<input class="form-check-input" type= "checkbox" value="$e"> $e"""}
+    ).mkString("\n")}"""
+    Ok (htmlArgs)
   }
 
   def showNumberOfArgs() = Action{
@@ -380,48 +353,33 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   def showOrganizedTy() = Action {
-
     val orgTy = Organized(newTargets.head).paths
-    println("Org ty", orgTy)
     Ok(orgTy.mkString("\n"))
   }
 
 
+
   def showToCover(selected: String) = Action {
-    println("Selected", selected)
-    val subt = bcl.algorithm.subtypes
-    import subt._
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection = NewPathParser.compute(newRequest)
-    println("NEW", newSelection)
-    /*var selection: (Seq[Type], Type) = null
-    splittedRepo.foreach {
-      case (name, tys) => tys.flatten.foreach {
-
-        case (s, ty) => if (s.nonEmpty) selection =(s, ty)
-      }
-    }*/
-
     //Test selection
     var selection: (Seq[Type], Type) = null
     splittedRepo.foreach {
       case (name, tys) => tys.flatten.foreach {
         case (s, ty) => selection = (s, ty)
-         // println("Org ty ", Organized(ty))
-        //if ((s,ty).toString() == selected) selection =(s, ty)
-
       }
     }
+    val toCoverIs: Seq[Type with Path] = toCover(newSelection)
+   Ok(toCoverIs.mkString("\n"))
+  }
 
-    /*val toCover = Organized(newTargets.head).paths.filter(pathInTau => !newSelection.exists(splitComponent =>
-      splitComponent._2.isSubtypeOf(pathInTau)))*/
-    val toCover = Organized(newTargets.head).paths.filter(pathInTau => !newSelection._2.isSubtypeOf(pathInTau))
-    println("selection2", selection)
-    println("toCover", toCover)
-
-    Ok(toCover.mkString("\n"))
+  def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
+    val subt = bcl.algorithm.subtypes
+    import subt._
+    val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    prob
   }
 
   /**
@@ -484,11 +442,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
-
-  /*private def findAllSubtypes(grammar: TreeGrammar, ty: Type): Option[Type] = {
-    import bcl.algorithm.subtypes._
-    grammar.keys.find(k => k.isSubtypeOf(ty))
-  }*/
 
   /**
     * Returns tree grammar and the new targets
@@ -555,6 +508,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
     Ok(com.mkString("\n"))
   }
+
   /**
     * Shows a list of inhabitants
     */
@@ -567,10 +521,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
-  //Todo: If there are infinitely many inhabitants, the representation is very slow
-  //Todo: Idea: Choose the length of the path
+  //If there are infinitely many inhabitants, the representation is very slow
   def countsSolutions = Action {
-    lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get //.raw.values.flatMap(_._2).size - 1
+    lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get
     try
     Ok(results.toString)
   }

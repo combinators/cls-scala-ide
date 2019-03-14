@@ -303,8 +303,18 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                            $('#inhabRequest').removeClass('in');
                        }
                        var number = 1;
-            $.get("showPaths/"+label, function(data){
-                 $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
+
+           $.get("computeNumberOfArgs/"+label, function(data){
+                 $("#combinatorTys").html("");
+                 $("#targetsToCover").html("");
+                 $("#numberOfArgs").html(data.replace(/\n/g, '<br />'));
+                 $(document).on("change", ".form-radio", function(e){
+                 var radioVal = $(this).val();
+                    $.get("showPaths/"+radioVal, function(data){
+                                     $("#targetsToCover").html("");
+                                     $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
+                                 });
+                 });
              });
            }
 
@@ -315,6 +325,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                 $.get("showToCover/" + path, function(data){
                     var path1 = path.replace('*', '&#42;')
                     $("#targetsToCover").prepend('<li id = "'+ path1 + '">' + data.replace(/\n/g, ' ') + '</li>');
+
                 });
 
 
