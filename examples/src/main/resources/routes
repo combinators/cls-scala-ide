@@ -2,6 +2,7 @@
 
 ->     /         org.combinators.cls.ide.examples.temperature.Temperature
 ->     /          org.combinators.cls.ide.examples.labyrinth.LabDebugger
+->      /         org.combinators.cls.ide.examples.fscdSort.SortDebugger
 ->     /         org.combinators.cls.ide.examples.guidemo.GuiDebugger
 ->     /         org.combinators.cls.ide.examples.labyrinthDemo.LabProductline
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth1

@@ -82,7 +82,7 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
       }
     }
     if (ty.isOmega) { List.empty }
-    else List((List.empty, ty)) +: splitRec(ty, List.empty, List.empty)
+    else { List((List.empty, ty)) +: splitRec(ty, List.empty, List.empty) }
   }
 
   def groundTypesOf(grammar: TreeGrammar, tgts: Set[Type]): Set[Type] = {

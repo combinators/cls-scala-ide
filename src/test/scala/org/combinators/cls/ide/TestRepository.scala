@@ -3,7 +3,7 @@ package org.combinators.cls.ide
 import java.nio.file.{Path, Paths}
 
 import org.combinators.cls.git.{EmptyResults, Results}
-import org.combinators.cls.ide.inhabitation.{BoundedCombinatoryLogicDebugger, FiniteCombinatoryLogicDebugger, TestChannel}
+import org.combinators.cls.ide.inhabitation.{BoundedCombinatoryLogicDebugger, DebugMsgChannel, FiniteCombinatoryLogicDebugger}
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._
@@ -35,7 +35,7 @@ class TestRepository {
       .merge(Taxonomy("Garbage2"))
       .merge(Taxonomy("Goal"))
 
-  lazy val testChannel = new TestChannel()
+  lazy val testChannel = new DebugMsgChannel()
   val Gamma = Expected.expectedPaths.foldLeft(ReflectedRepository(garbageCombinators, substitutionSpace = FiniteSubstitutionSpace.empty, classLoader = this.getClass.getClassLoader)) {
     (repo, path) => repo.addCombinator(new TestCombinator(path))
   }

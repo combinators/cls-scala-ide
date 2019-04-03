@@ -30,5 +30,10 @@ case class CannotInhabitType(ty: Type) extends DebugMessage
 
 case class SubtypeOf(tgt: Type, syTy: Type) extends DebugMessage
 
+case class BclDebugger(bclDebugger: BoundedCombinatoryLogicDebugger,
+                       substitutionSpace: FiniteSubstitutionSpace,
+                       subtypes: SubtypeEnvironment,
+                       Gamma: Repository,
+                       targets: Seq[Type]) extends DebugMessage
 
-case class BclDebugger(bclDebugger: BoundedCombinatoryLogicDebugger, substitutionSpace: FiniteSubstitutionSpace, subtypes: SubtypeEnvironment, Gamma: Repository, targets: Seq[Type]) extends DebugMessage
+

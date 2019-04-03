@@ -38,7 +38,8 @@ class BCLTest extends FunSpec {
     addAll(Kinding(Variable("alpha"))).merge(addAll(Kinding(Variable("beta"))))
   val testChannel = new DebugMsgChannel()
 
-  lazy val Gamma: BoundedCombinatoryLogicDebugger = new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
+  lazy val Gamma: BoundedCombinatoryLogicDebugger =
+    new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(taxonomy.underlyingMap), mapTest)
 
   lazy val refRepo = ReflectedRepository(mapTest, taxonomy, FiniteSubstitutionSpace.empty, Gamma2)
   lazy val Gamma2 = BoundedCombinatoryLogicDebugger.algorithm(testChannel)

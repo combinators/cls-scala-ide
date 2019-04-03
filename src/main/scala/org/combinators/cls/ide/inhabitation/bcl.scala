@@ -19,8 +19,10 @@ package org.combinators.cls.ide.inhabitation
 import org.combinators.cls.inhabitation.{Repository, TreeGrammar, _}
 import org.combinators.cls.types.{FiniteSubstitutionSpace, SubtypeEnvironment, Type}
 
-class BoundedCombinatoryLogicDebugger(debuggerChannel: DebugMessage => Unit, substitutionSpace: FiniteSubstitutionSpace, subtypes: SubtypeEnvironment, Gamma: Repository)
-  extends BoundedCombinatoryLogic(substitutionSpace, subtypes, Gamma) {
+class BoundedCombinatoryLogicDebugger(debuggerChannel: DebugMessage => Unit,
+                                      substitutionSpace: FiniteSubstitutionSpace,
+                                      subtypes: SubtypeEnvironment,
+                                      Gamma: Repository) extends BoundedCombinatoryLogic(substitutionSpace, subtypes, Gamma) {
   override lazy val algorithm: FiniteCombinatoryLogicDebugger = {
     new FiniteCombinatoryLogicDebugger(debuggerChannel, subtypes, repository)
   }
@@ -37,6 +39,4 @@ object BoundedCombinatoryLogicDebugger {
         bclDebugger.inhabit(targets: _*)
 
     }
-
-
 }

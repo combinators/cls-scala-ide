@@ -72,9 +72,9 @@ class PathParser extends RegexParsers {
 }
 
 object NewPathParser extends PathParser {
-  def compute(selection: String): (Seq[Type], Type) = parseAll(tgts, selection) match {
-    case Success(result, _) => result
-    case failure: NoSuccess => null
+  def compute(selection: String): Option[(Seq[Type], Type)] = parseAll(tgts, selection) match {
+    case Success(result, _) => Some(result)
+    case _: Failure => None
   }
 }
 

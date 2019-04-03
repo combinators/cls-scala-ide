@@ -33,40 +33,7 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.util.Try
 
-class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController {
-
-
-  /*(val webjarsUtil: WebJarsUtil, val assets: Assets,
-                            val combinators: Map[String, (Type, String)], val substitutionSpace: FiniteSubstitutionSpace,
-                            val subtypes: SubtypeEnvironment, var targets: Seq[Type], val infinite: Boolean,
-                            val results: Results, val testChannel: TestChannel, val projectName: String) extends InjectedController {
-
-
-      def this(webjarsUtil: WebJarsUtil, assets: Assets,
-               substitutionSpace: FiniteSubstitutionSpace,
-               subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
-               combinatorComponents: Map[String, CombinatorInfo], results: Results, testChannel: TestChannel, projectName: String) =
-        this(webjarsUtil, assets, Debugger.toCombinatorsWithDeclarationInfo(combinatorComponents), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
-
-      def this(webjarsUtil: WebJarsUtil, assets: Assets,
-               substitutionSpace: FiniteSubstitutionSpace,
-               combinators: Map[String, Type], subtypes: SubtypeEnvironment, targets: Seq[Type], infinite: Boolean,
-               results: Results, testChannel: TestChannel, projectName: String) =
-        this(webjarsUtil, assets, combinators.mapValues(ty => (ty, "")), substitutionSpace, subtypes, targets, infinite, results, testChannel, projectName)
-
-
-      def this(webjarsUtil: WebJarsUtil, assets: Assets, reflectedRepository: ReflectedRepository[_], results: Results, testChannel: TestChannel,  projectName: String) =
-        this(
-          webjarsUtil = webjarsUtil,
-          assets = assets,
-          combinators = reflectedRepository.combinators,
-          substitutionSpace = reflectedRepository.substitutionSpace,
-          subtypes = SubtypeEnvironment(reflectedRepository.nativeTypeTaxonomy.addNativeTypes().toSet).taxonomy.merge(reflectedRepository.semanticTaxonomy).underlyingMap),
-          targets = results.targets.map(_._1),
-          infinite = results.infinite,
-          results = results,
-          testChannel = testChannel,
-          projectName = projectName)*/
+class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController { // scalastyle:off
 
   var combinatorComponents: Map[String, CombinatorInfo] = Map()
   var newGraph: TreeGrammar = Map()
@@ -75,9 +42,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var newTargets: Seq[Type] = Seq()
   var combinators: Repository = Map()
   val projectName: String = ""
-  var bcl: BoundedCombinatoryLogicDebugger = null
+  var bcl: Option[BoundedCombinatoryLogicDebugger] = None
   var debugMsgChannel = new DebugMsgChannel
-  var refRepo: ReflectedRepository[_] = null
+  var refRepo: Option[ReflectedRepository[_]]= None
   lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
@@ -92,13 +59,13 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
     debugMsgChannel.reset()
-    newGraph = refRepo.algorithm.apply(FiniteSubstitutionSpace.empty,
+    newGraph = refRepo.get.algorithm.apply(FiniteSubstitutionSpace.empty,
       SubtypeEnvironment(Map.empty), combinators).apply(tgt)
     newGraph
   }
 
-  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]] = None) = {
-    refRepo = Gamma
+  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]] = None): TreeGrammar = {
+    refRepo = Some(Gamma)
     newTargets = target
     combinatorComponents = Gamma.combinatorComponents
     repo = repository match {
@@ -114,7 +81,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       SubtypeEnvironment(Map.empty),
       repo).apply(newTargets)
     showDebuggerMessage().foreach { case BclDebugger(b, _, _, re, _) =>
-      bcl = b
+      bcl = Some(b)
       combinators = re
 
     case _ =>
@@ -188,7 +155,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         .flatMap { case (ty, r) =>
           r.map { case (c, args) =>
             val combinatorNode = Node(c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
-            val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null)
+            val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
             val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
               val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
               val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
@@ -216,7 +183,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       }
       Ok(newRepo.mkString("\n"))
     }
-    else Ok("Empty Repository")
+    else {
+      Ok("Empty Repository")
+    }
   }
 
   /**
@@ -300,7 +269,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def computeNumberOfArgs(selectedComb: String) = Action {
     selectedCombinator = selectedComb
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
     var radioNumbers: Set[Int] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedComb) paths.flatten.foreach {
@@ -310,11 +279,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val radioButtons = s"""${radioNumbers.map(e => s"""<input class = "form-radio" type="radio" name="optradio" value ="$e"> $e </label>""").mkString("\n")}"""
     Ok(radioButtons)
   }
+
+  private def getSplittedRepository = {
+    repo.mapValues(bcl.get.algorithm.splitsOf)
+  }
+
   /**
     * Show the Combinator types
     */
   def showPaths(numbOfArgs: Int) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedCombinator) paths.flatten.foreach {
@@ -335,7 +309,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def showNumberOfArgs() = Action{
 
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
     var size: Set[Int] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == combinatorName) paths.flatten.foreach {
@@ -360,23 +334,23 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
 
   def showToCover(selected: String) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = repo.mapValues(bcl.algorithm.splitsOf)
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
-    val newSelection = NewPathParser.compute(newRequest)
+    val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
     //Test selection
-    var selection: (Seq[Type], Type) = null
+    /*var selection: Option[(Seq[Type], Type)] = None
     splittedRepo.foreach {
       case (name, tys) => tys.flatten.foreach {
-        case (s, ty) => selection = (s, ty)
+        case (s, ty) => selection = Some(s, ty)
       }
-    }
-    val toCoverIs: Seq[Type with Path] = toCover(newSelection)
+    }*/
+    val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
    Ok(toCoverIs.mkString("\n"))
   }
 
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
-    val subt = bcl.algorithm.subtypes
+    val subt = bcl.get.algorithm.subtypes
     import subt._
     val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     prob
@@ -386,14 +360,14 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Computes the steps for the step-wise visualisation
     */
   def showSteps(step: Int) = Action {
-    val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = bcl.algorithm.inhabitRec(newTargets: _*)
+    val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
     try {
       val (oldGrammar, oldTgts) = newInhabitStep.splitAt(step)._2.head
       val (grammar, tgts) = computeGrammarAndTgts(oldGrammar, oldTgts)
       debugMsgChannel.reset()
-      bcl.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
+      bcl.get.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
       unusableCombinator =
         computeUnusableCombinator(grammar)
       tgts.isEmpty match {
@@ -409,18 +383,22 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
+  private def getInhabitStep = {
+    bcl.get.algorithm.inhabitRec(newTargets: _*)
+  }
+
   /**
     * Toggles all unproductive cycles and provides a clean view
     */
   def toggleCycles(step: Int) = Action {
-    val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = bcl.algorithm.inhabitRec(newTargets: _*)
+    val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
     try {
       val (oldGrammar, oldTgts) = newInhabitStep.splitAt(step)._2.head
       val (grammar, tgts) = computeGrammarAndTgts(oldGrammar, oldTgts)
       debugMsgChannel.reset()
-      val prunedGrammar = bcl.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
+      val prunedGrammar = bcl.get.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
       unusableCombinator =
         computeUnusableCombinator(grammar)
 
@@ -453,14 +431,14 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
           case Some(ty) =>
             debugMsgChannel(SubtypeOf(tgt, ty))
             debugMsgChannel.reset()
-            (bcl.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
+            (bcl.get.algorithm.substituteArguments(g, tgt, ty), ty +: tgts)
           case None => (g, tgt +: tgts)
         }
     }
   }
 
   private def findEqualEntries(grammar: TreeGrammar, ty: Type): Option[Type] = {
-    val newBcl = bcl
+    val newBcl = bcl.get
     import newBcl.algorithm.subtypes._
 
     grammar.keys.find(k => k.isSupertypeOf(ty) && k.isSubtypeOf(ty))
@@ -575,7 +553,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    newGraph = computeResults(refRepo, newTargets)
+    newGraph = computeResults(refRepo.get, newTargets)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
