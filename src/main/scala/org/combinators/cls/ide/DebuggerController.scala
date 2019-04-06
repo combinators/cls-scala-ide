@@ -27,6 +27,8 @@ import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
 import org.apache.commons.io.FileUtils
+import org.combinators.cls.smt.GrammarToModel
+import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -540,6 +542,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
+  }
+  def grammarToModel() = Action{
+    val grammar = bcl.get.inhabit(newTargets: _*)
+    val model = GrammarToModel(grammar, newTargets, customCommands = SortExperimentSmtImpl(grammar).customCommand)
+    Ok(model.script.toString)
   }
 
 

@@ -37,9 +37,7 @@ class SortDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applic
     substitutionSpace = kinding,
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
-  val newGamma = Gamma.combinators
-  println("repo", newGamma)
-  debugger.computeResults(Gamma, Seq(target), Some(sortRepo))
-
+  lazy val resultSort = debugger.computeResults(Gamma, Seq(target), Some(sortRepo))
+  println("RESULT", resultSort)
 
 }

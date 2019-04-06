@@ -37,6 +37,7 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/toggleCycle/${int(step)}") if prefix == controllerAddress => toggleCycles(step)
       case GET(p"/$prefix/computeRequest/${label}") if prefix == controllerAddress => computeRequest(label)
       case GET(p"/$prefix/repository") if prefix == controllerAddress => showRepo()
+      case GET(p"/$prefix/smt") if prefix == controllerAddress => grammarToModel()
       case GET(p"/$prefix/showDebuggerMessages") if prefix == controllerAddress => showDebuggerMessages()
       case GET(p"/$prefix/showUninhabitedTy") if prefix == controllerAddress => showUninhabitedTy()
       case GET(p"/$prefix/showUnusableCMsg") if prefix == controllerAddress => showUnusableCMsg()

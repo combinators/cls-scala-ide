@@ -199,6 +199,14 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                });
         });
 
+        $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
+
+            $('#inhabRequest').collapse('show');
+            $.get("smt", function(data){
+              $("#smt").html(data.replace(/\n/g, '<br />'));
+               });
+        });
+
         /*$('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
             if( $('#inhabRequest').is( ":visible" )){
             console.log("true", $('#inhabRequest').is( ":visible" ));

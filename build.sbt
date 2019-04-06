@@ -51,6 +51,7 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       "org.combinators" %% "cls-scala-presentation-play-git" % "1.0.0-RC1+1-00659e19",
       //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
       "org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1",
+      "org.combinators" %% "cls-scala-smt" % "e1e9153f",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
