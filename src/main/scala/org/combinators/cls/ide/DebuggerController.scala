@@ -1,22 +1,23 @@
 /*
- * Copyright 2018 Anna Vasileva
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2018 Anna Vasileva
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 package org.combinators.cls.ide
 
 
+import akka.http.scaladsl.model
 import org.combinators.cls.ide.inhabitation._
 import org.combinators.cls.inhabitation._
 import org.combinators.cls.interpreter._
@@ -27,8 +28,10 @@ import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
 import org.apache.commons.io.FileUtils
-import org.combinators.cls.smt.GrammarToModel
+import org.combinators.cls.smt.{GrammarToModel, ModelToTerm, ModelToTree, ParallelInterpreterContext}
 import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
+import smtlib.Interpreter
+import smtlib.trees.Commands.{CheckSat, GetModel, GetUnsatCore}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -51,6 +54,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
   var selectedCombinator: String = ""
+  var model: Option[GrammarToModel] = None
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
@@ -158,11 +162,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
           r.map { case (c, args) =>
             val combinatorNode = Node(c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
             val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
-            val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
-              val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
-              val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
-              (node, edgeFrom)
-            }
+          val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
+            val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
+            val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
+            (node, edgeFrom)
+          }
             (combinatorNode, edgeTo, argsTyNode)
           }
         }.toSeq.unzip3 match {
@@ -258,8 +262,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
         case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
           s"""Combinator <b>$combinatorName</b> cannot be used with target \n
-              <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
-              """.stripMargin
+             <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
+             """.stripMargin
       }
       Ok(newSet.mkString("\n"))
     }
@@ -271,7 +275,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def computeNumberOfArgs(selectedComb: String) = Action {
     selectedCombinator = selectedComb
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var radioNumbers: Set[Int] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedComb) paths.flatten.foreach {
@@ -282,7 +286,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Ok(radioButtons)
   }
 
-  private def getSplittedRepository = {
+  private def getSplitRepository = {
     repo.mapValues(bcl.get.algorithm.splitsOf)
   }
 
@@ -290,7 +294,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Show the Combinator types
     */
   def showPaths(numbOfArgs: Int) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedCombinator) paths.flatten.foreach {
@@ -304,18 +308,18 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       if (toCover(e).isEmpty) {
         s"""<input class="form-check-input" type= "checkbox" value="$e" disabled> $e"""}
       else{
-      s"""<input class="form-check-input" type= "checkbox" value="$e"> $e"""}
+        s"""<input class="form-check-input" type= "checkbox" value="$e"> $e"""}
     ).mkString("\n")}"""
     Ok (htmlArgs)
   }
 
   def showNumberOfArgs() = Action{
 
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
+    var splitRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var size: Set[Int] = Set()
-    splittedRepo.foreach {
+    splitRepo.foreach {
       case (combName, paths) => if (combName == combinatorName) paths.flatten.foreach {
-        case (args, ty) =>
+        case (args, _) =>
           size += args.size
       }
     }
@@ -323,7 +327,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       s"""${
         size.map(e =>
           s"""<label class="radio-inline">
-      <input type="radio" name="optradio">$e</label>""").mkString
+     <input type="radio" name="optradio">$e</label>""").mkString
       }"""
     Ok(htmlSize)
   }
@@ -336,7 +340,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
 
   def showToCover(selected: String) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplittedRepository
+    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
@@ -348,7 +352,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       }
     }*/
     val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
-   Ok(toCoverIs.mkString("\n"))
+    Ok(toCoverIs.mkString("\n"))
   }
 
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
@@ -505,10 +509,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def countsSolutions = Action {
     lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get
     try
-    Ok(results.toString)
+      Ok(results.toString)
   }
   def showNumberOfSolutions(number: Int) = Action{
-      Ok(number.toString)
+    Ok(number.toString)
   }
 
   /**
@@ -543,10 +547,50 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
-  def grammarToModel() = Action{
+
+  def getUsedCombinators(model: GrammarToModel): Seq[(String, Int)] = {
+    var usedCombinators: Seq[(String, Int)] = Seq.empty[(String, Int)]
+    usedCombinators.toMap
+    usedCombinators
+  }
+
+  def mkModel: GrammarToModel = {
     val grammar = bcl.get.inhabit(newTargets: _*)
-    val model = GrammarToModel(grammar, newTargets, customCommands = SortExperimentSmtImpl(grammar).customCommand)
-    Ok(model.script.toString)
+    println("Grammar", grammar)
+    model =
+      Some(GrammarToModel(grammar, newTargets))// , customCommands = SortExperimentSmtImpl(grammar).customCommand)
+
+    model.get
+  }
+
+  def grammarToModel() = Action{
+    val model: GrammarToModel = mkModel
+    // getUsedCombinators(model.combinatorSeq)
+    /*println("Range", result.size.get)
+    println("GF", model.grammarFilters)
+    println("G", model.grammar)
+    println("Comseg", model.combinatorSeq(6))
+    println("index", model.getIndexForCombinatorName("dropDownSelector"))
+    println("index", model.combinatorSeq.indexOf(model.combinatorSeq(6)))*/
+    //inhabitantsWithoutCombinator(model.combinatorSeq(6))
+    //Ok(model.script.mkString(" "))
+    val usedCombinators = s"""${model.combinatorSeq.map(e => s"""<input class = "form-radio" type="radio" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
+
+    Ok(usedCombinators)
+  }
+
+
+
+  def inhabitantsWithoutCombinator(combinator: Int) = Action {
+    val exContext = ParallelInterpreterContext(model.get)
+    val inhabitant: Option[Tree] = Assertions().filterCombinators(combinator, exContext)
+    val smtResult = inhabitant match {
+      case Some(tree) => tree.toString
+      case None => //if (result.size.get)
+        "unsat"
+    }
+println("Hallo SMT Result", smtResult)
+    Ok(smtResult)
   }
 
 
@@ -591,3 +635,5 @@ object DebuggerController {
           dynamicInfo.position.mkString("\n"))
     }
 }
+
+

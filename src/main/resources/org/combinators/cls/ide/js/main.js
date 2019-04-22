@@ -200,11 +200,16 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         });
 
         $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
-
             $('#inhabRequest').collapse('show');
             $.get("smt", function(data){
-              $("#smt").html(data.replace(/\n/g, '<br />'));
-               });
+              $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+              $(document).on("change", ".form-radio", function(e){
+                 var radioVal = $(this).val();
+                 $.get("inhabitantsWithoutCombinator/"+radioVal, function(data){
+                     $("#treeResult").html(data.replace(/\n/g, '<br />'));
+                 });
+              });
+            });
         });
 
         /*$('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
@@ -213,6 +218,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
                 $('#inhabRequest').removeClass('in');
             }
                     var combName = "down";
+                    $.get("showPaths/"+combName, function(data){
                     $.get("showPaths/"+combName, function(data){
                       $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
                        });
