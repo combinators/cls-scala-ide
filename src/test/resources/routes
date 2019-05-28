@@ -1,3 +1,3 @@
-#->    /                              org.combinators.cls.ide.EmptyTestController
+->    /                              org.combinators.cls.ide.EmptyTestController
 ->    /                              org.combinators.cls.ide.DebuggerTestController
-#->    /                              org.combinators.cls.ide.MessageTestController
+->    /                              org.combinators.cls.ide.MessageTestController

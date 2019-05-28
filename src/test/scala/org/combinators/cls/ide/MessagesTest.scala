@@ -20,7 +20,7 @@ class MessagesTest extends PlaySpec with GuiceOneServerPerSuite {
 
   "Calling the test prefixTest" must {
     "result in a valid response" in {
-      val request = s"/testPrefix/testMessages/ide/"
+      val request = s"/testMessages/ide/"
       val url = s"http://localhost:$port$request"
       val response = await(ws.url(url).get())
       response.status mustBe OK
@@ -30,7 +30,7 @@ class MessagesTest extends PlaySpec with GuiceOneServerPerSuite {
 
     "Calling the test showUninhabitedTy" must {
         "result in a valid response" in {
-            val request = s"/testPrefix/testMessages/showUninhabitedTy"
+            val request = s"/testMessages/showUninhabitedTy"
             val url = s"http://localhost:$port$request"
             val response = await(ws.url(url).get())
             response.status mustBe OK
@@ -40,21 +40,21 @@ class MessagesTest extends PlaySpec with GuiceOneServerPerSuite {
 
     "Calling the test showDebuggerMessages" must {
         "result in a valid response" in {
-            val request = s"/testPrefix/testMessages/showDebuggerMessages"
+            val request = s"/testMessages/showDebuggerMessages"
             val url = s"http://localhost:$port$request"
             val response = await(ws.url(url).get())
             response.status mustBe OK
-            response.body.toLowerCase.indexOf("message") must be > 0
+            response.body.toLowerCase.indexOf(" ") must be > 0
         }
     }
 }
 
-class MessageTestController @Inject()(webJars: WebJarsUtil, applicationLifecycle: ApplicationLifecycle, assets: Assets, example: TestRepository, exampleName: String)
+class MessageTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Assets)
   extends DebuggerController(
-    webJars,
+    webJarsUtil,
       assets) with DebuggerEnabled {
   override val controllerAddress: String = "testMessages"
-  override val routingPrefix: Option[String] = Some("/testPrefix")
+ // override val routingPrefix: Option[String] = Some("/testMessages")
   implicit val persistable: Persistable.Aux[Path] = new Persistable {
     override type T = Path
     override def rawText(elem: T): Array[Byte] = elem.toString.getBytes

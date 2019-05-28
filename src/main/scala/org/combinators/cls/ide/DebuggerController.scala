@@ -59,7 +59,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
   }
-
+/*
   /**
     * Generates a tree grammar
     */
@@ -68,7 +68,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     newGraph = refRepo.get.algorithm.apply(FiniteSubstitutionSpace.empty,
       SubtypeEnvironment(Map.empty), combinators).apply(tgt)
     newGraph
-  }
+  }*/
 
   def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]] = None): TreeGrammar = {
     refRepo = Some(Gamma)
@@ -275,6 +275,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def computeNumberOfArgs(selectedComb: String) = Action {
     selectedCombinator = selectedComb
+    println("rrr",selectedComb)
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var radioNumbers: Set[Int] = Set()
     splittedRepo.foreach {
@@ -313,7 +314,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Ok (htmlArgs)
   }
 
-  def showNumberOfArgs() = Action{
+  /*def showNumberOfArgs() = Action{
 
     var splitRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var size: Set[Int] = Set()
@@ -329,8 +330,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
           s"""<label class="radio-inline">
      <input type="radio" name="optradio">$e</label>""").mkString
       }"""
+    println("ssss", size)
     Ok(htmlSize)
-  }
+  }*/
 
   def showOrganizedTy() = Action {
     val orgTy = Organized(newTargets.head).paths
@@ -340,10 +342,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
 
   def showToCover(selected: String) = Action {
+    println("Selected3", selected)
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
+
+    println("Selected2", splittedRepo)
     var newRequest = selected.replaceAll("91", "[")
+
+    println("Selected1", newRequest)
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
+    println("Selction", newSelection.get)
     //Test selection
     /*var selection: Option[(Seq[Type], Type)] = None
     splittedRepo.foreach {
@@ -356,6 +364,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
+    println("hallo")
     val subt = bcl.get.algorithm.subtypes
     import subt._
     val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
@@ -479,26 +488,26 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         Ok("Inhabitant not found!")
     }
   }
-  def showUsedCombinators(index: Int) = Action{
+  /*def showUsedCombinators(index: Int) = Action{
     val tree = Seq(result.terms.index(index))
     var com: Seq[String] = Seq.empty
     usedCombinators(tree)
     def usedCombinators(tree: Seq[Tree]): Seq[String] = {
       tree.foreach {
-        case t => usedCombinators(t.arguments)//
+         t => usedCombinators(t.arguments)//
           com = t.name +: com
       }
       com
     }
     Ok(com.mkString("\n"))
-  }
+  }*/
 
   /**
     * Shows a list of inhabitants
     */
   def showResult(index: Int) = Action {
-    val tree: Tree = result.terms.index(index)
     try {
+      val tree: Tree = result.terms.index(index)
       Ok(tree.toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
@@ -508,12 +517,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   //If there are infinitely many inhabitants, the representation is very slow
   def countsSolutions = Action {
     lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get
-    try
-      Ok(results.toString)
+    Ok(results.toString)
   }
-  def showNumberOfSolutions(number: Int) = Action{
+
+  /*def showNumberOfSolutions(number: Int) = Action{
     Ok(number.toString)
-  }
+  }*/
 
   /**
     * Generates a graph for an inhabitant
@@ -522,15 +531,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     *
     */
   def inhabitantToGraph(index: Int) = Action {
-    var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
-    allPartGrammars.clear()
+
     try {
+      var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
+      allPartGrammars.clear()
       val partTree: Seq[Tree] = Seq(result.terms.index(index))
 
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
         trees.map {
-          case t => val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
+           t => val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
             var in: TreeGrammar = Map(t.target -> Set(c))
             allPartGrammars.add(in)
             partTreeGrammar = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
@@ -548,11 +558,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
-  def getUsedCombinators(model: GrammarToModel): Seq[(String, Int)] = {
+  /*def getUsedCombinators(model: GrammarToModel): Seq[(String, Int)] = {
     var usedCombinators: Seq[(String, Int)] = Seq.empty[(String, Int)]
     usedCombinators.toMap
     usedCombinators
-  }
+  }*/
 
   def mkModel: GrammarToModel = {
     val grammar = bcl.get.inhabit(newTargets: _*)
@@ -565,17 +575,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def grammarToModel() = Action{
     val model: GrammarToModel = mkModel
-    // getUsedCombinators(model.combinatorSeq)
-    /*println("Range", result.size.get)
-    println("GF", model.grammarFilters)
-    println("G", model.grammar)
-    println("Comseg", model.combinatorSeq(6))
-    println("index", model.getIndexForCombinatorName("dropDownSelector"))
-    println("index", model.combinatorSeq.indexOf(model.combinatorSeq(6)))*/
-    //inhabitantsWithoutCombinator(model.combinatorSeq(6))
-    //Ok(model.script.mkString(" "))
-    val usedCombinators = s"""${model.combinatorSeq.map(e => s"""<input class = "form-radio" type="radio" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
-
+    val usedCombinators = s"""${model.combinatorSeq.map(e =>
+      s"""<input class = "form-radio" type="radio" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
     Ok(usedCombinators)
   }
 
@@ -604,6 +605,7 @@ println("Hallo SMT Result", smtResult)
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
+    println("newTargets", newTargets)
     newGraph = computeResults(refRepo.get, newTargets)
     newGraph.nonEmpty match {
       case true =>

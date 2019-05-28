@@ -213,28 +213,22 @@ projectName: String)
                     </div>
 
                     <div class ="container-panel">
-                        <div class = "panel panel-primary">
-                            <div id = "unusableComb" class = "panel-heading text-center panel-size"><h4 class="position">Unusable Combinators</h4></div>
+                            <a id = "unusableComb"><h4 class="position">Unusable Combinators</h4></a>
                             <div id="collapse2" class = "collapse panel-body ">
                                 <div id="debuggerM"></div>
                             </div>
-                        </div>
-
-                        <div class = "panel panel-primary">
-                            <div id = "uninhabitedTy" class = "panel-heading text-center panel-size"><h4 class = "position">Uninhabited Types</h4></div>
+                            <a id = "uninhabitedTy"><h4 class = "position">Uninhabited Types</h4></a>
                             <div id="collapse1" class = "collapse panel-body ">
                                 <div id="debuggerMessages"></div>
                             </div>
                         </div>
-                    </div>
-
                 </div>
 
             </div>
         </div>
         <div id="repo" class="tab-pane fade">
             <h4><h3>Repository:</h3>
-                <pre>
+                <pre class="well">
                    <h4> &Gamma; = {</h4>
                     <div id="repository"></div>
                      <h4>  }</h4>
@@ -245,7 +239,7 @@ projectName: String)
         <div id="mess" class="tab-pane fade">
             <h4>
                 <h3>Debugger Messages:</h3>
-                <pre>
+                <pre class="well">
                 <div id="showDebuggerMessages"></div>
                 </pre>
             </h4>
@@ -253,21 +247,19 @@ projectName: String)
 
         <div id="smt" class="tab-pane fade">
             <h4><h3>Grammar to Model:</h3>
-                <pre>
+                <pre class="well">
                     <div id="grammarToModel"></div>
-                    <div class="panel-body">
-                        <div id="treeResult">
-                        </div>
+                    <div id="treeResult">
                     </div>
                 </pre>
             </h4>
         </div>
         <div id="paths" class="tab-pane fade">
             <div class="panel-group">
-                <div class="panel panel-primary form-group well">
-                    <div class="panel-heading"><h4>Combinator:</h4></div>
+                <div class="well">
+                    <a><h4>Combinator:</h4></a>
                     <div class="panel-body"><div id="combinatorName"></div></div>
-                    <div class="panel-heading"><h4>Number of Arguments:</h4></div>
+                    <a><h4>Number of Arguments:</h4></a>
                     <div class="panel-body"><div id="numberOfArgs"></div></div>
 
                 </div>

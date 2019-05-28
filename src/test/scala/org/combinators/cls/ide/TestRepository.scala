@@ -36,19 +36,25 @@ class TestRepository {
       .merge(Taxonomy("Goal"))
 
   lazy val testChannel = new DebugMsgChannel()
-  val Gamma = Expected.expectedPaths.foldLeft(ReflectedRepository(garbageCombinators, substitutionSpace = FiniteSubstitutionSpace.empty, classLoader = this.getClass.getClassLoader)) {
+  val Gamma = Expected.expectedPaths.foldLeft(ReflectedRepository
+  (garbageCombinators, substitutionSpace = FiniteSubstitutionSpace.empty, classLoader = this.getClass.getClassLoader)) {
     (repo, path) => repo.addCombinator(new TestCombinator(path))
   }
-  val GammaFin = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), garbageCombinators)
-  val target: Constructor = Constructor("Goal")
-  lazy val results: InhabitationResult[Unit] = InhabitationResult[Unit](GammaFin.inhabit(target), target, x => ())
 
+  val GammaBCL =  new BoundedCombinatoryLogicDebugger(testChannel, Kinding.empty, SubtypeEnvironment(taxonomy.underlyingMap), garbageCombinators)
+  val GammaFin = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), garbageCombinators)
+  val target: Constructor = Constructor("Int")
+  val target2: Constructor = Constructor("Goal")
+  val targetEmpty: Constructor = Constructor("impossible")
+  lazy val results: InhabitationResult[Unit] = InhabitationResult[Unit](GammaFin.inhabit(target), target, x => ())
   lazy val jobs = Gamma.InhabitationBatchJob[Unit]('Goal)
   lazy val resultsInhabit: Results = EmptyResults().addAll(jobs.run())
   lazy val inhabitantsNumber = (resultsInhabit.raw.values.flatMap(_._2))
 
   lazy val jobs1 = Gamma.InhabitationBatchJob[Unit]('Int)
   lazy val resultsInhabit1: Results = EmptyResults().addAll(jobs.run())
+
+
 
 }
 

@@ -67,7 +67,6 @@ class PathTest extends FunSpec {
       case (s, ty) => if (s.length == 0) selection = selection :+ (s, ty)
     }
   }
-  println("selection", selection)
   val toCover = Organized(tau).paths.filter(pathInTau => !selection.exists(splitComponent =>
     splitComponent._2.isSubtypeOf(pathInTau)))
 

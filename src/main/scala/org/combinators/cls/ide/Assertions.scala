@@ -9,26 +9,25 @@ import smtlib.trees.Commands.{Assert, CheckSat, GetModel, GetUnsatCore}
 import smtlib.trees.Terms._
 
 
-
 trait Assertions {
   //lazy val model: GrammarToModel =
 
-
-  def filterCombinators(combinatorName: Int, exContext: InterpreterContext): Option[Tree] ={
+  //Filter by combinator name
+  def filterCombinators(combinatorName: Int, exContext: InterpreterContext): Option[Tree] = {
     val toTree = ModelToTree(exContext)
     val term = ModelToTerm(exContext)
 
-    var assertion = term.unusedCombinator(combinatorInt = combinatorName)
-  println("Comb: ", combinatorName)
-    println("Tree: " +assertion.term + " " + toTree.getTree(1))
+    val assertion = term.unusedCombinator(combinatorInt = combinatorName)
+    println("Comb: ", combinatorName)
+    println("Tree: " + assertion.term + " " + toTree.getTree(1))
     var tree: Option[Tree] = None
     println("addAssertions2: " + assertion)
     exContext.interpreter.eval(assertion)
-    if (exContext.interpreter.eval(CheckSat()).toString() contains  ("unsat")){
+    if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
       val getUnsatCore = exContext.interpreter.eval(GetUnsatCore())
       println("Core + 1:" + getUnsatCore)
       None
-    }else{
+    } else {
       exContext.interpreter.eval(GetModel())
       println(s"Tree3: ${toTree.getTree(1)}")
       tree = Some(toTree.getTree(1))
@@ -37,7 +36,8 @@ trait Assertions {
   }
 
 }
-  object Assertions {
-    def apply(): Assertions =
-      new Assertions{}
-  }
+
+object Assertions {
+  def apply(): Assertions =
+    new Assertions {}
+}

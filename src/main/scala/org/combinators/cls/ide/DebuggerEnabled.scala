@@ -42,17 +42,15 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/showUninhabitedTy") if prefix == controllerAddress => showUninhabitedTy()
       case GET(p"/$prefix/showUnusableCMsg") if prefix == controllerAddress => showUnusableCMsg()
       case GET(p"/$prefix/showResult/${int(index)}") if prefix == controllerAddress => showResult(index)
-      case GET(p"/$prefix/showUsedCombinators/${int(index)}") if prefix == controllerAddress => showUsedCombinators(index)
+      //case GET(p"/$prefix/showUsedCombinators/${int(index)}") if prefix == controllerAddress => showUsedCombinators(index)
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
       case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
       case GET(p"/$prefix/inhabitantsWithoutCombinator/${int(index)}") if prefix == controllerAddress => inhabitantsWithoutCombinator(index)
-
       case GET(p"/$prefix/showPaths/${int(args)}") if prefix == controllerAddress => showPaths(args)
       case GET(p"/$prefix/computeNumberOfArgs/${combName}") if prefix == controllerAddress => computeNumberOfArgs(combName)
       case GET(p"/$prefix/showToCover/${selection}") if prefix == controllerAddress => showToCover(selection)
       case GET(p"/$prefix/showOrganizedTy") if prefix == controllerAddress => showOrganizedTy()
-
     }
     routingPrefix match {
       case None => directRoutes

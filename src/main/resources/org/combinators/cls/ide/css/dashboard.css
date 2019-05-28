@@ -143,6 +143,8 @@ color: #337ab7;
 
 .container-panel{
 width: 307px;
+background: hsl(0, 0%, 97%);
+padding: 12px 10px
 }
 
 .panel-primary{
@@ -152,6 +154,15 @@ border-radius: 6px;
 display: flex;
 justify-content: space-between;
 }
+.panel-body{
+border-radius 6px;
+background-color: white;
+box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2)
+
+  width: 287px;
+  height: 50px;
+}
+
 .panel-primary .panel-heading{
 border-color : #a2c6e5;
 background-color: #fff;
@@ -199,10 +210,6 @@ box-shadow: 0 4px 6px 0 rgba(0,0,0,0.2);
 margin-right: 0px;
 }
 
-#collapse2{
-padding-right:0px;
-width: 307px;
-}
 #debuggerM{
 width: 307px;
 }

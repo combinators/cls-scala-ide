@@ -124,7 +124,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         function makeSolutions(number){
             for (var item = 0; item < number ; item ++) {
                 var nav = document.createElement("nav");
-                nav.className = "navbar navbar-default";
+                nav.className = "navbar navbar-default well";
                 nav.id = "nav";
 
                 var div = document.createElement("div");
