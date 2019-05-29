@@ -103,11 +103,11 @@ projectName: String)
             </ul>
             <div class="row justify-content-end">
                 <div class="col-md-8">
-                    <h1>Layout:</h1>
+                    <h4 class="tertiary">Layout:</h4>
 
                     <div class="dropdown" id="layout-dropdown">
                         <button id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true"
-                                aria-expanded="false">
+                                aria-expanded="false" class="btn dropdown-content">
                             Breadthfirst
                             <span class="caret"></span>
                         </button>
@@ -135,13 +135,13 @@ projectName: String)
             <div class="row justify-content-between">
                 <form class="form-row">
 
-                    <label for="request"><h3>Inhabitation Requests:</h3></label>
+                    <label for="request"><h3>Inhabitation Request:</h3></label>
                     <!-- <label class="col-sm-6 col-md-10 control-label">Inhabitation Requests:</label>-->
                     <div class="form-group well">
-                        <label for="request"><h4>&Gamma; &vdash; ? :</h4></label>
+                        <label for="request"><h4 class="secondary">&Gamma; &vdash; ? :</h4></label>
                         <textarea class="form-control" id="request" type="text">@for(ty <- targets) {@ty &#10;}</textarea>
                         <!--<p>&nbsp;</p>-->
-                        <button class="btn btn-primary" type="submit" id="submit">New Request</button>
+                        <button class="btn btn-primary btn-toggle" type="submit" id="submit">New Request</button>
                     </div>
 
 
@@ -152,9 +152,6 @@ projectName: String)
 
 </div>
 <!--<h1 class="page-header">Dashboard</h1>-->
-
-
-
 
 <div class="row">
     <div class="col-sm-6 col-sm-3 col-md-10 col-md-offset-2 tab-content main">
@@ -175,9 +172,7 @@ projectName: String)
             </h3>
         </div>
         <div id="results" class="tab-pane fade" >
-            <h4>
                 <h3>Solutions:</h3>
-            </h4>
             <div id="cy-part-graph">
             </div>
             <div class="modal fade" id="isInfinite" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
@@ -227,14 +222,12 @@ projectName: String)
             </div>
         </div>
         <div id="repo" class="tab-pane fade">
-            <h4><h3>Repository:</h3>
+            <h3>Repository:</h3>
                 <pre class="well">
-                   <h4> &Gamma; = {</h4>
+                   <h4 class="secondary"> &Gamma; = {</h4>
                     <div id="repository"></div>
-                     <h4>  }</h4>
-
+                     <h4 class="secondary">  }</h4>
                 </pre>
-            </h4>
         </div>
         <div id="mess" class="tab-pane fade">
             <h4>
@@ -246,35 +239,36 @@ projectName: String)
         </div>
 
         <div id="smt" class="tab-pane fade">
-            <h4><h3>Grammar to Model:</h3>
+            <h3>Filter by Combinator:</h3>
                 <pre class="well">
                     <div id="grammarToModel"></div>
+                    <h4 class="secondary">Result:</h4>
                     <div id="treeResult">
                     </div>
                 </pre>
-            </h4>
+
         </div>
         <div id="paths" class="tab-pane fade">
             <div class="panel-group">
                 <div class="well">
                     <a><h4>Combinator:</h4></a>
-                    <div class="panel-body"><div id="combinatorName"></div></div>
+                    <div class="panel-body"><div id="combinatorName"></div>
+                    </div>
+
+                    <div class="well second">
                     <a><h4>Number of Arguments:</h4></a>
                     <div class="panel-body"><div id="numberOfArgs"></div></div>
 
-                </div>
 
-                <div class="panel panel-primary">
-                    <div class="panel-heading"><h4>Paths:</h4></div>
+                    <a><h4>Paths:</h4></a>
                     <div class="panel-body">
                         <div id="combinatorTys">
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="panel panel-primary">
-                <div class="panel-heading"><h4>to Cover:</h4></div>
+
+                <a><h4>to Cover:</h4></a>
                 <div class="panel-body" id="targetsToCover"></div>
+
             </div>
         </div>
     </div>

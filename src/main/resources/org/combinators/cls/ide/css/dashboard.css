@@ -135,10 +135,23 @@ display: flex;
 justify-content: flex-end;
 margin-top: 10px;
 margin-bottom: 20px;
-border-color : #a2c6e5;
 border: 2px solid;
 background-color: #fff;
 color: #337ab7;
+border-color: hsla(207.7,56.4%,45.9%, .5);
+}
+
+.btn-secondary{
+color: #337ab7;
+border-color: hsla(207.7,56.4%,45.9%, .5);
+}
+
+.dropdown-content{
+border-radius 6px;
+border: 2px solid;
+background-color: #fff;
+color: #337ab7;
+border-color: hsla(207.7,56.4%,45.9%, .5);
 }
 
 .container-panel{
@@ -150,17 +163,20 @@ padding: 12px 10px
 .panel-primary{
 border-radius: 6px;
 }
+
 .container-show {
 display: flex;
 justify-content: space-between;
+}
+.tertiary{
+color: hsl(0, 0%, 45%);
 }
 .panel-body{
 border-radius 6px;
 background-color: white;
 box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2)
-
-  width: 287px;
-  height: 50px;
+width: 287px;
+height: 50px;
 }
 
 .panel-primary .panel-heading{
@@ -169,15 +185,26 @@ background-color: #fff;
 color: #337ab7;
 border: 2px solid;
 }
+h3{
+color: hsl(0, 0%, 13%);
+font-weight: 700;
+}
+
+.secondary {
+font-weight: 400;
+color: hsl(0, 0%, 29%);
+}
+
 .container-buttons {
 display: flex;
 flex-wrap: wrap;
 justify-content: space-between;
 }
-.panel-group {
 
+.panel-group {
 margin-top: 10px;
 }
+
 .step-buttons{
 display: flex;
 justify-content: flex-start;
@@ -186,10 +213,18 @@ justify-content: flex-start;
 #cy-steps {
   flex-grow: 3; /* default 0 */
 }
-
+.well{
+border: 0;
+box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2);
+background: hsl(0, 0%, 97%);
+}
 .form-group well{
 border: 0;
-box-shadow: 0 2px 6px 0 rgba(0,0,0,0.2);
+box-shadow: 0 4px 6px 0 hsla(0,0%,0%,0.2);
+}
+.second{
+border-style: none; outline: 0;
+box-shadow: none;
 }
 
 .flex-items {
@@ -221,6 +256,9 @@ padding-bottom:0px;
 border: 1px solid transparent;
 height:46px;
 width: 307px;
+}
+.panel-body{
+height: 100%;
 }
 
 .position {

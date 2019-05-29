@@ -21,7 +21,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
     loadDoc();
     $(function() {
         loadDoc();
-
      // Ajax to data
      $.get("graph", function(data){
         $("#progress").html(" ");
@@ -61,12 +60,18 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
   $(function(){
     $(".nav-sidebar a").click(function(){
         $(this).tab('show');
-        $('#inhabRequest').collapse('show');
+       // $('#inhabRequest').collapse('hide');
         });
+
+
+$('.nav-sidebar a[href="#graph"]').on('shown.bs.tab', function(){
+
+$('#inhabRequest').collapse('show');
+});
 
         $('.nav-sidebar a[href="#steps"]').on('shown.bs.tab', function(){
             mkSteps(stepsNr);
-            $('#inhabRequest').collapse('show');
+            $('#inhabRequest').collapse('hide');
             $.get("showUninhabitedTy", function(data){
                  $('#uninhabitedTy, #unusableComb').click(function(e){
                       if(this.id == 'uninhabitedTy'){
@@ -94,7 +99,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
 
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function(){
-                 $('#inhabRequest').collapse('show');
+                 $('#inhabRequest').collapse('hide');
 
                  var elements = document.getElementsByClassName("navbar navbar-default");
                     if(elements.length != 0){
@@ -193,14 +198,14 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
         $('.nav-sidebar a[href="#repo"]').on('shown.bs.tab', function(){
 
-            $('#inhabRequest').collapse('show');
+            $('#inhabRequest').collapse('hide');
             $.get("repository", function(data){
               $("#repository").html(data.replace(/\n/g, '<br />'));
                });
         });
 
         $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
-            $('#inhabRequest').collapse('show');
+            $('#inhabRequest').collapse('hide');
             $.get("smt", function(data){
               $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
               $(document).on("change", ".form-radio", function(e){
@@ -247,7 +252,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
             $.get("showDebuggerMessages", function(data){
-            $('#inhabRequest').collapse('show');
+            $('#inhabRequest').collapse('hide');
              $("#showDebuggerMessages").html(data);
             });
         });
