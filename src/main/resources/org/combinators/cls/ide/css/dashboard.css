@@ -45,9 +45,7 @@ div.zebra > div:nth-of-type(even) {
  */
 
 /* Hide for mobile, show later */
-.sidebar {
-  display: none;
-}
+
 
 @media (min-width: 768px) {
   .sidebar {
@@ -61,7 +59,13 @@ div.zebra > div:nth-of-type(even) {
     overflow-x: hidden;
     overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
     background-color: #f5f5f5;
-    border-right: 1px solid #eee;
+
+
+  width: 200px;
+  border: none;
+  border-radius: 4px;
+box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2);
+background: hsl(0, 0%, 97%);
   }
 }
 
@@ -99,6 +103,8 @@ div.zebra > div:nth-of-type(even) {
     padding-left: 20px;
     padding-top: 1px;
     padding-bottom: 1px;
+    margin-left: 210px;
+    margin-right: 0px;
   }
 }
 .main .page-header {
@@ -153,11 +159,16 @@ background-color: #fff;
 color: #337ab7;
 border-color: hsla(207.7,56.4%,45.9%, .5);
 }
-
 .container-panel{
-width: 307px;
+width: absolute;
 background: hsl(0, 0%, 97%);
 padding: 12px 10px
+}
+
+.container-panel-all{
+  border-radius: 4px;
+box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2);
+  right: 0;
 }
 
 .panel-primary{
@@ -222,6 +233,12 @@ background: hsl(0, 0%, 97%);
 border: 0;
 box-shadow: 0 4px 6px 0 hsla(0,0%,0%,0.2);
 }
+
+.form-control{
+box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.02);
+border:0;
+}
+
 .second{
 border-style: none; outline: 0;
 box-shadow: none;
