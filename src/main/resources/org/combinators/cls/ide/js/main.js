@@ -15,12 +15,9 @@
  */
 
 require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
-
-/*    require(['bootstrap', 'cytoscape', 'cytoscape-popper'], function(bootstrap, cytoscape, popper) {
-        popper(cytoscape);*/
     loadDoc();
     $(function() {
-        loadDoc();
+       // loadDoc();
      // Ajax to data
      $.get("graph", function(data){
         $("#progress").html(" ");
@@ -37,7 +34,7 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
 
    function loadDoc() {
         $.ajax({
-         url:"GET",
+         url:"ide",
          async: true,
          xhr: function () {
               var xhr = new window.XMLHttpRequest();
@@ -202,18 +199,22 @@ $('#inhabRequest').collapse('show');
             $.get("repository", function(data){
               $("#repository").html(data.replace(/\n/g, '<br />'));
                });
+               $.get("repositoryWithoutVars", function(data){
+              $("#repositoryWithoutVars").html(data.replace(/\n/g, '<br />'));
+               });
         });
 
         $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
             $('#inhabRequest').collapse('hide');
             $.get("smt", function(data){
               $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
-              $(document).on("change", ".form-radio", function(e){
+              /*$(document).on("change", "[name='optradio']", function(e){
                  var radioVal = $(this).val();
-                 $.get("inhabitantsWithoutCombinator/"+radioVal, function(data){
+                 console.log("xxxxx", radioVal.toString)
+                 $.get("inhabitantsWithoutCombinator/"+radioVal.toString(), function(data){
                      $("#treeResult").html(data.replace(/\n/g, '<br />'));
                  });
-              });
+              });*/
             });
         });
 
@@ -255,6 +256,20 @@ $('#inhabRequest').collapse('show');
             $('#inhabRequest').collapse('hide');
              $("#showDebuggerMessages").html(data);
             });
+        });
+        $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
+            showPaths(null);
+            $(document).on("change", "[name='optradioCovering']", function(e){
+                             var radioVal = $(this).val();
+                              showPaths(radioVal);
+                             });
+             /*var radioVal = $("#combinatorName").val();
+            console.log("val",  radioVal);
+            showPaths(radioVal);*/
+
+                             /*console.log("val",  $('input[type=radio][name=optradioCovering]:checked').val());
+                             showPaths(radioVal);*/
+
         });
 
    $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function(){
@@ -305,7 +320,6 @@ $('#inhabRequest').collapse('show');
         mkGraph(data, "#cy-steps")
                             });
                    }
-
    });
 
 
@@ -313,46 +327,78 @@ $('#inhabRequest').collapse('show');
         var x = document.getElementById("request").value;
         computeNewRequest(x);
     });
+    /*$("#submitCheckbox").click(function(){
+        var x = document.getElementById("request").value;
+        computeNewRequest(x);
+    });*/
 
+    $("#submitCheckbox").click(function(){
+     var coffee = document.getElementsByName('optradio');
+      //coffee.toString();
+      console.log(coffee.length)
+      var count = 0;
+      var txt = "";
+      var i;
+      for (i = 0; i < coffee.length; i++) {
+        if (coffee[i].checked) {
+        txt = txt + "tag=" + coffee[i].value + "&";
+
+     }
+     }
+        console.log(">>>", txt);
+        console.log(">>>", txt.slice(0, -1));
+       var txtNew = txt.slice(0, -1);
+      $.get("inhabitantsWithoutCombinator/items"+"?"+txtNew, function(data){
+                                $("#treeResult").html(data.replace(/\n/g, '<br />'));
+                            });
+    });
     function showPaths(label) {
+        console.log("label", label);
+        if(label != null){
            $('.nav-sidebar a[href="#paths"]').tab('show');
            $("#combinatorName").html(label);
-
             if( $('#inhabRequest').is( ":visible" )){
                            $('#inhabRequest').removeClass('in');
                        }
-                       var number = 1;
-
            $.get("computeNumberOfArgs/"+label, function(data){
                  $("#combinatorTys").html("");
                  $("#targetsToCover").html("");
                  $("#numberOfArgs").html(data.replace(/\n/g, '<br />'));
-                 $(document).on("change", ".form-radio", function(e){
-                 var radioVal = $(this).val();
-                    $.get("showPaths/"+radioVal, function(data){
-                                     $("#targetsToCover").html("");
-                                     $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
-                                 });
-                 });
+
              });
            }
+        else{
+            $.get("repositoryCovering", function(data){
+            $("#combinatorName").html(data.replace(/\n/g, '<br />'));
+            });
+           }
+}
 
-        $(document).on("change", ".form-check-input", function(e){
+        $(document).on("change", "[name='checkToCover']", function(e){
               var path = null;
               if($(this).is(':checked')) {
                 path = ($(this).val()).toString();
                 $.get("showToCover/" + path, function(data){
                     var path1 = path.replace('*', '&#42;')
-                    $("#targetsToCover").prepend('<li id = "'+ path1 + '">' + data.replace(/\n/g, ' ') + '</li>');
+                    $("#targetsToCover").html(data.replace(/\n/g, '<br />'));
 
                 });
 
 
 
               } else {
-                  var id = ($(this).val()).toString();
-                  var elem = document.getElementById(id);
-                  elem.remove();
+             // $("#targetsToCover").html("");
+                  var id = ($(this).val());
+                  var elem = document.getElementById("targetsToCover");
+                  var elem_child = document.getElementsByName(id.toString());
+
+              console.log("elem", elem);
+              console.log("elemC", elem_child);
+              console.log("id", id);
+$( "li[name='"+id+"']" ).remove();
+                // $('li [name='id']').remove();
+                 /* elem_child.parentNode.removeChile(elem_child);
+                  elem.appendChild(elem_child);*/
 
                                                   }
                                                       });

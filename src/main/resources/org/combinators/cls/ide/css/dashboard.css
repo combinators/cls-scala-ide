@@ -90,6 +90,13 @@ background: hsl(0, 0%, 97%);
   text-decoration: none;
 }
 
+.nav-tabs>li.active> a {
+    border: 0;
+    box-shadow: 0 2px 6px 0 hsla(0, 0%, 0%, 0.2);
+    background-color: rgb(247, 247, 247);
+    background: hsl(0, 0%, 97%);
+}
+
 /*
  * Main content
  */

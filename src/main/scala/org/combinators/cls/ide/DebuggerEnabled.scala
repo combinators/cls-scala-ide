@@ -30,13 +30,14 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
 
   override def routes: RRoutes = {
     val directRoutes: RRoutes = {
-      case GET(p"/$prefix/") if prefix == controllerAddress =>index()
+      //case GET(p"/$prefix/") if prefix == controllerAddress =>index()
       case GET(p"/$prefix/ide") if prefix == controllerAddress =>index()
       case GET(p"/$prefix/graph") if prefix == controllerAddress => showGraph()
       case GET(p"/$prefix/steps/${int(step)}") if prefix == controllerAddress => showSteps(step)
       case GET(p"/$prefix/toggleCycle/${int(step)}") if prefix == controllerAddress => toggleCycles(step)
       case GET(p"/$prefix/computeRequest/${label}") if prefix == controllerAddress => computeRequest(label)
       case GET(p"/$prefix/repository") if prefix == controllerAddress => showRepo()
+      case GET(p"/$prefix/repositoryWithoutVars") if prefix == controllerAddress => showRepoWithoutVars()
       case GET(p"/$prefix/smt") if prefix == controllerAddress => grammarToModel()
       case GET(p"/$prefix/showDebuggerMessages") if prefix == controllerAddress => showDebuggerMessages()
       case GET(p"/$prefix/showUninhabitedTy") if prefix == controllerAddress => showUninhabitedTy()
@@ -46,8 +47,11 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
       case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
-      case GET(p"/$prefix/inhabitantsWithoutCombinator/${int(index)}") if prefix == controllerAddress => inhabitantsWithoutCombinator(index)
+      case GET(p"/$prefix/inhabitantsWithoutCombinator/items" ? q_*"tag=${int(tags)}") if prefix == controllerAddress =>
+        tags.foreach(e => println(e))
+        inhabitantsWithoutCombinator(tags)
       case GET(p"/$prefix/showPaths/${int(args)}") if prefix == controllerAddress => showPaths(args)
+      case GET(p"/$prefix/repositoryCovering") if prefix == controllerAddress => showRepoCovering()
       case GET(p"/$prefix/computeNumberOfArgs/${combName}") if prefix == controllerAddress => computeNumberOfArgs(combName)
       case GET(p"/$prefix/showToCover/${selection}") if prefix == controllerAddress => showToCover(selection)
       case GET(p"/$prefix/showOrganizedTy") if prefix == controllerAddress => showOrganizedTy()

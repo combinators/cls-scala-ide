@@ -4,7 +4,7 @@ import org.combinators.cls.inhabitation.Tree
 import org.combinators.cls.smt._
 import org.combinators.cls.types.Type
 import smtlib.Interpreter
-import smtlib.theories.Core.{Equals, ITE}
+import smtlib.theories.Core.{And, Equals, ITE}
 import smtlib.trees.Commands.{Assert, CheckSat, GetModel, GetUnsatCore}
 import smtlib.trees.Terms._
 
@@ -13,28 +13,38 @@ trait Assertions {
   //lazy val model: GrammarToModel =
 
   //Filter by combinator name
-  def filterCombinators(combinatorName: Int, exContext: InterpreterContext): Option[Tree] = {
+  def filterCombinators(combinators: Seq[Int], exContext: InterpreterContext): Option[Tree] = {
     val toTree = ModelToTree(exContext)
     val term = ModelToTerm(exContext)
-
-    val assertion = term.unusedCombinator(combinatorInt = combinatorName)
-    println("Comb: ", combinatorName)
-    println("Tree: " + assertion.term + " " + toTree.getTree(1))
+    val assertions: Seq[Term] = Seq.empty
     var tree: Option[Tree] = None
-    println("addAssertions2: " + assertion)
-    exContext.interpreter.eval(assertion)
-    if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
-      val getUnsatCore = exContext.interpreter.eval(GetUnsatCore())
-      println("Core + 1:" + getUnsatCore)
-      None
-    } else {
-      exContext.interpreter.eval(GetModel())
-      println(s"Tree3: ${toTree.getTree(1)}")
-      tree = Some(toTree.getTree(1))
+    if(combinators.size>1){
+      assertions :+ (for (a <- combinators) {
+        //term.unusedCombinator(combinatorInt = a)
+        println("aaaaa", a)
+        val newTerm = term.unusedCombinator(combinatorInt = a).term
+        println("aaaaa", newTerm)
+        newTerm
+
+      })
+      println("xxxx", assertions)
+    //And(assertions)
+      if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
+        val getUnsatCore = exContext.interpreter.eval(GetUnsatCore())
+        println("Core + 1:" + getUnsatCore)
+        None
+      } else {
+        exContext.interpreter.eval(GetModel())
+        println(s"Tree3: ${toTree.getTree(1)}")
+        tree = Some(toTree.getTree(1))
+      }
+    }
+    else{
+      val assertion = term.unusedCombinator(combinatorInt = combinators.head)
+      exContext.interpreter.eval(assertion)
     }
     tree
   }
-
 }
 
 object Assertions {

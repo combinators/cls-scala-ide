@@ -183,11 +183,34 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var repo = ""
     var newRepo: Set[String] = Set.empty
     if (combinators.nonEmpty) {
-      for ((name, ty) <- combinators) {
-        repo = s"$name: $ty"
-        newRepo += repo
-      }
-      Ok(newRepo.mkString("\n"))
+      Ok("\u2023 " + combinators.mkString("\n"+"\u2023 "))
+    }
+    else {
+      Ok("Empty Repository")
+    }
+  }
+
+  /**
+    * Returns the repository without variables
+    */
+  def showRepoWithoutVars: Action[AnyContent] = Action {
+    if (bcl.get.repository.nonEmpty) {
+      Ok("\u2023 " + bcl.get.repository.mkString("\n"+"\u2023 "))
+    }
+    else {
+      Ok("Empty Repository")
+    }
+  }
+
+  /**
+    * Returns the repository for the covering
+    */
+  def showRepoCovering: Action[AnyContent] = Action {
+    var repo = ""
+    var newRepo: Map[String, String] = Map.empty
+    if (combinators.nonEmpty) {
+      val radioButtons = s"""${combinators.map(e => s"""<input class = "form-radio" type="radio" name="optradioCovering" value ="${e._1}"> ${e._1}: ${e._2} </label>""").mkString("\n")}"""
+      Ok(radioButtons)
     }
     else {
       Ok("Empty Repository")
@@ -272,10 +295,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
-
+  /**
+    * @param selectedComb
+    * @return paths for the selected combinator
+    */
   def computeNumberOfArgs(selectedComb: String) = Action {
     selectedCombinator = selectedComb
-    println("rrr",selectedComb)
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var radioNumbers: Set[Int] = Set()
     splittedRepo.foreach {
@@ -292,7 +317,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
-    * Show the Combinator types
+    * Show the combinator types
     */
   def showPaths(numbOfArgs: Int) = Action {
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
@@ -307,9 +332,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
     val htmlArgs = s"""${newPaths.map(e =>
       if (toCover(e).isEmpty) {
-        s"""<input class="form-check-input" type= "checkbox" value="$e" disabled> $e"""}
+        s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e" disabled> $e"""}
       else{
-        s"""<input class="form-check-input" type= "checkbox" value="$e"> $e"""}
+        s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e"> $e"""}
     ).mkString("\n")}"""
     Ok (htmlArgs)
   }
@@ -339,32 +364,23 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Ok(orgTy.mkString("\n"))
   }
 
-
-
+  /**
+    *
+    * @param selected selected path with number of arguments
+    * @return target paths to cover
+    */
   def showToCover(selected: String) = Action {
-    println("Selected3", selected)
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
-
-    println("Selected2", splittedRepo)
     var newRequest = selected.replaceAll("91", "[")
-
-    println("Selected1", newRequest)
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
-    println("Selction", newSelection.get)
-    //Test selection
-    /*var selection: Option[(Seq[Type], Type)] = None
-    splittedRepo.foreach {
-      case (name, tys) => tys.flatten.foreach {
-        case (s, ty) => selection = Some(s, ty)
-      }
-    }*/
     val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
-    Ok(toCoverIs.mkString("\n"))
+    val str = s"""${toCoverIs.map(e =>
+      s"""<li name="$selected"> $e </li>""").mkString("\n")}"""
+    Ok(str)
   }
 
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
-    println("hallo")
     val subt = bcl.get.algorithm.subtypes
     import subt._
     val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
@@ -566,7 +582,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   def mkModel: GrammarToModel = {
     val grammar = bcl.get.inhabit(newTargets: _*)
-    println("Grammar", grammar)
+    //println("Grammar", grammar)
     model =
       Some(GrammarToModel(grammar, newTargets))// , customCommands = SortExperimentSmtImpl(grammar).customCommand)
 
@@ -576,21 +592,24 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def grammarToModel() = Action{
     val model: GrammarToModel = mkModel
     val usedCombinators = s"""${model.combinatorSeq.map(e =>
-      s"""<input class = "form-radio" type="radio" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
+      s"""<input class="form-check-input" type= "checkbox" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
     Ok(usedCombinators)
   }
 
 
 
-  def inhabitantsWithoutCombinator(combinator: Int) = Action {
+  def inhabitantsWithoutCombinator(combinatorNames: Seq[Int]) = Action {
+    println("<<<<", combinatorNames.head)
+    val combinators: Seq[Int] = combinatorNames.map(e=>e.toInt)
+    println("cccccccccccc", combinatorNames)
     val exContext = ParallelInterpreterContext(model.get)
-    val inhabitant: Option[Tree] = Assertions().filterCombinators(combinator, exContext)
+    val inhabitant: Option[Tree] = Assertions().filterCombinators(combinatorNames, exContext)
     val smtResult = inhabitant match {
       case Some(tree) => tree.toString
       case None => //if (result.size.get)
         "unsat"
     }
-println("Hallo SMT Result", smtResult)
+    //println("Hallo SMT Result", smtResult)
     Ok(smtResult)
   }
 
@@ -605,7 +624,6 @@ println("Hallo SMT Result", smtResult)
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    println("newTargets", newTargets)
     newGraph = computeResults(refRepo.get, newTargets)
     newGraph.nonEmpty match {
       case true =>

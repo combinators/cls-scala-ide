@@ -50,7 +50,7 @@ projectName: String)
     @Html(webJarsUtil.script("bootstrap.min.js"))
     @Html(webJarsUtil.script("cytoscape.min.js"))
 
-
+    <link rel="shortcut icon" href="">
     <!-- Custom styles for this template-->
     <link href="/ide/css/dashboard.css" rel="stylesheet" type="text/css" />
     @Html(webJarsUtil.requireJs(Call("GET", "/ide/js/main.js")))
@@ -93,7 +93,7 @@ projectName: String)
                 <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#smt">SMT</a></li>
-                <li><a class="nav-link" data-toggle="pill" href="#paths">Tests</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#paths">Covering</a></li>
 
                 <!-- <li>
                      <a href="#">Analytics </a>
@@ -223,11 +223,25 @@ projectName: String)
         </div>
         <div id="repo" class="tab-pane fade">
             <h3>Repository:</h3>
-                <pre class="well">
+            <ul class="nav nav-tabs">
+                <li class="active">
+                <li><a data-toggle="tab" href="#home">Normal</a></li>
+                <li><a data-toggle="tab" href="#menu1">With Variables Extended</a></li>
+            </ul>
+                <!--<pre class="well">-->
+            <div class="tab-content well">
+                <div id ="home" class = "tab-pane fade in active ">
                    <h4 class="secondary"> &Gamma; = {</h4>
                     <div id="repository"></div>
                      <h4 class="secondary">  }</h4>
-                </pre>
+                </div>
+                <div id="menu1" class="tab-pane fade ">
+                    <h4 class="secondary"> &Gamma; = {</h4>
+                    <div id="repositoryWithoutVars"></div>
+                    <h4 class="secondary">  }</h4>
+                </div>
+            </div>
+                <!--</pre>-->
         </div>
         <div id="mess" class="tab-pane fade">
             <h4>
@@ -242,6 +256,7 @@ projectName: String)
             <h3>Filter by Combinator:</h3>
                 <pre class="well">
                     <div id="grammarToModel"></div>
+                        <button class="btn btn-primary btn-toggle" id="submitCheckbox">New Request</button>
                     <h4 class="secondary">Result:</h4>
                     <div id="treeResult">
                     </div>
@@ -252,22 +267,22 @@ projectName: String)
             <div class="panel-group">
                 <div class="well">
                     <a><h4>Combinator:</h4></a>
-                    <div class="panel-body"><div id="combinatorName"></div>
+                    <div class="panel-body well"><div id="combinatorName"></div>
                     </div>
 
                     <div class="well second">
                     <a><h4>Number of Arguments:</h4></a>
-                    <div class="panel-body"><div id="numberOfArgs"></div></div>
+                    <div class="panel-body well"><div id="numberOfArgs"></div></div>
 
 
                     <a><h4>Paths:</h4></a>
-                    <div class="panel-body">
+                    <div class="panel-body well">
                         <div id="combinatorTys">
                         </div>
                     </div>
 
                 <a><h4>to Cover:</h4></a>
-                <div class="panel-body" id="targetsToCover"></div>
+                <ul class="panel-body well" id="targetsToCover"></ul>
 
             </div>
         </div>
