@@ -13,41 +13,32 @@ trait Assertions {
   //lazy val model: GrammarToModel =
 
   //Filter by combinator name
-  def filterCombinators(combinators: Seq[Int], exContext: InterpreterContext): Option[Tree] = {
+  def filterCombinators(combinators: Int, exContext: InterpreterContext): Option[Tree] = {
+    var tree: Option[Tree] = None
     val toTree = ModelToTree(exContext)
     val term = ModelToTerm(exContext)
-    val assertions: Seq[Term] = Seq.empty
-    var tree: Option[Tree] = None
-    if(combinators.size>1){
-      assertions :+ (for (a <- combinators) {
-        //term.unusedCombinator(combinatorInt = a)
-        println("aaaaa", a)
-        val newTerm = term.unusedCombinator(combinatorInt = a).term
-        println("aaaaa", newTerm)
-        newTerm
+    println("Term", term.intToCombiantorTerm(combinators))
+    println("Tree", toTree)
 
-      })
-      println("xxxx", assertions)
-    //And(assertions)
-      if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
-        val getUnsatCore = exContext.interpreter.eval(GetUnsatCore())
-        println("Core + 1:" + getUnsatCore)
-        None
-      } else {
-        exContext.interpreter.eval(GetModel())
-        println(s"Tree3: ${toTree.getTree(1)}")
-        tree = Some(toTree.getTree(1))
-      }
+    val assertion = term.unusedCombinator(combinatorInt = combinators)
+    exContext.interpreter.eval(assertion)
+    println("hallo assertion", assertion)
+    println("hallo filter", exContext.interpreter.eval(assertion))
+    println("hallo 2", exContext.interpreter.eval(CheckSat()))
+    if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
+      println("unsat")
+    }
+    else if (exContext.interpreter.eval(CheckSat()).toString() contains ("unknown")) {
+      println("unknown")
     }
     else{
-      val assertion = term.unusedCombinator(combinatorInt = combinators.head)
-      exContext.interpreter.eval(assertion)
+      println("getting model", Some(toTree.getTree(1)))
+      //exContext.interpreter.eval(GetModel())
+      tree = Some(toTree.getTree(1))
     }
     tree
   }
 }
-
 object Assertions {
-  def apply(): Assertions =
-    new Assertions {}
+  def apply(): Assertions = new Assertions {}
 }

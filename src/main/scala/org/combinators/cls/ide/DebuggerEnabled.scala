@@ -22,9 +22,12 @@ import play.api.routing.sird._
 
 trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //RoutingEntries =>
 
-
   val routingPrefix: Option[String] = None
+  /**
+    * The address of the index page
+    */
   val controllerAddress: String
+
 
   val debugger: DebuggerController = self
 
@@ -47,7 +50,7 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
       case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
-      case GET(p"/$prefix/inhabitantsWithoutCombinator/items" ? q_*"tag=${int(tags)}") if prefix == controllerAddress =>
+      case GET(p"/$prefix/inhabitantsWithoutCombinator/items" ? q_s"tag=${int(tags)}") if prefix == controllerAddress =>
         tags.foreach(e => println(e))
         inhabitantsWithoutCombinator(tags)
       case GET(p"/$prefix/showPaths/${int(args)}") if prefix == controllerAddress => showPaths(args)

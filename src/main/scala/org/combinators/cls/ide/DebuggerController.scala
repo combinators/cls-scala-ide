@@ -38,19 +38,22 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.util.Try
 
+
 class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController { // scalastyle:off
 
   var combinatorComponents: Map[String, CombinatorInfo] = Map()
   var newGraph: TreeGrammar = Map()
   var graphObj: JsValue = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
   val infinite: Boolean = true
+  val tgts: Seq[Type] = Seq()
   var newTargets: Seq[Type] = Seq()
   var combinators: Repository = Map()
   val projectName: String = ""
   var bcl: Option[BoundedCombinatoryLogicDebugger] = None
   var debugMsgChannel = new DebugMsgChannel
-  var refRepo: Option[ReflectedRepository[_]]= None
-  lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, newTargets.head, x => ())
+  val refRepo: Option[ReflectedRepository[_]] = None
+  lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, (if(newTargets.isEmpty) tgts else newTargets).head, x => ())
+  val reposit: Option[Map[String, Type]] = None
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
   var selectedCombinator: String = ""
@@ -70,10 +73,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     newGraph
   }*/
 
-  def computeResults(Gamma: ReflectedRepository[_], target: Seq[Type], repository: Option[Map[String, Type]] = None): TreeGrammar = {
-    refRepo = Some(Gamma)
-    newTargets = target
-    combinatorComponents = Gamma.combinatorComponents
+  def computeResults(repository: Option[Map[String, Type]] = None): TreeGrammar = {
+    //refRepo = Some(Gamma)
+    //newTargets = target
+    combinatorComponents = refRepo.get.combinatorComponents
+    println()
     repo = repository match {
       case Some(x) => x
       case None => infoToString.map {
@@ -81,15 +85,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       }
     }
     lazy val infoToString = DebuggerController.toCombinatorsWithDeclarationInfo(combinatorComponents)
-    val subSpace = Gamma.substitutionSpace
-    newGraph = Gamma.algorithm.apply(
+    val subSpace = refRepo.get.substitutionSpace
+
+    newGraph = refRepo.get.algorithm.apply(
       subSpace,
       SubtypeEnvironment(Map.empty),
-      repo).apply(newTargets)
-    showDebuggerMessage().foreach { case BclDebugger(b, _, _, re, _) =>
+      repo).apply(if(newTargets.isEmpty) tgts else newTargets)
+    showDebuggerMessage().foreach {
+      case BclDebugger(b, _, _, re, _) =>
       bcl = Some(b)
       combinators = re
-
     case _ =>
     }
     newGraph
@@ -318,9 +323,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Show the combinator types
+    * @param numbOfArgs The selected number of the arguments
+    * @return paths
     */
   def showPaths(numbOfArgs: Int) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
+    val splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
+    println("split", splittedRepo)
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedCombinator) paths.flatten.foreach {
@@ -336,6 +344,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       else{
         s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e"> $e"""}
     ).mkString("\n")}"""
+    println("PPPP", htmlArgs)
     Ok (htmlArgs)
   }
 
@@ -360,21 +369,19 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }*/
 
   def showOrganizedTy() = Action {
-    val orgTy = Organized(newTargets.head).paths
+    val orgTy = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths
+    println("<<<<<<<<<", orgTy)
     Ok(orgTy.mkString("\n"))
   }
 
-  /**
-    *
-    * @param selected selected path with number of arguments
-    * @return target paths to cover
-    */
+
   def showToCover(selected: String) = Action {
     var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
     val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
+    println(">>>>>>", toCoverIs)
     val str = s"""${toCoverIs.map(e =>
       s"""<li name="$selected"> $e </li>""").mkString("\n")}"""
     Ok(str)
@@ -383,7 +390,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
     val subt = bcl.get.algorithm.subtypes
     import subt._
-    val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    val prob = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     prob
   }
 
@@ -415,7 +422,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   private def getInhabitStep = {
-    bcl.get.algorithm.inhabitRec(newTargets: _*)
+    bcl.get.algorithm.inhabitRec((if(newTargets.isEmpty)tgts else newTargets): _*)
   }
 
   /**
@@ -496,6 +503,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Returns a result overview
     */
   def showGraph = Action {
+    newGraph = computeResults(reposit)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -581,10 +589,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }*/
 
   def mkModel: GrammarToModel = {
-    val grammar = bcl.get.inhabit(newTargets: _*)
+    val grammar = bcl.get.inhabit((if(newTargets.isEmpty)tgts else newTargets): _*)
     //println("Grammar", grammar)
     model =
-      Some(GrammarToModel(grammar, newTargets))// , customCommands = SortExperimentSmtImpl(grammar).customCommand)
+      Some(GrammarToModel(grammar, (if(newTargets.isEmpty)tgts else newTargets)))// , customCommands = SortExperimentSmtImpl(grammar).customCommand)
 
     model.get
   }
@@ -592,25 +600,29 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def grammarToModel() = Action{
     val model: GrammarToModel = mkModel
     val usedCombinators = s"""${model.combinatorSeq.map(e =>
-      s"""<input class="form-check-input" type= "checkbox" name="optradio" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
+      s"""<input class="form-check-input" type= "checkbox" name="optCheckSMT" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
     Ok(usedCombinators)
   }
 
 
 
   def inhabitantsWithoutCombinator(combinatorNames: Seq[Int]) = Action {
-    println("<<<<", combinatorNames.head)
+    println("<<<<", combinatorNames)
     val combinators: Seq[Int] = combinatorNames.map(e=>e.toInt)
     println("cccccccccccc", combinatorNames)
+    var smtResult = ""
     val exContext = ParallelInterpreterContext(model.get)
-    val inhabitant: Option[Tree] = Assertions().filterCombinators(combinatorNames, exContext)
-    val smtResult = inhabitant match {
+
+    for(c <- combinatorNames){
+    val inhabitant: Option[Tree] = Assertions().filterCombinators(c, exContext)
+println("inhabitant", inhabitant)
+      smtResult = inhabitant match {
       case Some(tree) => tree.toString
-      case None => //if (result.size.get)
-        "unsat"
+      case None => "No inhabitant found!"
+      }
     }
-    //println("Hallo SMT Result", smtResult)
     Ok(smtResult)
+    //Ok("hallo")
   }
 
 
@@ -624,7 +636,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    newGraph = computeResults(refRepo.get, newTargets)
+    newGraph = computeResults(reposit)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -639,7 +651,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return the html code of the page
     */
   def index() = Action { request =>
-    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, newTargets, request.path, projectName))
+    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, tgts, request.path, projectName))
   }
 }
 

@@ -218,38 +218,6 @@ $('#inhabRequest').collapse('show');
             });
         });
 
-        /*$('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
-            if( $('#inhabRequest').is( ":visible" )){
-            console.log("true", $('#inhabRequest').is( ":visible" ));
-                $('#inhabRequest').removeClass('in');
-            }
-                    var combName = "down";
-                    $.get("showPaths/"+combName, function(data){
-                    $.get("showPaths/"+combName, function(data){
-                      $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
-                       });
-
-                    $.get("getCombinators", function(data){
-                      $("#combinatorName").html(data.replace(/\n/g, '<br />'));
-                                           });
-                });*/
-           /*function showPaths(label) {
-
-           $('.nav-sidebar a[href="#paths"]').tab('show');
-          // $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
-                       if( $('#inhabRequest').is( ":visible" )){
-                       console.log("true", $('#inhabRequest').is( ":visible" ));
-                           $('#inhabRequest').removeClass('in');
-                       }
-                               $.get("showPaths/"+label, function(data){
-                                 $("#combinatorTys").html(data.replace(/\n/g, '<br />'));
-                                  });
-
-                               $.get("getCombinators", function(data){
-                                 $("#combinatorName").html(data.replace(/\n/g, '<br />'));
-                                                      });
-                          // });
-           }*/
 
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
             $.get("showDebuggerMessages", function(data){
@@ -257,12 +225,22 @@ $('#inhabRequest').collapse('show');
              $("#showDebuggerMessages").html(data);
             });
         });
+
         $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
             showPaths(null);
             $(document).on("change", "[name='optradioCovering']", function(e){
                              var radioVal = $(this).val();
                               showPaths(radioVal);
                              });
+            $(document).on("change", "[name='optradio']", function(e){
+                var radioVal = $(this).val();
+                $.get("showPaths/"+radioVal, function(data){
+                 $("#targetsToCover").html("");
+                $("#combinatorTys").html(data.replace(/\n/g, "<br />"));
+                });
+
+            });
+
              /*var radioVal = $("#combinatorName").val();
             console.log("val",  radioVal);
             showPaths(radioVal);*/
@@ -333,25 +311,44 @@ $('#inhabRequest').collapse('show');
     });*/
 
     $("#submitCheckbox").click(function(){
-     var coffee = document.getElementsByName('optradio');
-      //coffee.toString();
-      console.log(coffee.length)
-      var count = 0;
+     var load = $(this);
+     var checkBox = document.getElementsByName('optCheckSMT');
       var txt = "";
       var i;
-      for (i = 0; i < coffee.length; i++) {
-        if (coffee[i].checked) {
-        txt = txt + "tag=" + coffee[i].value + "&";
-
+      for (i = 0; i < checkBox.length; i++) {
+        if (checkBox[i].checked) {
+        txt = txt + "tag=" + checkBox[i].value + "&";
      }
      }
-        console.log(">>>", txt);
-        console.log(">>>", txt.slice(0, -1));
-       var txtNew = txt.slice(0, -1);
-      $.get("inhabitantsWithoutCombinator/items"+"?"+txtNew, function(data){
-                                $("#treeResult").html(data.replace(/\n/g, '<br />'));
-                            });
+     if (txt != ""){
+     load.prop("disabled", true);
+     load.html(
+             '<span class="fa fa-spinner fa-spin spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+        txt = txt.slice(0, -1);
+        $.get("inhabitantsWithoutCombinator/items"+"?"+txt, function(data){
+                 if (document.getElementById("resultsTree")==null){
+                     var pre = document.createElement("pre");
+                     pre.className = "well";
+                     pre.id = "resultsTree";
+                     var h3 = document.createElement("h3");
+                     var txt = document.createTextNode("Result: ");
+                     h3.appendChild(txt);
+                     pre.appendChild(h3);
+                     var div = document.createElement("div");
+                     div.id = "treeResult";
+                     pre.appendChild(div);
+                     document.getElementById("smt").appendChild(pre);
+                  }
+                 $("#treeResult").html(data.replace(/\n/g, '<br />'));
+                 load.prop("disabled", false);
+                 load.html('Filter');
+        });
+     }
+     else{
+        alert("Choose Filter!");
+     }
     });
+
     function showPaths(label) {
         console.log("label", label);
         if(label != null){
@@ -361,6 +358,7 @@ $('#inhabRequest').collapse('show');
                            $('#inhabRequest').removeClass('in');
                        }
            $.get("computeNumberOfArgs/"+label, function(data){
+           console.log("hallo ", data.val);
                  $("#combinatorTys").html("");
                  $("#targetsToCover").html("");
                  $("#numberOfArgs").html(data.replace(/\n/g, '<br />'));
