@@ -16,11 +16,13 @@ class SortDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applic
 
   override val controllerAddress = "sort"
   override val projectName = controllerAddress
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
+  override val reposit: Option[Map[String, Type]] = Some(sortRepo)
   lazy val alpha = Variable("alpha")
   lazy val kinding : Kinding = Kinding(alpha).addOption(Constructor("Double"))
     .addOption(Constructor("List", Constructor("Double"))).addOption('sorted).addOption('minimal)
 
-  val sortRepo = Map(
+  lazy val sortRepo = Map(
     "values" -> Constructor("List", Constructor("Double")),
     "id" -> Arrow(alpha, alpha),
     "inv"  -> Arrow(Constructor("Double"), Constructor("Double")),
@@ -37,7 +39,5 @@ class SortDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applic
     substitutionSpace = kinding,
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
-  lazy val resultSort = debugger.computeResults(Gamma, Seq(target), Some(sortRepo))
-  println("RESULT", resultSort)
 
 }

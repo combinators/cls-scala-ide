@@ -17,6 +17,8 @@ class LabProductline @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Appl
   lazy val repository = new Repository
   override val controllerAddress = "LabProduct"
   override val projectName = controllerAddress
+  override val tgts: Seq[Type] = Seq(target)
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   lazy val target: Type = posToType(0, 0)
   def intToType(x: Int): Type = {
     Constructor(x.toString)
@@ -30,6 +32,5 @@ class LabProductline @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Appl
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
 
-  debugger.computeResults(Gamma, Seq(target))
 
 }

@@ -14,18 +14,28 @@ import play.api.inject.ApplicationLifecycle
 
 class Temperature @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: ApplicationLifecycle, assets: Assets)
   extends DebuggerController(webJarsUtil, assets)
-    with DebuggerEnabled
-  {
-// Note: This will produce two variations; only the first is deemed accurate, and it is interesting
+    with DebuggerEnabled {
+  // Note: This will produce two variations; only the first is deemed accurate, and it is interesting
   // to consider how to deny the synthesis of the second one...
-   val repository = new Repository {}
-    import repository._
+  val repository = new Repository {}
+
+  import repository._
+
   override val controllerAddress = "temperature"
   override val projectName = controllerAddress
-  lazy val target: Type = (artifact('Impl)):&: precision(precision.floating)
+  override val tgts: Seq[Type] = Seq(target)
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
+  lazy val target: Type = (artifact('Impl)) :&: precision(precision.floating)
 
+  lazy val Gamma = ReflectedRepository(repository,
+    substitutionSpace = repository.precisions.merge(units),
+    semanticTaxonomy = taxonomyLoss,
+    classLoader = this.getClass.getClassLoader,
+    algorithm = debugger())
+
+}
     //alternative goals:
-    /* lazy val target: Type = (artifact(artifact.impl) :&: precision(precision.integer) :&: unit(unit.celsius))*/
+    /* lazy val target: Type = (artifact(artifact.impl) :&: precision(precision.integer) :&: unit(unit.celsius))
 
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = repository.precisions.merge(units),
@@ -40,6 +50,6 @@ class Temperature @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
 
   // Omega is like Object -- the base type everything inherits from
   //Gamma.inhabit[JType](precision(Omega))
-}
+}*/
 
 

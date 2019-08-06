@@ -106,6 +106,10 @@ $('#inhabRequest').collapse('show');
                         }
                     }
                  $.get("countSolutions", function(result){
+                 if(result == 0){
+                 $('#cy-part-graph').html("Inhabitant not found!");
+                 }
+                 else{
                  if (!parseInt(result)){
                  $('#isInfinite').modal('show');
                  $('#exampleModalLongTitle').html(result);
@@ -116,6 +120,7 @@ $('#inhabRequest').collapse('show');
                    });
                 }else {
                     makeSolutions(result);
+                }
                 }
 
 
@@ -207,7 +212,12 @@ $('#inhabRequest').collapse('show');
         $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
             $('#inhabRequest').collapse('hide');
             $.get("smt", function(data){
+            if(data.includes("not")){
+                $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+                $("#submitCheckbox").prop("disabled", true);
+            }else{
               $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+              }
               /*$(document).on("change", "[name='optradio']", function(e){
                  var radioVal = $(this).val();
                  console.log("xxxxx", radioVal.toString)

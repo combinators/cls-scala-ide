@@ -77,7 +77,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     //refRepo = Some(Gamma)
     //newTargets = target
     combinatorComponents = refRepo.get.combinatorComponents
-    println()
     repo = repository match {
       case Some(x) => x
       case None => infoToString.map {
@@ -328,7 +327,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def showPaths(numbOfArgs: Int) = Action {
     val splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
-    println("split", splittedRepo)
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedCombinator) paths.flatten.foreach {
@@ -344,49 +342,40 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       else{
         s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e"> $e"""}
     ).mkString("\n")}"""
-    println("PPPP", htmlArgs)
     Ok (htmlArgs)
   }
 
-  /*def showNumberOfArgs() = Action{
-
-    var splitRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
-    var size: Set[Int] = Set()
-    splitRepo.foreach {
-      case (combName, paths) => if (combName == combinatorName) paths.flatten.foreach {
-        case (args, _) =>
-          size += args.size
-      }
-    }
-    val htmlSize =
-      s"""${
-        size.map(e =>
-          s"""<label class="radio-inline">
-     <input type="radio" name="optradio">$e</label>""").mkString
-      }"""
-    println("ssss", size)
-    Ok(htmlSize)
-  }*/
-
+  /**
+    * Computes the paths for target type tau
+    * @return paths
+    */
   def showOrganizedTy() = Action {
     val orgTy = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths
-    println("<<<<<<<<<", orgTy)
     Ok(orgTy.mkString("\n"))
   }
 
 
+  /**
+    * Computes all paths for the selected combinator
+    * @param selected selected combinator
+    * @return all paths
+    */
+
   def showToCover(selected: String) = Action {
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
     val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
-    println(">>>>>>", toCoverIs)
     val str = s"""${toCoverIs.map(e =>
       s"""<li name="$selected"> $e </li>""").mkString("\n")}"""
     Ok(str)
   }
 
+  /**
+    * Computes the missing paths to cover
+    * @param sel selected path
+    * @return to cover path
+    */
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
     val subt = bcl.get.algorithm.subtypes
     import subt._
@@ -512,19 +501,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         Ok("Inhabitant not found!")
     }
   }
-  /*def showUsedCombinators(index: Int) = Action{
-    val tree = Seq(result.terms.index(index))
-    var com: Seq[String] = Seq.empty
-    usedCombinators(tree)
-    def usedCombinators(tree: Seq[Tree]): Seq[String] = {
-      tree.foreach {
-         t => usedCombinators(t.arguments)//
-          com = t.name +: com
-      }
-      com
-    }
-    Ok(com.mkString("\n"))
-  }*/
 
   /**
     * Shows a list of inhabitants
@@ -544,9 +520,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Ok(results.toString)
   }
 
-  /*def showNumberOfSolutions(number: Int) = Action{
-    Ok(number.toString)
-  }*/
 
   /**
     * Generates a graph for an inhabitant
@@ -555,7 +528,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     *
     */
   def inhabitantToGraph(index: Int) = Action {
-
     try {
       var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
       allPartGrammars.clear()
@@ -582,53 +554,52 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
-  /*def getUsedCombinators(model: GrammarToModel): Seq[(String, Int)] = {
-    var usedCombinators: Seq[(String, Int)] = Seq.empty[(String, Int)]
-    usedCombinators.toMap
-    usedCombinators
-  }*/
-
+  /**
+    * Translates the tree grammar to SMT model
+    * @return SMT model
+    */
   def mkModel: GrammarToModel = {
     val grammar = bcl.get.inhabit((if(newTargets.isEmpty)tgts else newTargets): _*)
     //println("Grammar", grammar)
     model =
-      Some(GrammarToModel(grammar, (if(newTargets.isEmpty)tgts else newTargets)))// , customCommands = SortExperimentSmtImpl(grammar).customCommand)
-
+      Some(GrammarToModel(grammar, (if(newTargets.isEmpty)tgts else newTargets)))
     model.get
   }
 
+  /**
+    * Looks for the combinators that was used for the computation of the tree grammar.
+    * @return the used combinators
+    */
   def grammarToModel() = Action{
     val model: GrammarToModel = mkModel
-    val usedCombinators = s"""${model.combinatorSeq.map(e =>
+    var usedCombinators = s"""${model.combinatorSeq.map(e =>
       s"""<input class="form-check-input" type= "checkbox" name="optCheckSMT" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
+    if (usedCombinators.isEmpty){
+      usedCombinators = "Inhabitant not found!"
+    }
     Ok(usedCombinators)
   }
 
-
-
+  /** Searches for inhabitants without certainly combinators
+    * @param combinatorNames Combinators used for the filtering
+    * @return If there is an inhabitant, the inhabitant, if not a message "No inhabitant found!"
+    */
   def inhabitantsWithoutCombinator(combinatorNames: Seq[Int]) = Action {
-    println("<<<<", combinatorNames)
-    val combinators: Seq[Int] = combinatorNames.map(e=>e.toInt)
-    println("cccccccccccc", combinatorNames)
     var smtResult = ""
     val exContext = ParallelInterpreterContext(model.get)
-
     for(c <- combinatorNames){
     val inhabitant: Option[Tree] = Assertions().filterCombinators(c, exContext)
-println("inhabitant", inhabitant)
       smtResult = inhabitant match {
       case Some(tree) => tree.toString
       case None => "No inhabitant found!"
       }
     }
     Ok(smtResult)
-    //Ok("hallo")
   }
 
 
   /**
     * Computes a new request
-    *
     * @param request new target
     */
   def computeRequest(request: String) = Action {
@@ -647,7 +618,6 @@ println("inhabitant", inhabitant)
 
   /**
     * Renders an overview page
-    *
     * @return the html code of the page
     */
   def index() = Action { request =>

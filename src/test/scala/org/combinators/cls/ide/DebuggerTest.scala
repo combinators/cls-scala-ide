@@ -114,17 +114,21 @@ class DebuggerTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Ass
   lazy val example = new TestRepository
 
   lazy val GammaBcl = example.GammaBCL
-  newTargets = Seq(target)
+  //tgts = Seq(target)
   lazy val result2 = GammaBcl.inhabit(target)
   bcl = Some(example.GammaBCL)
-  override lazy val result = example.results
+  //override lazy val result = example.results
+  override val projectName: String = controllerAddress
+  override val tgts = Seq(target)
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
+
   lazy val Gamma = ReflectedRepository(example.garbageCombinators,
     substitutionSpace = FiniteSubstitutionSpace.empty,
     semanticTaxonomy = example.taxonomy,
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
-  refRepo = Some(example.Gamma)
-  debugger.computeResults(Gamma, Seq(target), Some(example.garbageCombinators))
+  //refRepository = Some(example.Gamma)
+  //debugger.computeResults(Gamma, Seq(target), Some(example.garbageCombinators))
   debugger.mkModel
   implicit val persistable: Persistable.Aux[Path] = new Persistable {
     override type T = Path

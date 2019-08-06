@@ -14,14 +14,16 @@ class Planning @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applicatio
     with DebuggerEnabled {
 
   lazy val repository = new Repository
+  lazy val target: Type = 'PrintConstructionDrawings
+
   override val controllerAddress = "planning"
   override val projectName = controllerAddress
-  lazy val target: Type = 'PrintConstructionDrawings
+  override val tgts: Seq[Type] = Seq(target)
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
 
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = repository.kinding,
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
 
-  debugger.computeResults(Gamma, Seq(target))
 }

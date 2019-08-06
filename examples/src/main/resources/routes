@@ -6,7 +6,9 @@
 ->      /         org.combinators.cls.ide.examples.fscdSort.SortDebugger
 ->     /         org.combinators.cls.ide.examples.guidemo.GuiDebugger
 ->     /         org.combinators.cls.ide.examples.labyrinthDemo.LabProductline
+->     /         org.combinators.cls.ide.examples.labIsFree.Lab
 ->     /         org.combinators.cls.ide.examples.testExample.TestExample
+->     /         org.combinators.cls.ide.examples.testPath.TestPath
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth1
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth2
 #->     /         org.combinators.cls.ide.examples.labyrinth.Labyrinth3_1
