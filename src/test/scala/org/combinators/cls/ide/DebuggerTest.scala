@@ -110,7 +110,7 @@ class DebuggerTest extends PlaySpec with GuiceOneServerPerSuite {
 class DebuggerTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Assets)
   extends DebuggerController(webJarsUtil, assets) with DebuggerEnabled {
   override val controllerAddress: String = "testDebugger"
-  lazy val target: Type = example.target2
+  lazy val target: Type = example.target
   lazy val example = new TestRepository
 
   lazy val GammaBcl = example.GammaBCL
@@ -119,8 +119,9 @@ class DebuggerTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Ass
   bcl = Some(example.GammaBCL)
   //override lazy val result = example.results
   override val projectName: String = controllerAddress
-  override val tgts = Seq(target)
+  override val tgts: Seq[Type] = Seq(target)
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
+  override val reposit: Option[Map[String, Type]] = Some(example.garbageCombinators)
 
   lazy val Gamma = ReflectedRepository(example.garbageCombinators,
     substitutionSpace = FiniteSubstitutionSpace.empty,

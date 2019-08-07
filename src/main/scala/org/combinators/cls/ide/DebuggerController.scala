@@ -62,20 +62,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
   }
-/*
-  /**
-    * Generates a tree grammar
-    */
-  private def inhabitResult(tgt: Seq[Type]): TreeGrammar = {
-    debugMsgChannel.reset()
-    newGraph = refRepo.get.algorithm.apply(FiniteSubstitutionSpace.empty,
-      SubtypeEnvironment(Map.empty), combinators).apply(tgt)
-    newGraph
-  }*/
 
   def computeResults(repository: Option[Map[String, Type]] = None): TreeGrammar = {
-    //refRepo = Some(Gamma)
-    //newTargets = target
     combinatorComponents = refRepo.get.combinatorComponents
     repo = repository match {
       case Some(x) => x
@@ -150,6 +138,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Generates a hypergraph
+    * @param treeGrammar computes tree grammar
+    * @param tgts target types
+    * @param uninhabitedTypes types that can not be inhabited
+    * @param cannotUseCombinator combinators that can not be used because of their types
+    * @return graph
     */
   def toGraph(treeGrammar: TreeGrammar, tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
 
@@ -181,11 +174,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
 
   /**
-    * Returns the repository
+    * Returns the domain specified repository
+    * @return repository with variables
     */
   def showRepo: Action[AnyContent] = Action {
-    var repo = ""
-    var newRepo: Set[String] = Set.empty
     if (combinators.nonEmpty) {
       Ok("\u2023 " + combinators.mkString("\n"+"\u2023 "))
     }
@@ -210,8 +202,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Returns the repository for the covering
     */
   def showRepoCovering: Action[AnyContent] = Action {
-    var repo = ""
-    var newRepo: Map[String, String] = Map.empty
     if (combinators.nonEmpty) {
       val radioButtons = s"""${combinators.map(e => s"""<input class = "form-radio" type="radio" name="optradioCovering" value ="${e._1}"> ${e._1}: ${e._2} </label>""").mkString("\n")}"""
       Ok(radioButtons)
@@ -300,6 +290,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
+    * Computes the number of the arguments of a selected combinator
     * @param selectedComb
     * @return paths for the selected combinator
     */
@@ -384,7 +375,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
-    * Computes the steps for the step-wise visualisation
+    * Computes the graph for the step-wise visualisation
+    * @param step step to create a graph
+    * @return Graph with the targets for the current step
     */
   def showSteps(step: Int) = Action {
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
@@ -416,6 +409,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Toggles all unproductive cycles and provides a clean view
+    * @param step current step
+    * @return graph without unproductive cycles
     */
   def toggleCycles(step: Int) = Action {
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
@@ -434,7 +429,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
           arg
       }
       )
-
       val newGrammarWithoutTypes = prunedGrammar.filterNot {
         case (ty, r) =>
           uninhabitedTypes.contains(ty)
@@ -503,7 +497,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
-    * Shows a list of inhabitants
+    * Returns a list of inhabitants
     */
   def showResult(index: Int) = Action {
     try {
@@ -523,9 +517,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Generates a graph for an inhabitant
-    *
     * @param index number of inhabitant
-    *
+    * @return a graph for selected inhabitant
     */
   def inhabitantToGraph(index: Int) = Action {
     try {
@@ -560,7 +553,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def mkModel: GrammarToModel = {
     val grammar = bcl.get.inhabit((if(newTargets.isEmpty)tgts else newTargets): _*)
-    //println("Grammar", grammar)
     model =
       Some(GrammarToModel(grammar, (if(newTargets.isEmpty)tgts else newTargets)))
     model.get
@@ -591,7 +583,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val inhabitant: Option[Tree] = Assertions().filterCombinators(c, exContext)
       smtResult = inhabitant match {
       case Some(tree) => tree.toString
-      case None => "No inhabitant found!"
+      case None => "No inhabitant found!" // Without difference between "unknown" and "unsat"
       }
     }
     Ok(smtResult)

@@ -112,6 +112,8 @@ class EmptyTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Assets
   extends DebuggerController(webJarsUtil,
     assets) with DebuggerEnabled {
   override val controllerAddress: String = "emptytest"
+  override val tgts: Seq[Type] = Seq(target)
+  override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   //override val routingPrefix: Option[String] = Some("/emptytest")
   lazy val target: Type = example.targetEmpty
   lazy val example = new TestRepository
@@ -123,7 +125,7 @@ class EmptyTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Assets
     semanticTaxonomy = example.taxonomy,
     classLoader = this.getClass.getClassLoader,
     algorithm = debugger())
-  newTargets = Seq(target)
+  //tgts = Seq(target)
   lazy val result2 = Gamma.inhabit(target)
 
   /*implicit val persistable: Persistable.Aux[Path] = new Persistable {

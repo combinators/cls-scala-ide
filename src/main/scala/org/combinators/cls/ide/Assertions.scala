@@ -17,22 +17,14 @@ trait Assertions {
     var tree: Option[Tree] = None
     val toTree = ModelToTree(exContext)
     val term = ModelToTerm(exContext)
-    println("Term", term.intToCombiantorTerm(combinators))
-    println("Tree", toTree)
 
     val assertion = term.unusedCombinator(combinatorInt = combinators)
     exContext.interpreter.eval(assertion)
-    println("hallo assertion", assertion)
-    println("hallo filter", exContext.interpreter.eval(assertion))
-    println("hallo 2", exContext.interpreter.eval(CheckSat()))
     if (exContext.interpreter.eval(CheckSat()).toString() contains ("unsat")) {
-      println("unsat")
     }
     else if (exContext.interpreter.eval(CheckSat()).toString() contains ("unknown")) {
-      println("unknown")
     }
     else{
-      println("getting model", Some(toTree.getTree(1)))
       //exContext.interpreter.eval(GetModel())
       tree = Some(toTree.getTree(1))
     }

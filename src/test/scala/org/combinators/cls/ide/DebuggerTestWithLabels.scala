@@ -21,8 +21,7 @@ class DebuggerTestWithLabels extends PlaySpec with BeforeAndAfterAll {
   }
   "Calling the test computeRequest" must {
     "result in a valid response" in {
-      lazy val example = new TestRepository
-      val newTarget = example.target
+      //lazy val example = new TestRepository
       val request = FakeRequest(GET, s"/testDebugger/computeRequest/Goal")
       val show = route(app, request).get
       status(show) mustBe OK
@@ -78,7 +77,7 @@ class DebuggerTestWithLabels extends PlaySpec with BeforeAndAfterAll {
   //Todo
   "Calling the test inhabitation without Combinator" must {
     "result in a valid response" in {
-      val request = FakeRequest(GET, s"/testDebugger/inhabitantsWithoutCombinator/1")
+      val request = FakeRequest(GET, s"/testDebugger/inhabitantsWithoutCombinator/items?tag=2")
       val show = route(app, request).get
       status(show) mustBe OK
     }
