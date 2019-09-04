@@ -25,7 +25,7 @@ import scala.util.parsing.combinator._
 class PathParser extends RegexParsers {
   val parser = new RequestParser
 
-  val word: Regex = """[a-zA-Z0-9=>\. \[\]]*[a-zA-Z0-9=>\.\[\]]""".r
+  val word: Regex = """[a-zA-Z0-9=>_\. \[\]]*[a-zA-Z0-9=>\.\[\]]""".r
 
 
   def ty: Parser[Type] = tyPro ~ opt("->" ~ ty) ^^ {
