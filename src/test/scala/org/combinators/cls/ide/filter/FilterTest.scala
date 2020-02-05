@@ -58,6 +58,87 @@ class FilterTest extends FunSpec {
   val muster3: Muster = Term("id", Seq(Term("id", Seq(Term("id", Seq(Star()))))))
   val muster4: Muster = Term("f", Seq(Term("c2", Seq.empty), Term("c4", Seq.empty)))
   lazy val musterTestTerm: Muster = Term("f", Seq(Term("c4", Seq.empty)))
+  val repositoryAssociation =
+    Map(
+      "f" -> Arrow(Constructor("X"), Arrow(Constructor("Y"), Constructor("X"))),
+      "x" -> Constructor("X"),
+      "y" -> Intersection(Constructor("X"), Constructor("Y")),
+      "z" -> Intersection(Constructor("X"), Constructor("Y"))
+
+    )
+  val GammaAssociation = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), repositoryAssociation)
+  val tgtAssociation = Arrow(Constructor("Y"), Constructor("X"))
+  val tgtPat = Constructor("p! Y -> X")
+  val resTree = GammaAssociation.inhabit(tgtAssociation)
+  resTree.foreach { case (n, rhss) =>
+    println(s"$n |-> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
+  }
+  val pat = Term("f", Seq(Term("f", Seq(Term("x", Seq.empty), Term("y", Seq.empty))), Term("z", Seq.empty)))
+
+  val newTree = filter.forbid(resTree, pat)
+
+  val prune = GammaAssociation.prune(newTree, Set(tgtPat))
+  val resultTerm = InhabitationResult[Unit](prune, tgtPat, x => ())
+  println(".....")
+  newTree.foreach { case (n, rhss) =>
+    println(s"$n : ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
+  }
+  println(".....")
+  /*
+  println(".....")
+  println(resultTerm.isInfinite)
+  for (i <- 0 to 100) println(resultTerm.terms.index(i))
+*/
+
+
+
+  describe(s"Filter by muster with two arguments") {
+    val muster: Muster = Term("f", Seq(Term("h", Seq(Star(), Star())), Star()))
+    val grammar: TreeGrammar =
+      Map[Type, Set[(String, Seq[Type])]](
+        Constructor("sigma0") -> Set(
+          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
+          ("g", Seq[Type](Constructor("sigma3")))
+        ),
+        Constructor("sigma1") -> Set(
+          ("c2", Seq.empty[Type]),
+          ("h", Seq[Type](Constructor("sigma2"), Constructor("sigma3")))
+        ),
+        Constructor("sigma2") -> Set(("c2", Seq.empty[Type]),
+          ("c3", Seq[Type](Constructor("sigma3")))
+        ),
+        Constructor("sigma3") ->
+          Set(
+            ("c4", Seq.empty[Type]),
+            ("f", Seq[Type](Constructor("sigma2")))
+          )
+      )
+    val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
+    newTreeGrammar.foreach { case (n, rhss) =>
+      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
+    }
+
+    val prune = GammaFCL.prune(newTreeGrammar, Set(tgtSymbolFilter))
+    println(":::")
+    prune.foreach { case (n, rhss) =>
+      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
+    }
+    val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
+    it(s"the new tree grammar should be without $muster"){
+      if (results.isInfinite){
+        for (index <- 0 until 10){
+          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
+        }
+      }else {
+        for (index <- 0 until results.size.get.toInt){
+          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
+        }
+      }
+    }
+    it("should make new treeGrammar with new sigma2") {
+      assert(newTreeGrammar.exists(e => e._1.toString.startsWith("p!")))
+    }
+  }
   describe("Filter two star arguments") {
     val grammar: TreeGrammar =
       Map[Type, Set[(String, Seq[Type])]](
@@ -223,6 +304,7 @@ class FilterTest extends FunSpec {
       }
     }
   }
+
   describe("Filter by muster with an argument") {
     val grammar: TreeGrammar =
       Map[Type, Set[(String, Seq[Type])]](
@@ -370,6 +452,11 @@ class FilterTest extends FunSpec {
           )
       )
     val newTreeGrammar: TreeGrammar = filter.forbid(grammar4, muster4)
+    println("----")
+    newTreeGrammar.foreach { case (n, rhss) =>
+      println(s"$n : ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
+    }
+    println("xxxx")
     val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
     it(s"the new tree grammar should be without $muster4"){
       if (results.isInfinite){
@@ -383,41 +470,6 @@ class FilterTest extends FunSpec {
       }
     }
     it("should make new treeGrammar with new p! sigma2") {
-      assert(newTreeGrammar.exists(e => e._1.toString.startsWith("p!")))
-    }
-  }
-  describe(s"Filter by muster with two arguments") {
-    val muster: Muster = Term("f", Seq(Star(), Star()))
-    val grammar: TreeGrammar =
-      Map[Type, Set[(String, Seq[Type])]](
-        Constructor("sigma0") -> Set(
-          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
-          ("g", Seq[Type](Constructor("sigma3")))
-        ),
-        Constructor("sigma1") -> Set(("c2", Seq.empty[Type])),
-        Constructor("sigma2") -> Set(("c2", Seq.empty[Type]),
-          ("c3", Seq[Type](Constructor("sigma3")))
-        ),
-        Constructor("sigma3") ->
-          Set(
-            ("c4", Seq.empty[Type]),
-            ("f", Seq[Type](Constructor("sigma2")))
-          )
-      )
-    val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
-    val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
-    it(s"the new tree grammar should be without $muster"){
-      if (results.isInfinite){
-        for (index <- 0 until 10){
-          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
-        }
-      }else {
-        for (index <- 0 until results.size.get.toInt){
-          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
-        }
-      }
-    }
-    it("should make new treeGrammar with new sigma2") {
       assert(newTreeGrammar.exists(e => e._1.toString.startsWith("p!")))
     }
   }

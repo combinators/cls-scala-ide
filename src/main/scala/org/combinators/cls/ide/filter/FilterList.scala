@@ -11,7 +11,14 @@ class FilterList {
   var tys: Set[String] = Set.empty
   var newRhs = Set.empty[(String, Seq[Type])]
 
-  def newNameArg(forbidIn: String, tm: String) = s"p${if (tm == "") {""} else {"," + tm}}! $forbidIn"
+  def newNameArg(forbidIn: String, tm: String) = s"p${
+    if (tm == "") {
+      ""
+    } else {
+      "," + tm
+    }
+  }! $forbidIn"
+
   var newArg = ""
 
   def forbid(grammar: TreeGrammar, pattern: Muster): TreeGrammar = {
@@ -25,7 +32,7 @@ class FilterList {
           if (args.nonEmpty) {
             for (a <- args) {
               pats = mkSetPat(a)
-              recSet = recSet | pats
+              recSet = recSet ++ Set(a)
             }
             Set(Term(name, pats.toList))
           }
@@ -39,6 +46,7 @@ class FilterList {
 
     mkSetPat(pattern)
     for (p <- recSet.subsets()) {
+      println(p)
       val merge = pPartGrammar.toSeq ++ forbidPP(grammar, pattern, p, (recSet.toSeq.indexOf(p) + 1).toString).toSeq
       val grouped = merge.groupBy(_._1)
       pPartGrammar = grouped.mapValues(_.flatMap(_._2).toSet)
@@ -46,14 +54,30 @@ class FilterList {
     pPartGrammar
   }
 
-  def computeRule(rhsNew: (String, Seq[Type]), partPattern: Seq[Muster]): Set[(String, Seq[Type])] = {
+  def computeRule(rhsNew: (String, Seq[Type]), partPattern: Seq[Muster], partSubPattern: Seq[Muster]): Set[(String, Seq[Type])] = {
     var computeNewRhs = Set.empty[(String, Seq[Type])]
+    var tm = ""
+    var newPArg = ""
     rhsNew._2.foldLeft(Seq.empty[Type]) {
       case (leftArgs, rightArgs) =>
-        newArg = newNameArg(rightArgs.toString(), (partPattern(rhsNew._2.indexOf(rightArgs))).toString)
+        //problem when we have f(X,X)
+        //println("rhs", rhsNew)
+        //println("partPattern", partPattern)
+       // println("pppp", partPattern)
+       // println("ssss", partSubPattern)
+        if (partSubPattern.isEmpty){
+          tm = partPattern(rhsNew._2.indexOf(rightArgs)).toString
+        }
+        else {
+          tm = partSubPattern(rhsNew._2.indexOf(rightArgs)).toString +","+ partPattern(rhsNew._2.indexOf(rightArgs)).toString
+        }
+        newArg = newNameArg(rightArgs.toString(), tm)
+
         if (leftArgs.nonEmpty) {
-          val newPArg = newNameArg(leftArgs.head.toString(), "")
-          computeNewRhs = computeNewRhs + (rhsNew._1 -> (Seq(Constructor(newPArg)) ++ (Constructor(newArg) +: Seq())))
+
+            newPArg = newNameArg(leftArgs.head.toString(), "")
+          val rhsSide = (rhsNew._1 -> (Seq(Constructor(newPArg)) ++ (Constructor(newArg) +: Seq())))
+          computeNewRhs = computeNewRhs + rhsSide
         } else {
           val newRhsArgs: Seq[Type] = if (rhsNew._2.tail.nonEmpty) {
             Seq(Constructor(newNameArg(rhsNew._2.tail.head.toString(), "")))
@@ -69,15 +93,20 @@ class FilterList {
 
   var matchedStar: Boolean = false
   var matchedPat: Boolean = false
+  var matches: Boolean = false
 
-  def isMatched(grammar: TreeGrammar, pattern: Muster, rhs: (String, Seq[Type])) = {
+  def isMatched(pattern: Muster, rhs: (String, Seq[Type])): Option[Seq[Muster]]= {
     pattern match {
       case Term(c, pats) if rhs._1 == c && pats.size == rhs._2.size =>
+        matches = true
         matchedPat = true
-        newRhs = newRhs ++ computeRule(rhs, pats)
+        Some(pats)
       case Star() =>
         matchedStar = true
+        None
       case _ =>
+        matchedPat = false
+        None
     }
   }
 
@@ -91,27 +120,49 @@ class FilterList {
           rhs match {
             case (combinator, args) =>
               matchedPat = false
+              matches = false
               matchedStar = false
               for (subPat <- partPattern) {
-                isMatched(grammar, subPat, rhs)
+                 val subPats = isMatched(subPat, rhs)
+              if(matchedPat){
+                  val pats = isMatched(pattern, rhs)
+                if (matchedPat) {
+                  pats match {
+                    case Some(value) => newRhs = newRhs ++ computeRule(rhs, value, subPats.get)
+                    case None =>
+                  }
+                }else {
+                matchedPat =true
+                subPats match{
+                  case Some(value) => newRhs = newRhs ++ computeRule(rhs, value, Seq.empty)
+                  case None =>
+                }
               }
-              if (!matchedPat){
-              isMatched(grammar, pattern, rhs)
+              }
+              }
+              if(!matchedPat) {
+                val pts = isMatched(pattern, rhs)
+                pts match {
+                  case Some(value) => newRhs = newRhs ++ computeRule(rhs, value, Seq.empty)
+                  case None =>
+                }
+              }
+
           }
-          }
-          if(!matchedStar && !matchedPat) {
+          if (!matchedStar && !matches) {
             var newArgs = Seq.empty[Type]
-            if(rhs._2.nonEmpty) {
+            if (rhs._2.nonEmpty) {
               for (e <- rhs._2) {
                 newArgs = newArgs ++ Seq(Constructor(newNameArg(e.toString, "")))
               }
-              newRhs = newRhs + (rhs._1->newArgs)
+
+              newRhs = newRhs + (rhs._1 -> newArgs)
             }
             else {
               newRhs = newRhs + rhs
             }
-          }else{
-            if (matchedStar){
+          } else {
+            if (matchedStar) {
               newRhs = Set.empty
             }
             newRhs
@@ -138,15 +189,10 @@ class FilterList {
         case ((newRhss, additionalGrammar, matched), (combinator, args)) =>
           pattern match {
             case Term(c, pats) if c == combinator && (pats.size == args.size) =>
-              // if (pats.size > 0){
-              // foreach
-              // }
-              val (_, nextRhss, nextAdditional, nextMatched) =
+            val (_, nextRhss, nextAdditional, nextMatched) =
                 pats.zip(args).foldLeft((Seq.empty[Type], args), newRhss, additionalGrammar, true) {
                   case (((leftArgs, rightArgs), newRhss, additionalGrammar, matched), (pat, arg)) =>
-                    println("ooooooo", arg, pat)
-                    println("ooooooo", grammar(arg))
-                    val (newrhs, bool) = pat match {
+                   val (newrhs, bool) = pat match {
                       case Term(pp, ppats) if (grammar(arg).exists(e => (e._1 == pp) && (e._2.size == ppats.size))) =>
                         //if (pats.tail.head match {
                         //                      case Term(c2, _) =>
@@ -154,19 +200,15 @@ class FilterList {
                         //                    })
                         // if (pat match {case Term(pp, ppats) if (grammar(arg).exists(e => (e._1 == pp) && (e._2.size == ppats))) =>
 
-                        println("ttttt", matched)
-                        println("PPPPPPPP", newRhss) // (combinator -> (leftArgs ++ (Constructor("newArg") +: rightArgs.tail)))                        )
                         val newArg = "<" + "p" + "," + "p" + (args.indexOf(arg) + 1).toString + "!" + arg.toString() + ">"
 
                         (newRhss + ((combinator -> (leftArgs ++ (Constructor(newArg) +: rightArgs.tail)))), true)
 
                       case _ =>
-                        println("ffffff", pat, arg)
-                        (newRhss, false)
+                      (newRhss, false)
                     }
                     if (bool) {
-                      println("halllllllooooo else")
-                      ((leftArgs :+ arg, rightArgs.tail),
+                     ((leftArgs :+ arg, rightArgs.tail),
                         newRhss ++ newrhs,
                         additionalGrammar,
                         true)

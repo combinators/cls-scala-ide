@@ -71,11 +71,6 @@ object TGPat extends App {
   val t1 = System.nanoTime()
   val postprocessed = forbid(testGrammar, testPattern1)
   val duration = (System.nanoTime() - t1)
-  def measure[A](f:()=>A): (Long, A) = {
-    val start = System.currentTimeMillis()
-    val o = f()
-    (System.currentTimeMillis - start, o)
-  }
 
   import java.util.concurrent.TimeUnit
 
