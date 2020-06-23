@@ -21,6 +21,7 @@ class Planning @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applicatio
   override val tgts: Seq[Type] = Seq(target)
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
 
+  override val result = Some(Gamma.inhabit[String](target))
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = repository.kinding,
     classLoader = this.getClass.getClassLoader,

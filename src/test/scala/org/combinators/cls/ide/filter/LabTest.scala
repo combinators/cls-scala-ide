@@ -28,8 +28,8 @@ while(noTerm) {
 
   def mkLab = {
     val filter = new FilterList
-    val filterOld = new Filter
-    val labyrinthSize = 5
+    val filterOld = new FilterRec
+    val labyrinthSize = 20
     // val start: (Int, Int) = (Random.nextInt(labyrinthSize), Random.nextInt(labyrinthSize))
     val start: (Int, Int) = (1,1)
     //val goal: (Int, Int) = (Random.nextInt(labyrinthSize), Random.nextInt(labyrinthSize))
@@ -47,17 +47,20 @@ while(noTerm) {
     val kinding = anyPos(positionRow).merge(anyPos(positionColumn))
     val tgt = 'Pos (intToType(goal._1), intToType(goal._2))
     val filterTgt = Constructor("p! Pos(S(S(Z)) * S(S(Z)))")
+    val rand = new Random(System.currentTimeMillis())
+
     val blocked: Array[Array[Boolean]] = {
-      val arr = Array.ofDim[Boolean](labyrinthSize, labyrinthSize).map(row => row.map(_ => false))
-      //val arr = Array.ofDim[Boolean](labyrinthSize, labyrinthSize).map(row => row.map(_ => Random.nextBoolean()))
+      val arr = Array.ofDim[Boolean](labyrinthSize, labyrinthSize).map(row => row.map(_ => Random.nextBoolean()))
       arr(start._2).update(start._1, false)
       arr
     }
+    val newBlocked = blocked.map(row => row.map(e => if (e) Random.nextBoolean() else false))
+
     val freeFields: Map[String, Type] =
-      blocked.indices.foldLeft(Map.empty[String, Type]) {
+      newBlocked.indices.foldLeft(Map.empty[String, Type]) {
         case (m, row) =>
-          blocked(row).indices.foldLeft(m) {
-            case (m, col) if !blocked(row)(col) =>
+          newBlocked(row).indices.foldLeft(m) {
+            case (m, col) if !newBlocked(row)(col) =>
               m.updated(s"Pos_at_($row, $col)", 'Free (intToType(row), intToType(col)))
             case _ => m
           }
@@ -72,15 +75,11 @@ while(noTerm) {
       )
     lazy val Gamma =  new BoundedCombinatoryLogicDebugger(testChannel, kinding, SubtypeEnvironment(Map.empty), repository)
     lazy val repository = movements++freeFields
-    println("tgt", start, (intToType(start._1), intToType(start._2)))
-    println("goal", goal, tgt)
     val resultedTree = Gamma.inhabit(tgt)
     val results = InhabitationResult[Unit](resultedTree, tgt, x => ())
 
 
-    val labyrinth = s"\n ${blocked.map(row => row.map(e => if (e) "x" else " ").mkString("|", "|", "|")).mkString("\n")}"
-    println(labyrinth)
-    //lazy val Gamma = new BoundedCombinatoryLogic(kinding, SubtypeEnvironment(Map.empty), movements ++ freeFields)
+    val labyrinth = s"\n ${newBlocked.map(row => row.map(e => if (e) "x" else " ").mkString("|", "|", "|")).mkString("\n")}"
 
     val Gamma2 = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), repository)
     if(resultedTree.nonEmpty) {

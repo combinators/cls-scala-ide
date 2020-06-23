@@ -58,8 +58,8 @@ class FiniteCombinatoryLogicDebugger(debugChannel: DebugMessage => Unit, subtype
 
   }
 
-  //override type MultiArrow = (Seq[Type], Type)
-  def splitsOf(ty: Type): Seq[Seq[MultiArrow]] = {
+  //type MultiArrow = (Seq[Type], Type)
+  def splitsOf(ty: Type): Seq[Seq[(Seq[Type], Type)]] = {
     def safeSplit[A](xss: Seq[Seq[A]]): (Seq[A], Seq[Seq[A]]) =
       xss match {
         case Seq() => (List.empty, List.empty)

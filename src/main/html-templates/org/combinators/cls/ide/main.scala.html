@@ -93,7 +93,8 @@ projectName: String)
                 <li><a class="nav-link" data-toggle="pill" href="#steps">Debug Overview</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
-                <li><a class="nav-link" data-toggle="pill" href="#smt">SMT</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#taxonomy">Taxonomy Overview</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#smt">Filtering</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#paths">Covering</a></li>
 
                 <!-- <li>
@@ -142,7 +143,7 @@ projectName: String)
                         <label for="request"><h4 class="secondary">&Gamma; &vdash; ? :</h4></label>
                         <textarea class="form-control" id="request" type="text">@for(ty <- targets) {@ty &#10;}</textarea>
                         <!--<p>&nbsp;</p>-->
-                        <button class="btn btn-primary btn-toggle" type="submit" id="submit">New Request</button>
+                        <button class="btn btn-primary btn-toggle" type="button" id="submit">New Request</button>
                     </div>
 
 
@@ -190,6 +191,11 @@ projectName: String)
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div id="taxonomy" class="tab-pane fade" >
+            <h3>Taxonomy Overview:</h3>
+            <div id="cy-taxonomy-graph">
             </div>
         </div>
         <div id="steps" class="tab-pane fade flex-items">

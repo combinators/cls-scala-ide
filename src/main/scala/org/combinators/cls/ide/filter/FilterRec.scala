@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils
 import org.combinators.cls.inhabitation.TreeGrammar
 import org.combinators.cls.types.{Constructor, Type}
 
-class Filter {
+class FilterRec {
   val emptyGrammar: TreeGrammar = Map.empty
   var tys: Set[String] = Set.empty
   def pushName(name:String, index:Int = 3): String = {
@@ -16,6 +16,8 @@ class Filter {
     val (changed, nextGrammar) =
       grammar.foldLeft((false, emptyGrammar)) { case ((hasChanged, nextGrammar), (n, rhss)) =>
         val (newEntries, matched) = forbidIn(grammar, pattern, n, rhss, nameProvider)
+
+
         ((hasChanged || matched), nextGrammar ++ newEntries)
       }
     if (changed) {

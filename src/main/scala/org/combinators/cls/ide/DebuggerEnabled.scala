@@ -48,6 +48,9 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/showResult/${int(index)}") if prefix == controllerAddress => showResult(index)
       //case GET(p"/$prefix/showUsedCombinators/${int(index)}") if prefix == controllerAddress => showUsedCombinators(index)
       case GET(p"/$prefix/countSolutions") if prefix == controllerAddress => countsSolutions()
+      case GET(p"/$prefix/showTaxonomy") if prefix == controllerAddress => showTaxonomy()
+      case GET(p"/$prefix/getTaxonomySize") if prefix == controllerAddress => getTaxonomySize()
+      case GET(p"/$prefix/showTaxonomyGraph") if prefix == controllerAddress => showTaxonomyGraph()
       case GET(p"/$prefix/showPosition/${label}") if prefix == controllerAddress => showPosition(label)
       case GET(p"/$prefix/showOnePossibleSolutionGraph/${int(index)}") if prefix == controllerAddress => inhabitantToGraph(index)
       case GET(p"/$prefix/inhabitantsWithoutCombinator/items" ? q_s"tag=${int(tags)}") if prefix == controllerAddress =>

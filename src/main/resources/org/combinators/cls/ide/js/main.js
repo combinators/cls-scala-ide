@@ -116,10 +116,10 @@ $('#inhabRequest').collapse('show');
                  $('#save').click(function(){
                      var number = document.getElementById("message-text").value;
                      $('#isInfinite').modal('hide');
-                     makeSolutions(number);
+                     makeSolutions(number, "Variation", "results");
                    });
                 }else {
-                    makeSolutions(result);
+                    makeSolutions(result, "Variation", "results");
                 }
                 }
 
@@ -128,7 +128,32 @@ $('#inhabRequest').collapse('show');
                });
 
             });
-        function makeSolutions(number){
+      $('.nav-sidebar a[href="#taxonomy"]').on('shown.bs.tab', function(){
+          $('#inhabRequest').collapse('hide');
+
+          var elements = document.getElementsByClassName("navbar navbar-default");
+          if(elements.length != 0){
+              var length = elements.length;
+              for (var i=0; i<= length-1; i++) {
+                  elements[0].remove();
+              }
+          }
+          $.get("showTaxonomy", function(result){
+              if(result == 0){
+                  $('#cy-taxonomy-graph').html("No taxonomy defined!");
+              }
+              else{
+                  $.get("getTaxonomySize", function(number){
+                      makeSolutions(number, "Taxonomy "+ result, "taxonomy");
+                  });
+              }
+          });
+
+      });
+
+        function makeSolutions(number, nameButtonPart, direction){
+            var nameButton = ""
+
             for (var item = 0; item < number ; item ++) {
                 var nav = document.createElement("nav");
                 nav.className = "navbar navbar-default well";
@@ -144,17 +169,22 @@ $('#inhabRequest').collapse('show');
                 //create variation buttons
 
                 if(!document.getElementById(item)){
+                    if (direction== "taxonomy"){
+                        nameButton = nameButtonPart
+                    }else{
+                        nameButton =nameButtonPart +" "+ item
+                    }
                    var divBtn = document.createElement("divBtn");
-                   var txt = document.createTextNode("Variation "+ item + ":");
+                   var txt = document.createTextNode(nameButton + ":");
                    var btn = document.createElement("button");
                    btn.className = "btn btn-primary";
-                   btn.id = item;
+                   btn.id = item+direction;
                    div.appendChild(divNavbar);
                    nav.appendChild(div);
                    divBtn.appendChild(btn);
                    btn.appendChild(txt);
                    divNavbar.appendChild(divBtn);
-                   document.getElementById("results").appendChild(nav);
+                   document.getElementById(direction).appendChild(nav);
 
                    //on click shows one solution
                    btn.addEventListener("click", function(e){
@@ -175,24 +205,18 @@ $('#inhabRequest').collapse('show');
                       $('.divSol').addClass('collapse');
                       divSol.id =  "solutionSol" + e.target.id;
                       var solution = document.createElement("solution");
-                      $.get("showResult/" +  parseInt(e.target.id), function(data){
-                          showPartGraph(parseInt(e.target.id));
-                          text = document.createTextNode(data);
-
-                          divSol.appendChild(solution);
-                          solution.appendChild(text);
-                      });
-                                                         //You can show the used combinators in the graph
-                                                         //$.get("showUsedCombinators/" +  parseInt(e.target.id), function(data){
-                                                           //showPartGraph(parseInt(e.target.id));
-                                                           /*var text1 = document.createTextNode(data);
-
-                                                         divSol.appendChild(solution);
-                                                         solution.appendChild(text1);
-                                                         });
-                                                         divSol.appendChild(solution);
-                                                                                      solution.appendChild(text);*/
-                      document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
+                       if (direction== "taxonomy"){
+                           showTaxonomyGraph();
+                       }
+                       else{
+                           $.get("showResult/" +  parseInt(e.target.id), function(data){
+                               showPartGraph(parseInt(e.target.id));
+                               text = document.createTextNode(data);
+                               divSol.appendChild(solution);
+                               solution.appendChild(text);
+                           });
+                       }
+                       document.getElementById("divNav"+parseInt(e.target.id)).appendChild(divSol);
                    });
                 }
             }
@@ -218,13 +242,6 @@ $('#inhabRequest').collapse('show');
             }else{
               $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
               }
-              /*$(document).on("change", "[name='optradio']", function(e){
-                 var radioVal = $(this).val();
-                 console.log("xxxxx", radioVal.toString)
-                 $.get("inhabitantsWithoutCombinator/"+radioVal.toString(), function(data){
-                     $("#treeResult").html(data.replace(/\n/g, '<br />'));
-                 });
-              });*/
             });
         });
 
@@ -250,13 +267,6 @@ $('#inhabRequest').collapse('show');
                 });
 
             });
-
-             /*var radioVal = $("#combinatorName").val();
-            console.log("val",  radioVal);
-            showPaths(radioVal);*/
-
-                             /*console.log("val",  $('input[type=radio][name=optradioCovering]:checked').val());
-                             showPaths(radioVal);*/
 
         });
 
@@ -298,10 +308,21 @@ $('#inhabRequest').collapse('show');
              mkGraph(graph, "#cy-part-graph");
          }
          catch{
-             $("#cy--part-graph").html(data.replace(/\n/g, '<br />'));
+             $("#cy-part-graph").html(data.replace(/\n/g, '<br />'));
          }
        });
    }
+      function showTaxonomyGraph(){
+          $.get("showTaxonomyGraph/", function(data){
+              try {
+                  var graph = JSON.parse(data);
+                  mkGraph(graph, "#cy-taxonomy-graph");
+              }
+              catch{
+                  $("#cy--taxonomy-graph").html(data.replace(/\n/g, '<br />'));
+              }
+          });
+      }
 
    function toggleCycle(stepNr){
         $.getJSON("toggleCycle/" + stepsNr, function(data){
@@ -315,10 +336,6 @@ $('#inhabRequest').collapse('show');
         var x = document.getElementById("request").value;
         computeNewRequest(x);
     });
-    /*$("#submitCheckbox").click(function(){
-        var x = document.getElementById("request").value;
-        computeNewRequest(x);
-    });*/
 
     $("#submitCheckbox").click(function(){
      var load = $(this);
@@ -360,7 +377,6 @@ $('#inhabRequest').collapse('show');
     });
 
     function showPaths(label) {
-        console.log("label", label);
         if(label != null){
            $('.nav-sidebar a[href="#paths"]').tab('show');
            $("#combinatorName").html(label);
@@ -368,7 +384,6 @@ $('#inhabRequest').collapse('show');
                            $('#inhabRequest').removeClass('in');
                        }
            $.get("computeNumberOfArgs/"+label, function(data){
-           console.log("hallo ", data.val);
                  $("#combinatorTys").html("");
                  $("#targetsToCover").html("");
                  $("#numberOfArgs").html(data.replace(/\n/g, '<br />'));
@@ -400,9 +415,6 @@ $('#inhabRequest').collapse('show');
                   var elem = document.getElementById("targetsToCover");
                   var elem_child = document.getElementsByName(id.toString());
 
-              console.log("elem", elem);
-              console.log("elemC", elem_child);
-              console.log("id", id);
 $( "li[name='"+id+"']" ).remove();
                 // $('li [name='id']').remove();
                  /* elem_child.parentNode.removeChile(elem_child);
@@ -412,16 +424,17 @@ $( "li[name='"+id+"']" ).remove();
                                                       });
 
     function computeNewRequest(request) {
-        if (request.includes("[")){
-        }else {
-    } var req = request.replace(/\[/g, '91')
+       var req = request.replace(/\[/g, '91')
     req = req.replace(/\]/g, '93')
         $.get("computeRequest/" + req, function(data){
-            $.get("graph", function(data){
-                     var graph = JSON.parse(data)
-                     $("#cy-graph").html(" ");
-                     mkGraph(graph, "#cy-graph");
-            });
+            $("#cy-graph").html(" ");
+            try {
+                var graph = JSON.parse(data);
+                mkGraph(graph, "#cy-graph");
+            }
+            catch{
+                $("#cy-graph").html(data.replace(/\n/g, '<br />'));
+            }
         });
     }
 
@@ -435,11 +448,11 @@ $( "li[name='"+id+"']" ).remove();
 
     function mkGraph(graph, canvas){
       // Setup basic graph
+
       var cy = cytoscape({
                    container: $(canvas),
                    boxSelectionEnabled: false,
                    autounselectify: true,
-
                    style: [
                      {
                         selector: 'node',
@@ -457,6 +470,20 @@ $( "li[name='"+id+"']" ).remove();
                           'text-valign': 'top',
                           'text-halign': 'center',
                           'background-color': '#FFB147',
+                          'shape' : 'roundrectangle'
+
+                        }
+                     },
+                     {
+                        selector: 'node[style = "subType-node"]',
+                        css: {
+                          'padding-top': '10px',
+                          'padding-left': '10px',
+                          'padding-bottom': '10px',
+                          'padding-right': '10px',
+                          'text-valign': 'top',
+                          'text-halign': 'center',
+                          'background-color': '#428CCA',
                           'shape' : 'roundrectangle'
 
                         }
@@ -594,8 +621,18 @@ $( "li[name='"+id+"']" ).remove();
                         fit: false,
                         padding: 75,
                         avoidOverlapPadding: 75,
-                        ready: function() { console.log("resized"); }
-                     }).run();}
+                        ready: function() { }
+                     }).run();
+
+                     cy.filter('node[style != "subType-node"]').layout({
+                         name: 'cose',
+                        condense: true,
+                        fit: false,
+                        padding: 75,
+                        avoidOverlapPadding: 75,
+                        ready: function() { }
+                     }).run();
+                    }
 
                      cy.layout({
                         name: layoutName,
@@ -604,7 +641,7 @@ $( "li[name='"+id+"']" ).remove();
                         animate: true,
                         avoidOverlap: true,
                         avoidOverlapPadding: 75,
-                        ready: function()  {console.log("bf resized") } }).run()
+                        ready: function()  { } }).run()
 
                  }
 
@@ -612,7 +649,6 @@ $( "li[name='"+id+"']" ).remove();
 
                  // Adjust layout on window size change
                  window.resizeEvt;
-
                  $(window).resize(function() {
                     clearTimeout(window.resizeEvt);
                     window.resizeEvt = setTimeout(adjustLayout, 250);

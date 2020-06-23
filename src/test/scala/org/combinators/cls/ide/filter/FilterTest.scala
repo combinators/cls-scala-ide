@@ -30,6 +30,29 @@ class FilterTest extends FunSpec {
       "c4" -> Constructor("sigma3"),
       "c5" -> Arrow(Constructor("sigma0"), Constructor("sigma3"))
     )
+  val grammarLowerBound: TreeGrammar =
+    Map[Type, Set[(String, Seq[Type])]](
+      Constructor("S") -> Set(
+       ("c", Seq[Type](Constructor("S"), Constructor("S"))),
+       // ("c", Seq[Type](Constructor("S'"), Constructor("S'"))),
+        ("d", Seq[Type](Constructor("S"))),
+        ("f", Seq.empty[Type]),
+      ),
+      Constructor("S'") -> Set(
+        ("c'", Seq[Type](Constructor("S"), Constructor("S"))),
+       // ("c", Seq[Type](Constructor("S'"), Constructor("S'"))),
+        //("d", Seq[Type](Constructor("S"))),
+       // ("f", Seq.empty[Type]),
+      )
+    )
+  val grammarLowerBound1: TreeGrammar =
+    Map[Type, Set[(String, Seq[Type])]](
+      Constructor("S") -> Set(
+        ("c", Seq[Type](Constructor("S"), Constructor("S"))),
+        ("d", Seq[Type](Constructor("S"))),
+        ("f", Seq.empty[Type]),
+      )
+    )
 
   val tgtSymbol: Type = Constructor("sigma0")
   val tgtSymbolFilter: Type = Constructor("p! sigma0")
@@ -54,46 +77,50 @@ class FilterTest extends FunSpec {
 
   var partTreeGrammar: Set[(String, Seq[String])]= Set.empty
 
+  val musterLowerBound = Term("c'", Seq(Term("d", Seq(Star())),Term("c", Seq(Term("d", Seq(Star())), Term("d", Seq(Star()))))))
+  //val musterLowerBound = Term("c'", Seq(Term("d", Seq(Star())),Term("d", Seq(Star()))))
+  val musterLowerBound1 = Term("c", Seq(Term("c", Seq(Term("d", Seq(Star())), Term("d", Seq(Star())))),Term("d", Seq(Star()))))
+  //val musterLowerBound1 = Term("c", Seq(Term("d", Seq(Star())),Term("d", Seq(Star()))))
   val muster2: Muster = Term("f", Seq(Term("c3", Seq.empty), Star()))
-  val muster3: Muster = Term("id", Seq(Term("id", Seq(Term("id", Seq(Star()))))))
+  val muster3: Muster = Term("id", Seq(Term("id", Seq(Star()))))
   val muster4: Muster = Term("f", Seq(Term("c2", Seq.empty), Term("c4", Seq.empty)))
   lazy val musterTestTerm: Muster = Term("f", Seq(Term("c4", Seq.empty)))
-  val repositoryAssociation =
+  /*val repositoryAssociation =
     Map(
       "f" -> Arrow(Constructor("X"), Arrow(Constructor("Y"), Constructor("X"))),
       "x" -> Constructor("X"),
       "y" -> Intersection(Constructor("X"), Constructor("Y")),
       "z" -> Intersection(Constructor("X"), Constructor("Y"))
 
+    )*/
+  val repositoryAssociation =
+    Map(
+      "f" -> Arrow(Constructor("X"), Arrow(Constructor("X"), Constructor("X"))),
+      "x" -> Constructor("X"),
+      "y" -> Constructor("X"),
+      "z" -> Constructor("X")
+
     )
+  // association
   val GammaAssociation = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), repositoryAssociation)
-  val tgtAssociation = Arrow(Constructor("Y"), Constructor("X"))
-  val tgtPat = Constructor("p! Y -> X")
-  val resTree = GammaAssociation.inhabit(tgtAssociation)
-  resTree.foreach { case (n, rhss) =>
-    println(s"$n |-> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
-  }
-  val pat = Term("f", Seq(Term("f", Seq(Term("x", Seq.empty), Term("y", Seq.empty))), Term("z", Seq.empty)))
-
-  val newTree = filter.forbid(resTree, pat)
-
+  val tgtAssociation = Constructor("X")
+  val tgtPat = Constructor("p! X")
+  val resTreeAssociation = GammaAssociation.inhabit(tgtAssociation)
+  val pat = Term("f", Seq(Term("f", Seq(Star(), Star())),Star()))
+  val newTree = filter.forbid(resTreeAssociation, pat)
   val prune = GammaAssociation.prune(newTree, Set(tgtPat))
   val resultTerm = InhabitationResult[Unit](prune, tgtPat, x => ())
-  println(".....")
-  newTree.foreach { case (n, rhss) =>
-    println(s"$n : ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
-  }
-  println(".....")
-  /*
-  println(".....")
-  println(resultTerm.isInfinite)
-  for (i <- 0 to 100) println(resultTerm.terms.index(i))
-*/
+
+  //print terms
+  //println(".....")
+  //println(resultTerm.isInfinite)
+ // for (i <- 0 to 100) println(resultTerm.terms.index(i))
+
 
 
 
   describe(s"Filter by muster with two arguments") {
-    val muster: Muster = Term("f", Seq(Term("h", Seq(Star(), Star())), Star()))
+    val muster: Muster = Term("k", Seq(Term("h", Seq(Star())), Star()))
     val grammar: TreeGrammar =
       Map[Type, Set[(String, Seq[Type])]](
         Constructor("sigma0") -> Set(
@@ -113,16 +140,11 @@ class FilterTest extends FunSpec {
             ("f", Seq[Type](Constructor("sigma2")))
           )
       )
-    val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
-    newTreeGrammar.foreach { case (n, rhss) =>
-      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
-    }
+   // val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
+    val newTreeGrammar: TreeGrammar = filter.forbid(grammarLowerBound, musterLowerBound)
+    val tgtLowerbound : Type = Constructor("p! S'")
 
-    val prune = GammaFCL.prune(newTreeGrammar, Set(tgtSymbolFilter))
-    println(":::")
-    prune.foreach { case (n, rhss) =>
-      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
-    }
+    val prune = GammaFCL.prune(newTreeGrammar, Set(tgtLowerbound))
     val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
     it(s"the new tree grammar should be without $muster"){
       if (results.isInfinite){
@@ -253,13 +275,13 @@ class FilterTest extends FunSpec {
     val grammar: TreeGrammar =
       Map[Type, Set[(String, Seq[Type])]](
         Constructor("sigma0") -> Set(
-          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
+         // ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
           ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4"))),
           ("g", Seq[Type](Constructor("sigma3"))),
           ("f", Seq[Type](Constructor("sigma3")))),
         Constructor("sigma1") -> Set(("c1", Seq.empty[Type]),
-          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2")))),
-        Constructor("sigma4") -> Set(("c6", Seq.empty[Type])),
+          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4")))),
+        Constructor("sigma4") -> Set(("c2", Seq.empty[Type])),
         Constructor("sigma3") ->
           Set(
             ("c4", Seq.empty[Type]),
@@ -267,8 +289,9 @@ class FilterTest extends FunSpec {
           )
       )
     lazy val muster: Muster = Term("f", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty)))
-    describe(s"Filter by muster $muster") {
-      val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
+  /*  describe(s"Filter by muster $muster") {
+      val filterOld = new FilterRec
+      val newTreeGrammar: TreeGrammar = filterOld.forbid(grammar, muster)
       val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
       it("the new tree grammar should be without muster"){
         if (results.isInfinite){
@@ -302,7 +325,7 @@ class FilterTest extends FunSpec {
       it("should be different then the original") {
         assert(!newTreeGrammar.equals(grammar))
       }
-    }
+    }*/
   }
 
   describe("Filter by muster with an argument") {
@@ -417,6 +440,7 @@ class FilterTest extends FunSpec {
           ("c4", Seq.empty[Type]))
       )
     val newTreeGrammar: TreeGrammar = filter.forbid(grammarMap3, muster3)
+
     val prune = GammaFCL.prune(newTreeGrammar, Set(tgtSymbolFilter))
     val results = InhabitationResult[Unit](grammarMap3, tgtSymbol, x => ())
     it("the new tree grammar should be without muster"){
@@ -452,11 +476,11 @@ class FilterTest extends FunSpec {
           )
       )
     val newTreeGrammar: TreeGrammar = filter.forbid(grammar4, muster4)
-    println("----")
+  /*  println("----", grammar4.size)
     newTreeGrammar.foreach { case (n, rhss) =>
       println(s"$n : ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|") }")
     }
-    println("xxxx")
+    println("xxxx", newTreeGrammar.size)*/
     val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
     it(s"the new tree grammar should be without $muster4"){
       if (results.isInfinite){

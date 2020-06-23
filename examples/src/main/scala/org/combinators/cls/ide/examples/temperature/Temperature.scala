@@ -1,8 +1,8 @@
 
 package org.combinators.cls.ide.examples.temperature
 
+import com.github.javaparser.ast.expr.Expression
 import javax.inject.Inject
-
 import controllers.Assets
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.ide.{DebuggerController, DebuggerEnabled}
@@ -27,6 +27,7 @@ class Temperature @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   lazy val target: Type = (artifact('Impl)) :&: precision(precision.floating)
 
+  override val result = Some(Gamma.inhabit[Expression](target))
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = repository.precisions.merge(units),
     semanticTaxonomy = taxonomyLoss,
@@ -44,9 +45,6 @@ class Temperature @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
     algorithm = debugger())
 
   debugger.computeResults(Gamma, Seq(target))
-
-
-
 
   // Omega is like Object -- the base type everything inherits from
   //Gamma.inhabit[JType](precision(Omega))

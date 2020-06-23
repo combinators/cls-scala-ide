@@ -46,7 +46,6 @@ class FilterList {
 
     mkSetPat(pattern)
     for (p <- recSet.subsets()) {
-      println(p)
       val merge = pPartGrammar.toSeq ++ forbidPP(grammar, pattern, p, (recSet.toSeq.indexOf(p) + 1).toString).toSeq
       val grouped = merge.groupBy(_._1)
       pPartGrammar = grouped.mapValues(_.flatMap(_._2).toSet)
@@ -56,27 +55,21 @@ class FilterList {
 
   def computeRule(rhsNew: (String, Seq[Type]), partPattern: Seq[Muster], partSubPattern: Seq[Muster]): Set[(String, Seq[Type])] = {
     var computeNewRhs = Set.empty[(String, Seq[Type])]
-    var tm = ""
-    var newPArg = ""
+   // var tm = ""
+    //var newPArg = ""
+    def computeTM(index:Int): String ={
+      if (partSubPattern.isEmpty){
+        partPattern(index).toString
+      }
+      else {
+        partSubPattern(index).toString +","+ partPattern(index).toString
+      }
+    }
+
     rhsNew._2.foldLeft(Seq.empty[Type]) {
       case (leftArgs, rightArgs) =>
-        //problem when we have f(X,X)
-        //println("rhs", rhsNew)
-        //println("partPattern", partPattern)
-       // println("pppp", partPattern)
-       // println("ssss", partSubPattern)
-        if (partSubPattern.isEmpty){
-          tm = partPattern(rhsNew._2.indexOf(rightArgs)).toString
-        }
-        else {
-          tm = partSubPattern(rhsNew._2.indexOf(rightArgs)).toString +","+ partPattern(rhsNew._2.indexOf(rightArgs)).toString
-        }
-        newArg = newNameArg(rightArgs.toString(), tm)
-
         if (leftArgs.nonEmpty) {
-
-            newPArg = newNameArg(leftArgs.head.toString(), "")
-          val rhsSide = (rhsNew._1 -> (Seq(Constructor(newPArg)) ++ (Constructor(newArg) +: Seq())))
+          val rhsSide = (rhsNew._1 -> (Seq(Constructor(newNameArg(leftArgs.head.toString(), ""))) ++ (Constructor(newNameArg(rightArgs.toString(), computeTM(leftArgs.size))) +: Seq())))
           computeNewRhs = computeNewRhs + rhsSide
         } else {
           val newRhsArgs: Seq[Type] = if (rhsNew._2.tail.nonEmpty) {
@@ -84,7 +77,7 @@ class FilterList {
           } else {
             rhsNew._2.tail
           }
-          computeNewRhs = computeNewRhs + (rhsNew._1 -> (leftArgs ++ (Constructor(newArg) +: newRhsArgs)))
+          computeNewRhs = computeNewRhs + (rhsNew._1 -> (leftArgs ++ (Constructor(newNameArg(rightArgs.toString(), computeTM(leftArgs.size))) +: newRhsArgs)))
         }
         leftArgs :+ rightArgs
     }

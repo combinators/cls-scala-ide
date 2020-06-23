@@ -16,12 +16,14 @@ class FlockingDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Ap
 
   override val controllerAddress = "flocking"
   override val projectName = controllerAddress
-  override val tgts: Seq[Type] = Seq(repository.leaderControllerFile)
+ val target = repository.leaderControllerFile
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
 
+  override val result = Some(Gamma.inhabit[String](repository.leaderControllerFile))
 
   lazy val repository = new FlockingRepository {}
 
+  override val tgts: Seq[Type] = Seq(target)
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = repository.kinding,
     classLoader = this.getClass.getClassLoader,

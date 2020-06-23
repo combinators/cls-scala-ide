@@ -82,11 +82,8 @@ object ForbidInListTest extends App {
   }
 
   def forbidNew(grammar: TreeGrammar, pattern: Muster): TreeGrammar = {
-    grammar.foreach { case (n, rhss) =>
-      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")}
-    println("-----")
     val newLists = computeNewGrammar(grammar, pattern)
-    println("xxx", newLists)
+
     /*  val newList =
       grammar.foldLeft(emptyGrammar) {
           case (newList, (_, rhss)) =>
@@ -99,42 +96,13 @@ object ForbidInListTest extends App {
         ((hasChanged || matched), nextGrammar ++ newEntries)
       }
     val probegr = nextGrammar++grammar
-    /* probegr.foreach { case (n, rhss) =>
-      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")}
-    println("-----")
-   val newGr = probegr.foldLeft(emptyGrammar) { case (nextGrammar, (n, rhss)) =>
-      val newEntries = forbidIn(probegr, pattern, n, rhss)
-      (nextGrammar ++ newEntries._1)
-    }*/
     val newGr = forbid(probegr, pattern)
-    /*newGr.foreach { case (n, rhss) =>
-      println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")}
-    println("xxxx")*/
     newGr
   }
-  /* println("sss", subForbidList)
-   if (changed) {
-     println("orgGrammarSize", grammar.size)
-     println("nextGrammarSize", nextGrammar.size)
-     //println("xxxxx", nextGrammar)
-     forbid(nextGrammar, pattern)
-   }
-   else {
-     println("----------", "end")
-     nextGrammar
-   }*/
 
 
   var counter = 0
 
-  /*def forbidInList(grammar: TreeGrammar, args: Seq[NT], pattern: Seq[Muster]): TreeGrammar = {
-    val subForbidList = args.foldLeft(emptyGrammar) {
-      case (subForbid, arg) =>
-        subForbid + (arg -> grammar(arg))
-        }
-    println("----", subForbidList)
-    subForbidList
-  }*/
 
   def forbidIn(grammar: TreeGrammar, pattern: Muster, n: Type, rhss: Set[(String, Seq[NT])]): (TreeGrammar, Boolean) = {
     val (newRhss, additionalGrammar, matched) =
@@ -148,7 +116,6 @@ object ForbidInListTest extends App {
                     val newArg = arg.toString() + counter
                     counter += 1
                     val (newGrammar, matchedRec) = forbidIn(grammar, pat, Constructor(newArg), grammar(arg))
-                    // println("---", arg, grammar(arg))
                     ((leftArgs :+ arg, rightArgs.tail),
                       newRhss + ((combinator -> (leftArgs ++ (Constructor(newArg) +: rightArgs.tail)))),
                       additionalGrammar ++ newGrammar,

@@ -28,8 +28,9 @@ import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import controllers.Assets
 import org.apache.commons.io.FileUtils
+import org.combinators.cls.ide.filter.{FilterList, Muster, Star, Term}
 import org.combinators.cls.smt.{GrammarToModel, ModelToTerm, ModelToTree, ParallelInterpreterContext}
-import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
+//import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
 import smtlib.Interpreter
 import smtlib.trees.Commands.{CheckSat, GetModel, GetUnsatCore}
 
@@ -45,25 +46,29 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var newGraph: TreeGrammar = Map()
   var graphObj: JsValue = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
   val infinite: Boolean = true
-  val tgts: Seq[Type] = Seq()
-  var newTargets: Seq[Type] = Seq()
   var combinators: Repository = Map()
   val projectName: String = ""
   var bcl: Option[BoundedCombinatoryLogicDebugger] = None
   var debugMsgChannel = new DebugMsgChannel
+  val tgts: Seq[Type] = Seq()
+  var newTargets: Seq[Type] = Seq()
   val refRepo: Option[ReflectedRepository[_]] = None
-  lazy val result: InhabitationResult[Unit] = InhabitationResult[Unit](newGraph, (if(newTargets.isEmpty) tgts else newTargets).head, x => ())
+  val nativeType: Option[_] = None
+  val result: Option[InhabitationResult[_]] = None
   val reposit: Option[Map[String, Type]] = None
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
   var selectedCombinator: String = ""
   var model: Option[GrammarToModel] = None
+  val filter = new FilterList()
+
+
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
   }
 
-  def computeResults(repository: Option[Map[String, Type]] = None): TreeGrammar = {
+  def computeResults(repository: Option[Map[String, Type]] = None, targets: Seq[Type]): TreeGrammar = {
     combinatorComponents = refRepo.get.combinatorComponents
     repo = repository match {
       case Some(x) => x
@@ -77,7 +82,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     newGraph = refRepo.get.algorithm.apply(
       subSpace,
       SubtypeEnvironment(Map.empty),
-      repo).apply(if(newTargets.isEmpty) tgts else newTargets)
+      repo).apply(targets)
     showDebuggerMessage().foreach {
       case BclDebugger(b, _, _, re, _) =>
       bcl = Some(b)
@@ -91,6 +96,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   trait Style
 
   case object TypeNode extends Style
+
+  case object SubTypeNode extends Style
 
   case object CombinatorNode extends Style
 
@@ -127,6 +134,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   implicit lazy val styleFormat: Writes[Style] = Writes[Style] {
     case TypeNode => Json.toJson[String]("type-node")
+    case SubTypeNode => Json.toJson[String]("subType-node")
     case CombinatorNode => Json.toJson[String]("combinator-node")
     case UnusableCombinatorNode => Json.toJson[String]("unusable-combinator-node")
     case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
@@ -145,7 +153,6 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return graph
     */
   def toGraph(treeGrammar: TreeGrammar, tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
-
     val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, UninhabitedTypeNode) }.toMap
     val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, TargetNode) }.toMap
     val typeNodes: Map[Type, Node] =
@@ -172,6 +179,22 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
+  def toTaxonomyGraph(taxonomy: Map[String, Set[String]]): Graph = {
+    val (superTy, (subType, edges)): (Seq[Node], (Seq[Node], Seq[Edge])) =
+      taxonomy
+        .map { case (superTy, subTy) =>
+          val typeNodeSuper =  Node(superTy, TypeNode)
+          val typeNodeSubTys = subTy.map { sub =>
+            val subNode= Node(sub, SubTypeNode)
+            val edgeFrom = Edge(subNode.id, typeNodeSuper.id, null)
+            (subNode, edgeFrom)
+          }
+          (typeNodeSuper, typeNodeSubTys)
+      }.toSeq.unzip match {
+        case (x, xs) => (x, xs.flatten.unzip)
+      }
+    Graph((subType ++ superTy).map(FullNode).toSeq, (edges).map(FullEdge))
+  }
 
   /**
     * Returns the domain specified repository
@@ -341,7 +364,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return paths
     */
   def showOrganizedTy() = Action {
-    val orgTy = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths
+    val orgTy = Organized(newTargets.head).paths
     Ok(orgTy.mkString("\n"))
   }
 
@@ -370,7 +393,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
     val subt = bcl.get.algorithm.subtypes
     import subt._
-    val prob = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+   // val prob = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     prob
   }
 
@@ -404,7 +428,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   private def getInhabitStep = {
-    bcl.get.algorithm.inhabitRec((if(newTargets.isEmpty)tgts else newTargets): _*)
+    bcl.get.algorithm.inhabitRec((if(newTargets.isEmpty) tgts else newTargets): _*)
   }
 
   /**
@@ -486,7 +510,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Returns a result overview
     */
   def showGraph = Action {
-    newGraph = computeResults(reposit)
+    newGraph = computeResults(reposit, tgts)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -497,21 +521,44 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
-    * Returns a list of inhabitants
+    * Returns an inhabitants
     */
   def showResult(index: Int) = Action {
     try {
-      val tree: Tree = result.terms.index(index)
-      Ok(tree.toString)
+      /*val res = if(result.get.size.get == 0){
+        InhabitationResult[Unit](newGraph, (if(newTargets.isEmpty) tgts else newTargets).head, x => ()).terms.index(index)
+      }else{
+        result.get.terms.index(index)
+      }*/
+      Ok(result.get.terms.index(index).toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
 
   //If there are infinitely many inhabitants, the representation is very slow
-  def countsSolutions = Action {
-    lazy val results = if (result.isInfinite) "The result is infinite! How many solutions should be shown?" else result.size.get
+  def countsSolutions() = Action {
+      val results = if (result.get.isInfinite) "The result is infinite! How many solutions should be shown?" else result.get.size.get
     Ok(results.toString)
+  }
+  def showTaxonomyGraph = Action{
+    val graph = toTaxonomyGraph(refRepo.get.semanticTaxonomy.underlyingMap)
+    graphObj = Json.toJson[Graph](graph)
+    Ok(graphObj.toString())
+  }
+
+  def showTaxonomy = Action {
+    val taxonomy = refRepo.get.semanticTaxonomy.underlyingMap
+    if (taxonomy.size != 0) {
+      Ok(taxonomy.head._1.toString())
+    }else     {
+      Ok("")
+    }
+  }
+
+  def getTaxonomySize = Action{
+    val size = refRepo.get.semanticTaxonomy.underlyingMap.size
+    Ok(size.toString)
   }
 
 
@@ -524,7 +571,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     try {
       var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
       allPartGrammars.clear()
-      val partTree: Seq[Tree] = Seq(result.terms.index(index))
+      val partTree: Seq[Tree] = Seq(result.get.terms.index(index))
 
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
@@ -552,9 +599,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return SMT model
     */
   def mkModel: GrammarToModel = {
-    val grammar = bcl.get.inhabit((if(newTargets.isEmpty)tgts else newTargets): _*)
+    val grammar = bcl.get.inhabit(newTargets: _*)
     model =
-      Some(GrammarToModel(grammar, (if(newTargets.isEmpty)tgts else newTargets)))
+      Some(GrammarToModel(grammar, newTargets))
     model.get
   }
 
@@ -599,7 +646,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
-    newGraph = computeResults(reposit)
+    newGraph = computeResults(reposit, newTargets)
     newGraph.nonEmpty match {
       case true =>
         graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
@@ -612,8 +659,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * Renders an overview page
     * @return the html code of the page
     */
-  def index() = Action { request =>
-    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, tgts, request.path, projectName))
+  def index() = Action {request =>
+    val targets: Seq[Type] =
+      try {
+   if (newTargets.isEmpty)tgts else newTargets
+    }
+    catch {
+      case e : NullPointerException => tgts
+    }
+    Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, targets, request.path, projectName))
+
   }
 }
 
