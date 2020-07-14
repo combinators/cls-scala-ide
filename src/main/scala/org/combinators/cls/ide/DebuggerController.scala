@@ -51,6 +51,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var bcl: Option[BoundedCombinatoryLogicDebugger] = None
   var debugMsgChannel = new DebugMsgChannel
   val tgts: Seq[Type] = Seq()
+  var warnings: Set[Type] = Set()
   var newTargets: Seq[Type] = Seq()
   val refRepo: Option[ReflectedRepository[_]] = None
   val nativeType: Option[_] = None
@@ -168,6 +169,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
             val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
           val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
             val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
+
             val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
             (node, edgeFrom)
           }
@@ -176,6 +178,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         }.toSeq.unzip3 match {
         case (x, xt, xs) => (x, xt, xs.flatten.unzip)
       }
+    allNodes.map(e => if (e._2.style == UninhabitedTypeNode) warnings = warnings+ e._1)
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
@@ -296,10 +299,39 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   /**
     * Returns debugger messages
     */
-  def showDebuggerMessages: Action[AnyContent] = Action {
+  def showWarnings: Action[AnyContent] = Action {
+    if (warnings.isEmpty){
+      Ok("No warnings!")
+    } else {
+      val htmlMessage = s"""<lu>${(warnings.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+      Ok(htmlMessage)
+    }
+  }
+  /**
+    * Returns debugger messages
+    */
+  def showUninhabitedTypes: Action[AnyContent] = Action {
     if (debugMsgChannel.debugOutput.nonEmpty) {
       val newSet = debugMsgChannel.debugOutput.collect {
         case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
+     /*   case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
+          s"""Combinator <b>$combinatorName</b> cannot be used with target \n
+             <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
+             """.stripMargin*/
+      }
+      Ok(newSet.mkString("\n"))
+    }
+    else {
+      Ok("No messages")
+    }
+  }
+  /**
+    * Returns debugger messages
+    */
+  def showUnusedCombinators: Action[AnyContent] = Action {
+    if (debugMsgChannel.debugOutput.nonEmpty) {
+      val newSet = debugMsgChannel.debugOutput.collect {
+     //   case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
         case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
           s"""Combinator <b>$combinatorName</b> cannot be used with target \n
              <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!

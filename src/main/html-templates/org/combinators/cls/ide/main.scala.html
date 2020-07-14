@@ -223,6 +223,10 @@ projectName: String)
                             <div id="collapse1" class = "collapse panel-body ">
                                 <div id="debuggerMessages"></div>
                             </div>
+                        <a id = "warnings"><h4 class = "position" id="warninsName">Warnings</h4></a>
+                        <div id="collapse3" class = "collapse panel-body ">
+                            <div id="warningMessages"></div>
+                        </div>
                         </div>
                 </div>
 
@@ -253,9 +257,18 @@ projectName: String)
         <div id="mess" class="tab-pane fade">
             <h4>
                 <h3>Debugger Messages:</h3>
-                <pre class="well">
-                <div id="showDebuggerMessages"></div>
-                </pre>
+                <div class="well">
+                    <a><h4>Unused Combinators:</h4></a>
+                    <pre class="panel-body well"><div id="showUnusedCombinators"></div>
+                    </pre>
+
+                        <a><h4>Uninhabited Types:</h4></a>
+                        <pre class="panel-body well"><div id="showUninhabitedTypes"></div></pre>
+
+                        <a><h4>Warnings:</h4></a>
+                        <pre class="panel-body well"><div id="showWarnings"></div></pre>
+                </div>
+
             </h4>
         </div>
 

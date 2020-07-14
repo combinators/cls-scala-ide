@@ -22,7 +22,9 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
      $.get("graph", function(data){
         $("#progress").html(" ");
         try {
-         var graph = JSON.parse(data)
+         var graph = JSON.parse(data);
+         console.log("data", data)
+         console.log(graph)
          mkGraph(graph, "#cy-graph");
         }
         catch{
@@ -70,7 +72,7 @@ $('#inhabRequest').collapse('show');
             mkSteps(stepsNr);
             $('#inhabRequest').collapse('hide');
             $.get("showUninhabitedTy", function(data){
-                 $('#uninhabitedTy, #unusableComb').click(function(e){
+                 $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
                       if(this.id == 'uninhabitedTy'){
                          $('#collapse1').collapse('toggle');
                          $("#debuggerMessages").html(data.replace(/\n/g, '<br />'));
@@ -78,12 +80,19 @@ $('#inhabRequest').collapse('show');
                  });
             });
             $.get("showUnusableCMsg", function(data){
-                   $('#uninhabitedTy, #unusableComb').click(function(e){
+                   $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
                       if(this.id == 'unusableComb'){
                          $('#collapse2').collapse('toggle');
                          $("#debuggerM").html(data.replace(/\n/g, '<br />'));
                       }
                    });
+            });
+                $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
+                    if(this.id == 'warnings'){
+                        $.get("showWarnings", function(data){
+                        $('#collapse3').collapse('toggle');
+                        $("#warningMessages").html(data.replace(/\n/g, '<br />'));
+                        });}
             });
             });
 
@@ -247,9 +256,17 @@ $('#inhabRequest').collapse('show');
 
 
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
-            $.get("showDebuggerMessages", function(data){
+            $.get("showUnusedCombinators", function(data){
             $('#inhabRequest').collapse('hide');
-             $("#showDebuggerMessages").html(data);
+             $("#showUnusedCombinators").html(data);
+            });
+            $.get("showUninhabitedTypes", function(data){
+                $('#inhabRequest').collapse('hide');
+                $("#showUninhabitedTypes").html(data);
+            });
+            $.get("showWarnings", function(data){
+                $('#inhabRequest').collapse('hide');
+                $("#showWarnings").html(data);
             });
         });
 
@@ -505,14 +522,18 @@ $( "li[name='"+id+"']" ).remove();
                      {
                          selector: 'node[style = "uninhabited-type-node"]',
                          css: {
-                            'visibility': 'hidden',
+                       //     'visibility': 'hidden',
                             'padding-top': '10px',
                             'padding-left': '10px',
                             'padding-bottom': '10px',
                             'padding-right': '10px',
                             'text-valign': 'top',
                             'text-halign': 'center',
-                            'background-color': '#3bc8d5',
+                            'background-color': '#FFE69A',
+                            'border-style' :'solid',
+                             'border-opacity': '0.7',
+                             'border-width': '10px',
+                            'border-color' :'#FF3100',
                             'shape' : 'roundrectangle'
                          }
                       },
