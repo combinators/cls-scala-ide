@@ -67,15 +67,15 @@ projectName: String)
         <div class="navbar-header">
             <a class="navbar-brand" href="#" id="projectName">Projectname: @projectName</a>
         </div>
-        <div id="navbar" class="collapse navbar-collapse ">
+            <!-- <div id="navbar" class="collapse navbar-collapse ">
             <ul class="nav navbar-nav navbar-right">
                 <li><input type="text" class="form-control" placeholder="Search..."></li>
             </ul>
-        </div>
+        </div>-->
     </div>
 
 
-    </div>
+        <!--   </div>-->
 
 
 
@@ -94,7 +94,7 @@ projectName: String)
                 <li><a class="nav-link" data-toggle="pill" href="#mess">Reports</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#repo">Repository</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#taxonomy">Taxonomy Overview</a></li>
-                <li><a class="nav-link" data-toggle="pill" href="#smt">Filtering</a></li>
+                <li><a class="nav-link" data-toggle="pill" href="#filter">Filtering</a></li>
                 <li><a class="nav-link" data-toggle="pill" href="#paths">Covering</a></li>
 
                 <!-- <li>
@@ -223,7 +223,7 @@ projectName: String)
                             <div id="collapse1" class = "collapse panel-body ">
                                 <div id="debuggerMessages"></div>
                             </div>
-                        <a id = "warnings"><h4 class = "position" id="warninsName">Warnings</h4></a>
+                        <a id = "warnings" class = "collapse"><h4 class = "position" id="warninsName">Warnings</h4></a>
                         <div id="collapse3" class = "collapse panel-body ">
                             <div id="warningMessages"></div>
                         </div>
@@ -264,26 +264,36 @@ projectName: String)
 
                         <a><h4>Uninhabited Types:</h4></a>
                         <pre class="panel-body well"><div id="showUninhabitedTypes"></div></pre>
-
+<div id="showWarningsPanel" class="collapse">
                         <a><h4>Warnings:</h4></a>
                         <pre class="panel-body well"><div id="showWarnings"></div></pre>
+</div>
                 </div>
 
             </h4>
         </div>
 
         <div id="smt" class="tab-pane fade">
-            <h3>Filter by Combinator:</h3>
-                <pre class="well">
-                    <div id="grammarToModel"></div>
-                        <button class="btn btn-primary btn-toggle" id="submitCheckbox">Filter</button>
-                </pre>
-                <!--<pre class="well" id="res">
+        <h3>Filter by Combinator:</h3>
+        <pre class="well">
+            <div id="grammarToModel"></div>
+            <button class="btn btn-primary btn-toggle" id="submitCheckbox">Filter</button>
+        </pre>
+            <!--<pre class="well" id="res">
                     <h3>Result:</h3>
                     <div id="treeResult">
                     </div>
                 </pre>-->
 
+    </div>
+        <div id="filter" class="tab-pane fade">
+            <h3>Filter:</h3>
+            <pre class="well">
+                <textarea class="form-control" id="filterEntry" type="text" placeholder="CombinatorName1(CombinatorName2(*))"></textarea>
+                <button class="btn btn-primary btn-toggle" id="submitFilter">Filter</button>
+            </pre>
+            <div id="cy-filter-graph">
+            </div>
         </div>
         <div id="paths" class="tab-pane fade">
             <div class="panel-group">
@@ -309,7 +319,6 @@ projectName: String)
             </div>
         </div>
     </div>
-</div>
 </div>
 </div>
 </div>

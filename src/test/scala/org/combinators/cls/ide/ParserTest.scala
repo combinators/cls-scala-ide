@@ -1,9 +1,11 @@
 package org.combinators.cls.ide
 
 
+import org.combinators.cls.ide.filter.{Star, Term}
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._
 import org.scalatest.FunSpec
+
 import scala.util.parsing.combinator.Parsers
 
 
@@ -17,6 +19,21 @@ class ParserTest extends FunSpec {
   val e = Constructor("e")
   val f = Constructor("f")
   val parsing = NewRequestParser
+  val parsingFilter = NewFilterParser
+
+  describe("Muster Parser"){
+    it("should parse terms"){
+      assert(parsingFilter.compute("a") == Some(Term("a", Seq.empty)))
+      assert(parsingFilter.compute("a(b)") == Some(Term("a", Seq(Term("b", Seq.empty)))))
+    }
+    it("should parse star"){
+      assert(parsingFilter.compute("*") == Some(Star()))
+      assert(parsingFilter.compute("a(*)") == Some(Term("a", Seq(Star()))))
+      assert(parsingFilter.compute("a(*, *)") == Some(Term("a", Seq(Star(), Star()))))
+      assert(parsingFilter.compute("a(b(*))") == Some(Term("a", Seq(Term("b", Seq(Star()))))))
+
+    }
+  }
 
   describe("Constructor Parser") {
     it("should parse combinators") {

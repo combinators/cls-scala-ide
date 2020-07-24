@@ -138,8 +138,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     case SubTypeNode => Json.toJson[String]("subType-node")
     case CombinatorNode => Json.toJson[String]("combinator-node")
     case UnusableCombinatorNode => Json.toJson[String]("unusable-combinator-node")
-    case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
-    case InvisibleTypeNode => Json.toJson[String]("invisible-uninhabited-type-node")
+   // case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
+   // case InvisibleTypeNode => Json.toJson[String]("invisible-uninhabited-type-node")
     case ArgumentNode => Json.toJson[String]("argument-node")
     case TargetNode => Json.toJson[String]("target-node")
     case UninhabitedTypeNode => Json.toJson[String]("uninhabited-type-node")
@@ -297,7 +297,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
-    * Returns debugger messages
+    * Returns warnings if the specification of semantic and native types is not correct
+    * For example, when the number of semantic types is not equal to the one of native types.
     */
   def showWarnings: Action[AnyContent] = Action {
     if (warnings.isEmpty){
@@ -308,7 +309,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
   /**
-    * Returns debugger messages
+    * @return all types that cannot be inhabiteted
     */
   def showUninhabitedTypes: Action[AnyContent] = Action {
     if (debugMsgChannel.debugOutput.nonEmpty) {
@@ -326,7 +327,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
   /**
-    * Returns debugger messages
+    * @return all unused combinators is there are any
     */
   def showUnusedCombinators: Action[AnyContent] = Action {
     if (debugMsgChannel.debugOutput.nonEmpty) {
@@ -557,28 +558,35 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def showResult(index: Int) = Action {
     try {
-      /*val res = if(result.get.size.get == 0){
-        InhabitationResult[Unit](newGraph, (if(newTargets.isEmpty) tgts else newTargets).head, x => ()).terms.index(index)
-      }else{
-        result.get.terms.index(index)
-      }*/
-      Ok(result.get.terms.index(index).toString)
+      val res = result.get.terms.index(index)
+      Ok(res.toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
 
-  //If there are infinitely many inhabitants, the representation is very slow
+  /**
+    * @return the number of computed inhabitants or a message if there are infinitely many inhabitants
+    */
   def countsSolutions() = Action {
       val results = if (result.get.isInfinite) "The result is infinite! How many solutions should be shown?" else result.get.size.get
     Ok(results.toString)
   }
+
+  /**
+    * Generates a graph for a taxonomy
+    * @return a graph of taxonomy relation
+    */
   def showTaxonomyGraph = Action{
     val graph = toTaxonomyGraph(refRepo.get.semanticTaxonomy.underlyingMap)
     graphObj = Json.toJson[Graph](graph)
     Ok(graphObj.toString())
   }
 
+  /**
+    * Represents the defined taxonomies
+    * @return the taxonomy specifications if there are any.
+    */
   def showTaxonomy = Action {
     val taxonomy = refRepo.get.semanticTaxonomy.underlyingMap
     if (taxonomy.size != 0) {
@@ -588,6 +596,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
   }
 
+  /**
+    * @return the number of taxonomies
+    */
+
   def getTaxonomySize = Action{
     val size = refRepo.get.semanticTaxonomy.underlyingMap.size
     Ok(size.toString)
@@ -595,7 +607,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
 
   /**
-    * Generates a graph for an inhabitant
+    * Generates a graph for an given inhabitant
     * @param index number of inhabitant
     * @return a graph for selected inhabitant
     */
@@ -667,11 +679,29 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     }
     Ok(smtResult)
   }
-
+  /**
+    * Computes a new request
+    * @param muster for filtering
+    */
+  def filterMuster(muster: String) = Action {
+    var newMuster = muster.replaceAll("91", "[")
+    newMuster = newMuster.replaceAll("93", "]")
+    val parsedMuster = NewFilterParser.compute(newMuster)
+    val filter = new FilterList()
+    newGraph = filter.forbid(newGraph, parsedMuster.get)
+    //newGraph = computeResults(reposit, newTargets)
+    newGraph.nonEmpty match {
+      case true =>
+        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+        Ok(graphObj.toString)
+      case false => Ok("Inhabitant not found!")
+    }
+  }
 
   /**
     * Computes a new request
     * @param request new target
+    * @return graph if there is a solution or a message
     */
   def computeRequest(request: String) = Action {
     debugMsgChannel.reset()

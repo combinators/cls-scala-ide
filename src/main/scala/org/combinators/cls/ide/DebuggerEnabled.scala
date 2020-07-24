@@ -42,6 +42,7 @@ trait DebuggerEnabled extends SimpleRouter {self: DebuggerController => //Routin
       case GET(p"/$prefix/repository") if prefix == controllerAddress => showRepo()
       case GET(p"/$prefix/repositoryWithoutVars") if prefix == controllerAddress => showRepoWithoutVars()
       case GET(p"/$prefix/smt") if prefix == controllerAddress => grammarToModel()
+      case GET(p"/$prefix/filter/${muster}") if prefix == controllerAddress => filterMuster(muster)
       case GET(p"/$prefix/showUnusedCombinators") if prefix == controllerAddress => showUnusedCombinators()
       case GET(p"/$prefix/showUninhabitedTypes") if prefix == controllerAddress => showUninhabitedTypes()
       case GET(p"/$prefix/showWarnings") if prefix == controllerAddress => showWarnings()

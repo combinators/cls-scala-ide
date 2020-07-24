@@ -5,6 +5,9 @@ import org.apache.commons.lang3.StringUtils
 import org.combinators.cls.inhabitation.TreeGrammar
 import org.combinators.cls.types.{Constructor, Type}
 
+/**
+  * This class filters by pattern using power set
+  */
 class FilterList {
   val emptyGrammar: TreeGrammar = Map.empty
 

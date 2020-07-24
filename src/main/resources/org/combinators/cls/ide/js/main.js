@@ -23,8 +23,6 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
         $("#progress").html(" ");
         try {
          var graph = JSON.parse(data);
-         console.log("data", data)
-         console.log(graph)
          mkGraph(graph, "#cy-graph");
         }
         catch{
@@ -55,6 +53,8 @@ require(['bootstrap', 'cytoscape'], function(bootstrap, cytoscape) {
   var stepsNr = 0;
   var toggle = true;
   var oldData = null;
+  var warn = $('#warnings').collapse('hide');
+  var warData = "";
 
   $(function(){
     $(".nav-sidebar a").click(function(){
@@ -71,28 +71,28 @@ $('#inhabRequest').collapse('show');
         $('.nav-sidebar a[href="#steps"]').on('shown.bs.tab', function(){
             mkSteps(stepsNr);
             $('#inhabRequest').collapse('hide');
-            $.get("showUninhabitedTy", function(data){
-                 $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
-                      if(this.id == 'uninhabitedTy'){
+
+            $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
+
+                if(this.id == 'uninhabitedTy'){
+                    $.get("showUninhabitedTy", function(data){
                          $('#collapse1').collapse('toggle');
                          $("#debuggerMessages").html(data.replace(/\n/g, '<br />'));
-                      }
-                 });
-            });
-            $.get("showUnusableCMsg", function(data){
-                   $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
-                      if(this.id == 'unusableComb'){
-                         $('#collapse2').collapse('toggle');
-                         $("#debuggerM").html(data.replace(/\n/g, '<br />'));
-                      }
-                   });
-            });
-                $('#uninhabitedTy, #unusableComb, #warnings').click(function(e){
+                    });
+                }else{
+                    if(this.id == 'unusableComb'){
+                        $.get("showUnusableCMsg", function(data){
+                                $('#collapse2').collapse('toggle');
+                                $("#debuggerM").html(data.replace(/\n/g, '<br />'));
+
+                         });
+                    }
                     if(this.id == 'warnings'){
-                        $.get("showWarnings", function(data){
-                        $('#collapse3').collapse('toggle');
-                        $("#warningMessages").html(data.replace(/\n/g, '<br />'));
-                        });}
+                                $('#collapse3').collapse('toggle');
+                                $("#warningMessages").html(warData.replace(/\n/g, '<br />'));
+
+                    }
+                }
             });
             });
 
@@ -175,7 +175,7 @@ $('#inhabRequest').collapse('show');
                 divNavbar.className = "navbar-header";
                 divNavbar.id = "divNav" + item;
 
-                //create variation buttons
+                //create variation or taxonomy buttons
 
                 if(!document.getElementById(item)){
                     if (direction== "taxonomy"){
@@ -242,32 +242,44 @@ $('#inhabRequest').collapse('show');
                });
         });
 
-        $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
-            $('#inhabRequest').collapse('hide');
-            $.get("smt", function(data){
-            if(data.includes("not")){
-                $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
-                $("#submitCheckbox").prop("disabled", true);
-            }else{
-              $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+        $('.nav-sidebar a[href="#filter"]').on('shown.bs.tab', function(){
+          $('#inhabRequest').collapse('hide');
+          $.get("filter", function(data){
+              if(data.includes("not")){
+                  $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+                  $("#submitCheckbox").prop("disabled", true);
+              }else{
+                  $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
               }
-            });
-        });
+          });
+      });
+
+      $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function(){
+          $('#inhabRequest').collapse('hide');
+          $.get("smt", function(data){
+              if(data.includes("not")){
+                  $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+                  $("#submitCheckbox").prop("disabled", true);
+              }else{
+                  $("#grammarToModel").html(data.replace(/\n/g, '<br />'));
+              }
+          });
+      });
 
 
         $('.nav-sidebar a[href="#mess"]').on('shown.bs.tab', function(){
-            $.get("showUnusedCombinators", function(data){
             $('#inhabRequest').collapse('hide');
+            $('#showWarningsPanel').collapse('hide');
+            $.get("showUnusedCombinators", function(data){
              $("#showUnusedCombinators").html(data);
             });
             $.get("showUninhabitedTypes", function(data){
-                $('#inhabRequest').collapse('hide');
                 $("#showUninhabitedTypes").html(data);
             });
-            $.get("showWarnings", function(data){
-                $('#inhabRequest').collapse('hide');
-                $("#showWarnings").html(data);
-            });
+            if (warData != ""){
+                    $('#showWarningsPanel').collapse('show');
+                    $("#showWarnings").html(warData);
+            }
         });
 
         $('.nav-sidebar a[href="#paths"]').on('shown.bs.tab', function(){
@@ -298,15 +310,21 @@ $('#inhabRequest').collapse('show');
              }
         }
         if(this.id == 'forwardButton'){
+            stepsNr ++;
             $.get("steps/" + stepsNr, function(data){
               if (data != "No more steps!") {
-                stepsNr ++;
                 toggle = true;
                 mkSteps(stepsNr);
+                  $.get("showWarnings", function(data){
+                      if (data!= "No warnings!") {
+                          warn = $('#warnings').collapse('show');
+                          warData = data;
+                      }});
               }else {
                 $("#cy-steps").html("<h3>" + data.replace(/\n/g, '<br />') + "</h3>");
               }
             });
+
         }
         else{
             if(this.id == 'backwardButton'){
@@ -352,6 +370,21 @@ $('#inhabRequest').collapse('show');
     $("#submit").click(function(){
         var x = document.getElementById("request").value;
         computeNewRequest(x);
+    });
+    $("#submitFilter").click(function(){
+        var request = document.getElementById("filterEntry").value;
+            var req = request.replace(/\[/g, '91')
+            req = req.replace(/\]/g, '93')
+            $.get("filter/" + req, function(data){
+                $("#cy-filter-graph").html(" ");
+                try {
+                    var graph = JSON.parse(data);
+                    mkGraph(graph, "#cy-filter-graph");
+                }
+                catch{
+                    $("#cy-filter-graph").html(data.replace(/\n/g, '<br />'));
+                }
+            });
     });
 
     $("#submitCheckbox").click(function(){
@@ -458,7 +491,7 @@ $( "li[name='"+id+"']" ).remove();
 
       function mkSteps(stepsNr) {
             $.getJSON("steps/" + stepsNr, function(data){
-                mkGraph(data, "#cy-steps")
+                mkGraph(data, "#cy-steps");
             });
         }
 

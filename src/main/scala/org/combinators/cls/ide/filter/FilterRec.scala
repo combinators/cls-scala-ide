@@ -3,7 +3,9 @@ package org.combinators.cls.ide.filter
 import org.apache.commons.lang3.StringUtils
 import org.combinators.cls.inhabitation.TreeGrammar
 import org.combinators.cls.types.{Constructor, Type}
-
+/**
+  This class filters by pattern recursively
+ */
 class FilterRec {
   val emptyGrammar: TreeGrammar = Map.empty
   var tys: Set[String] = Set.empty
