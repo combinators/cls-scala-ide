@@ -14,7 +14,7 @@
 * limitations under the License.
 */
 
-package org.combinators.cls.ide
+package org.combinators.cls.ide.parser
 
 import org.combinators.cls.types._
 
