@@ -3,6 +3,7 @@ package org.combinators.cls.ide
 
 
 import org.combinators.cls.ide.inhabitation.{BclDebugger, BoundedCombinatoryLogicDebugger, DebugMsgChannel, FiniteCombinatoryLogicDebugger}
+import org.combinators.cls.ide.parser.{NewPathParser, NewRequestParser}
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._

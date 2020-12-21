@@ -2,6 +2,7 @@ package org.combinators.cls.ide
 
 
 import org.combinators.cls.ide.filter.{Star, Term}
+import org.combinators.cls.ide.parser.{NewFilterParser, NewRequestParser}
 import org.combinators.cls.types._
 import org.combinators.cls.types.syntax._
 import org.scalatest.FunSpec
