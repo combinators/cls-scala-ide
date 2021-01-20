@@ -27,7 +27,6 @@ class FilterApply {
 
   def forbidApply(grammar: Set[Rule], pattern:ApplicativePattern): Set[Rule] ={
     var pPartGrammar: Set[Rule] = Set.empty
-    println("patt", pattern)
     val subpatternSet =  pattern match {
       case ApplyPattern(x,y) => mkSetPat(x) ++ mkSetPat(y)
       case CombinatorPattern(n) => mkSetPat(CombinatorPattern(n))
@@ -38,7 +37,34 @@ class FilterApply {
     }
     pPartGrammar
   }
-  
+  def reachableRules(grammar: Set[Rule], tgt: Type, checkedTypes: Set[Type]): (Set[Type],Set[Rule]) ={
+    var reachableGrammar: Set[Rule] = Set.empty
+    var newCheckedTypes = checkedTypes + tgt
+    grammar.foreach(r => if (r.target.equals(tgt)){r match {
+      case Combinator(tar, n) =>
+        newCheckedTypes=newCheckedTypes+tar
+          reachableGrammar = reachableGrammar + Combinator(tar, n)
+          Combinator(tar, n)
+
+      case Apply(tar, fType, aType) =>
+        if(!newCheckedTypes.contains(fType)) {
+          newCheckedTypes = newCheckedTypes + tar
+          val reachableRecFtype = reachableRules(grammar, fType, newCheckedTypes)
+          newCheckedTypes = newCheckedTypes ++ reachableRecFtype._1
+          reachableGrammar = reachableGrammar++ reachableRecFtype._2
+        }
+          if(!newCheckedTypes.contains(aType)){
+            val reachableRecAtype = reachableRules(grammar, aType, newCheckedTypes)
+            newCheckedTypes = newCheckedTypes ++ reachableRecAtype._1
+            reachableGrammar = reachableGrammar++ reachableRecAtype._2
+          }
+        reachableGrammar = reachableGrammar+Apply(tgt, fType, aType)
+        Apply(tgt, fType, aType)
+
+      case _ => ()
+    }})
+    (newCheckedTypes,reachableGrammar)
+  }
 
   def computeLeftAndRightArgsOfApply(pattern: Set[ApplicativePattern]): ((Set[ApplicativePattern], Set[ApplicativePattern])) = {
     var patternLeft: Set[ApplicativePattern] = pattern
@@ -58,13 +84,13 @@ class FilterApply {
       partGrammar
     }else{
       val hasApplyPattern = subsetOfPowerSet.exists(p=>p.isApplyPattern)
-      val (partPatternLeft, partPatternRight): (Set[ApplicativePattern],Set[ApplicativePattern])= computeLeftAndRightArgsOfApply(subsetOfPowerSet)
       grammar foreach {
         case Combinator(tgt, n) =>
           if (!subsetOfPowerSet.contains(CombinatorPattern(n))) {
             partGrammar = partGrammar + Combinator(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), n)
           }
         case Apply(tgt, fType, aType) if(hasApplyPattern) =>
+          val (partPatternLeft, partPatternRight): (Set[ApplicativePattern],Set[ApplicativePattern])= computeLeftAndRightArgsOfApply(subsetOfPowerSet)
           partGrammar = partGrammar +
             Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), partPatternLeft)),
               Constructor(newNameArg(aType.toString(), Set(pattern)))) +

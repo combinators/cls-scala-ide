@@ -15,7 +15,7 @@ class ApplicativeTreeGrammarToTreeGrammar {
       case Combinator(target, combinator) =>
         treeGrammar = updateMap(treeGrammar, target, (combinator, Seq[Type]()))
       case Apply(nt, funct, atgt) =>
-        val (str, argsList) = computeRules(applicativeTreeGrammar, funct, Seq(atgt))
+        val (str, argsList) = computeRules(applicativeTreeGrammar, funct)
         val rule = treeGrammar.find(_._1.equals(nt))
         if (argsList.contains(Constructor("*"))) {
           treeGrammar = treeGrammar + (nt -> Set(("*", Seq.empty)))
@@ -55,7 +55,7 @@ class ApplicativeTreeGrammarToTreeGrammar {
   }
 
 
-  def computeRules(appTG: Set[Rule], funcType: Type, aktArgs: Seq[Type]): (Seq[String], (Seq[Type])) = {
+  def computeRules(appTG: Set[Rule], funcType: Type): (Seq[String], (Seq[Type])) = {
     var argsList: Seq[Type] = Seq.empty
     var comb: Seq[String] = Seq.empty
     functionTypes = functionTypes + funcType
@@ -65,7 +65,7 @@ class ApplicativeTreeGrammarToTreeGrammar {
           if (fType.equals(Omega)) {
             argsList = Seq(Constructor("*"))
           } else {
-            val (str, args) = computeRules(appTG, fType, aktArgs)
+            val (str, args) = computeRules(appTG, fType)
             argsList = argsList ++ args :+ argType
             comb = comb ++ str
           }
@@ -77,5 +77,4 @@ class ApplicativeTreeGrammarToTreeGrammar {
       })
     (comb, argsList)
   }
-
 }

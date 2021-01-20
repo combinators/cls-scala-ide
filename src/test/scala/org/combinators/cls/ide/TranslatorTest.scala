@@ -1,27 +1,31 @@
 package org.combinators.cls.ide
 
-import org.apache.commons.lang3.StringUtils
-import org.combinators.cls.ide.filter.FreshNameProvider
-import org.combinators.cls.ide.inhabitation.{DebugMsgChannel, FiniteCombinatoryLogicDebugger}
-import org.combinators.cls.ide.translator.{Apply, Combinator, Failed, Rule}
-import org.combinators.cls.ide.translator.ApplicativeTreeGrammarToTreeGrammar
-import org.combinators.cls.ide.translator.TreeGrammarToApplivativeTreeGrammar
+import org.combinators.cls.ide.translator._
 import org.combinators.cls.inhabitation.TreeGrammar
-import org.combinators.cls.interpreter.InhabitationResult
-import org.combinators.cls.types.{Arrow, Constructor, Intersection, Omega, SubtypeEnvironment, Type, Variable}
+import org.combinators.cls.types._
 import org.scalatest.FunSpec
-import scala.annotation.tailrec
 
-class TraslatorTest extends FunSpec {
+class TranslatorTest extends FunSpec {
 
-  val traslatorToApplicativeTreeGrammar = new TreeGrammarToApplivativeTreeGrammar()
-  val traslatorToTreeGrammar = new ApplicativeTreeGrammarToTreeGrammar()
+  val translatorToApplicativeTreeGrammar = new TreeGrammarToApplicativeTreeGrammar()
+  val translatorToTreeGrammar = new ApplicativeTreeGrammarToTreeGrammar()
 
   val testGrammar: TreeGrammar =
     Map(
       Constructor("A") -> Set(("c", Seq(Constructor("D"), Constructor("E"))),
         ("c", Seq(Constructor("D"))), ("c", Seq(Constructor("D"), Constructor("F"))),
         ("f", Seq(Constructor("D"), Constructor("E")))),
+      Constructor("B") -> Set(("c", Seq(Constructor("D"), Constructor("E")))),
+      Constructor("D") -> Set(("d", Seq(Constructor("B"))), ("d", Seq()), ("x", Seq(Constructor("A")))),
+      Constructor("E") -> Set(("e", Seq())),
+      Constructor("F") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()))
+    )
+  val testGrammarStar: TreeGrammar =
+    Map(
+      Constructor("A") -> Set(("c", Seq(Constructor("D"), Constructor("E"))),
+        ("c", Seq(Constructor("D"))), ("c", Seq(Constructor("D"), Constructor("F"))),
+        ("f", Seq(Constructor("D"), Constructor("E"))),
+        ("*", Seq())),
       Constructor("B") -> Set(("c", Seq(Constructor("D"), Constructor("E")))),
       Constructor("D") -> Set(("d", Seq(Constructor("B"))), ("d", Seq()), ("x", Seq(Constructor("A")))),
       Constructor("E") -> Set(("e", Seq())),
@@ -47,11 +51,11 @@ class TraslatorTest extends FunSpec {
       "c5" -> Arrow(Constructor("sigma0"), Constructor("sigma3"))
     )
 
-  val A = Constructor("A")
-  val B = Constructor("B")
-  val C = Constructor("C")
-  val D = Constructor("D")
-  val E = Constructor("E")
+  val A: Constructor = Constructor("A")
+  val B: Constructor = Constructor("B")
+  val C: Constructor = Constructor("C")
+  val D: Constructor = Constructor("D")
+  val E: Constructor = Constructor("E")
 
   val edgeCaseTree: Set[Rule] =
     Set[Rule](
@@ -207,12 +211,14 @@ class TraslatorTest extends FunSpec {
   // val isTreeApp = translateATGtoTG(applicativeTreeGrammarTest)
   // val isTreeApp2 = translateATGtoTG(edgeCaseTree)
   //val isATree = isApplicativeTG(testGrammar3)
-  lazy val isAppTree = traslatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar)
-  lazy val isAppTree3 = traslatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar3)
+  lazy val isAppTree: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar)
+  lazy val isAppTreeStar: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammarStar)
+ lazy val isAppTree3: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar3)
   //val isTG = translateATGtoTG(applicativeTreeGrammar)
 
-  lazy val isTree = traslatorToTreeGrammar.translateATGtoTG(isAppTree)
-  lazy val isTree3 = traslatorToTreeGrammar.translateATGtoTG(isAppTree3)
+  lazy val isTree: TreeGrammar = translatorToTreeGrammar.translateATGtoTG(isAppTree)
+  lazy val isTreeStar: TreeGrammar = translatorToTreeGrammar.translateATGtoTG(isAppTreeStar)
+  lazy val isTree3: TreeGrammar = translatorToTreeGrammar.translateATGtoTG(isAppTree3)
 
 
   describe("testGrammar3 to applicative tree grammar to testGrammar3") {
@@ -254,6 +260,25 @@ class TraslatorTest extends FunSpec {
       treeGrammarRule.toSet.subsetOf(isTree.toSet)
     }
   }
+  describe("testGrammar with Star to applicative tree grammar to testGrammar") {
+    val combinatorRules: Set[Rule] = Set(Combinator(Constructor("A"), "d"), Combinator(Constructor("A"), "e"))
+    val applyRule: Set[Rule] = Set(Apply(Constructor("A"), Constructor("A"), Constructor("A")))
+
+    it("should not be empty") {
+      assert(isAppTreeStar.nonEmpty)
+    }
+    it(
+      "should include {  A |-> Set((c,List(D)), (f,List(D, E)), (c,List(D, F)), (c,List(D, E))) }"
+    ) {
+      combinatorRules.subsetOf(isAppTreeStar)
+    }
+    it(
+      "should include {  A |-> @(A, A) }"
+    ) {
+      applyRule.subsetOf(isAppTreeStar)
+    }
+  }
+
   describe("testGrammar to applicative tree grammar") {
     val setRules: Set[Rule] = Set(
       Combinator(Arrow(Constructor("B"), Constructor("D")), "d"),
@@ -268,39 +293,17 @@ class TraslatorTest extends FunSpec {
     it("should not be empty2") {
       assert(isAppTree.nonEmpty)
     }
-    /*it(
-      "should include {  A |-> Set((c,List(D)), (f,List(D, E)), (c,List(D, F)), (c,List(D, E))) }"
-    ) {}*/
   }
-  describe("applicative tree grammar with omega to tree Grammar") {
-    lazy val isTree3a = traslatorToTreeGrammar.translateATGtoTG(edgeCaseTree)
+  describe("applicative tree grammar with omega to tree grammar") {
+    lazy val isTree3a = translatorToTreeGrammar.translateATGtoTG(edgeCaseTree)
 
     it("should not be empty3") {
       assert(isAppTree.nonEmpty)
     }
-    it("should be equal to testGrammar3a") {
-     // assert(isTree3.equals(testGrammar))
-    }
-    /*it(
-      "should include {  A |-> Set((c,List(D)), (f,List(D, E)), (c,List(D, F)), (c,List(D, E))) }"
-    ) {}*/
   }
 
-  lazy val tree = GammaAssociation.inhabit(Constructor("sigma3"))
-  //val t1 = System.nanoTime()
-  // val postprocessed = forbid(testGrammar, testPattern1)
-  //val duration = (System.nanoTime() - t1)
 
-  println("--------a", prettyPrintRuleSet(edgeCaseTree))
-
-  //println("---------", isATree)
-  // println("tttt", isTG)
-
-  println("tree", testGrammar)
-  println("--------a", prettyPrintRuleSet(isAppTree))
-  //println("---------", isTree)
-  lazy val testChannel = new DebugMsgChannel()
-
-  lazy val GammaAssociation = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), repository)
+  //println("--------a", prettyPrintRuleSet(edgeCaseTree))
+  //println("--------a", prettyPrintRuleSet(isAppTree))
 
 }
