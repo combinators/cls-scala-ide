@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package org.combinators.cls.ide
+package org.combinators.cls.ide.parser
 
 import org.combinators.cls.ide.filter.{Muster, Star, Term}
 
-import scala.collection.mutable
 import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 

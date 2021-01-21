@@ -14,8 +14,8 @@ class ApplicativeTreeGrammarToTreeGrammar {
     applicativeTreeGrammar.foreach {
       case Combinator(target, combinator) =>
         treeGrammar = updateMap(treeGrammar, target, (combinator, Seq[Type]()))
-      case Apply(nt, funct, atgt) =>
-        val (str, argsList) = computeRules(applicativeTreeGrammar, funct)
+      case Apply(nt, funcType, atgType) =>
+        val (str, argsList) = computeRules(applicativeTreeGrammar, funcType)
         val rule = treeGrammar.find(_._1.equals(nt))
         if (argsList.contains(Constructor("*"))) {
           treeGrammar = treeGrammar + (nt -> Set(("*", Seq.empty)))
@@ -23,26 +23,25 @@ class ApplicativeTreeGrammarToTreeGrammar {
           rule match {
             case Some(_) =>
               if (str.size == 1) {
-                treeGrammar = updateMap(treeGrammar, nt, ((str.head, argsList :+ atgt)))
+                treeGrammar = updateMap(treeGrammar, nt, (str.head, argsList :+ atgType))
               } else {
-                str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, ((e, argsList :+ atgt))))
+                str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, (e, argsList :+ atgType)))
               }
             case None =>
               if (argsList.nonEmpty) {
-                val newEntry = (nt -> Set((str.head, argsList :+ atgt)))
+                val newEntry = nt -> Set((str.head, argsList :+ atgType))
                 treeGrammar = treeGrammar + newEntry
               } else {
                 if (str.size == 1) {
-                  treeGrammar = treeGrammar + (nt -> Set((str.head, argsList :+ atgt)))
+                  treeGrammar = treeGrammar + (nt -> Set((str.head, argsList :+ atgType)))
                 } else {
-                  str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, ((e, argsList :+ atgt))))
+                  str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, (e, argsList :+ atgType)))
                 }
               }
           }
         }
       case Failed(_) => treeGrammar
     }
-    treeGrammar = removeFreshNT(treeGrammar)
     treeGrammar
   }
 
@@ -50,18 +49,18 @@ class ApplicativeTreeGrammarToTreeGrammar {
     grammar.filterNot(e => functionTypes.contains(e._1))
   }
 
-  def updateMap(map: TreeGrammar, key: Type, value: (String, Seq[Type])) = {
+  def updateMap(map: TreeGrammar, key: Type, value: (String, Seq[Type])): Map[Type, Set[(String, Seq[Type])]] = {
     map + ((key, map.getOrElse(key, Set()) + value))
   }
 
 
-  def computeRules(appTG: Set[Rule], funcType: Type): (Seq[String], (Seq[Type])) = {
+  def computeRules(appTG: Set[Rule], funcType: Type): (Seq[String], Seq[Type]) = {
     var argsList: Seq[Type] = Seq.empty
     var comb: Seq[String] = Seq.empty
     functionTypes = functionTypes + funcType
     appTG.foreach(rule =>
       if (rule.target.equals(funcType)) rule match {
-        case Apply(nt, fType, argType) =>
+        case Apply(_, fType, argType) =>
           if (fType.equals(Omega)) {
             argsList = Seq(Constructor("*"))
           } else {

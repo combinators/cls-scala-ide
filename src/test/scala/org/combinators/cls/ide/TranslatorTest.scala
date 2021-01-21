@@ -1,7 +1,7 @@
 package org.combinators.cls.ide
 
 import org.combinators.cls.ide.translator._
-import org.combinators.cls.inhabitation.TreeGrammar
+import org.combinators.cls.inhabitation.{TreeGrammar, prettyPrintTreeGrammar}
 import org.combinators.cls.types._
 import org.scalatest.FunSpec
 
@@ -213,7 +213,7 @@ class TranslatorTest extends FunSpec {
   //val isATree = isApplicativeTG(testGrammar3)
   lazy val isAppTree: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar)
   lazy val isAppTreeStar: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammarStar)
- lazy val isAppTree3: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar3)
+  lazy val isAppTree3: Set[Rule] = translatorToApplicativeTreeGrammar.translateTGtoATG(testGrammar3)
   //val isTG = translateATGtoTG(applicativeTreeGrammar)
 
   lazy val isTree: TreeGrammar = translatorToTreeGrammar.translateATGtoTG(isAppTree)
@@ -222,6 +222,7 @@ class TranslatorTest extends FunSpec {
 
 
   describe("testGrammar3 to applicative tree grammar to testGrammar3") {
+    val isReducedTree = translatorToTreeGrammar.removeFreshNT(isTree3)
     val treeGrammarRule3: Map[Type, Set[(String, Seq[Type])]] = Map(
       Constructor("A") -> Set(
         ("c", Seq(Constructor("D"), Constructor("E"), Constructor("K"), Constructor("F"), Constructor("L"), Constructor("M"), Constructor("N"))),
@@ -230,34 +231,35 @@ class TranslatorTest extends FunSpec {
         ("f", Seq(Constructor("D"), Constructor("E"))))
     )
     it("should not be empty1") {
-      assert(isTree3.nonEmpty)
+      assert(isReducedTree.nonEmpty)
     }
     it("should be equal to testGrammar3") {
-      assert(isTree3.equals(testGrammar3))
+      assert(isReducedTree.equals(testGrammar3))
     }
     it(
       "should include {  A |-> Set((c,List(D)), (f,List(D, E)), (c,List(D, F)), (c,List(D, E, K, F, L, M, N))) }"
     ) {
-      treeGrammarRule3.toSet.subsetOf(isTree3.toSet)
+      treeGrammarRule3.toSet.subsetOf(isReducedTree.toSet)
     }
   }
   describe("testGrammar to applicative tree grammar to testGrammar") {
 
+    val isReducedTree = translatorToTreeGrammar.removeFreshNT(isTree)
     val treeGrammarRule: Map[Type, Set[(String, Seq[Type])]] = Map(
       Constructor("A") -> Set(("c", Seq(Constructor("D"), Constructor("E"))),
         ("c", Seq(Constructor("D"))), ("c", Seq(Constructor("D"), Constructor("F"))),
         ("f", Seq(Constructor("D"), Constructor("E")))),
     )
     it("should not be empty") {
-      assert(isTree.nonEmpty)
+      assert(isReducedTree.nonEmpty)
     }
     it("should be equal to testTreeGrammar") {
-      assert(isTree.equals(testGrammar))
+      assert(isReducedTree.equals(testGrammar))
     }
     it(
       "should include {  A |-> Set((c,List(D)), (f,List(D, E)), (c,List(D, F)), (c,List(D, E))) }"
     ) {
-      treeGrammarRule.toSet.subsetOf(isTree.toSet)
+      treeGrammarRule.toSet.subsetOf(isReducedTree.toSet)
     }
   }
   describe("testGrammar with Star to applicative tree grammar to testGrammar") {
@@ -296,9 +298,31 @@ class TranslatorTest extends FunSpec {
   }
   describe("applicative tree grammar with omega to tree grammar") {
     lazy val isTree3a = translatorToTreeGrammar.translateATGtoTG(edgeCaseTree)
-
+    val omegaRule:TreeGrammar = Map(Constructor("omega")-> Set(("*", Seq())) )
     it("should not be empty3") {
       assert(isAppTree.nonEmpty)
+    }
+    it("should include { omega -> *() }"
+    ) {
+      omegaRule.toSet.subsetOf(isTree3a.toSet)
+    }
+    describe("equality of applicative tree grammar with omega to tree grammar to applicative tree grammar") {
+      lazy val isTree3a = translatorToTreeGrammar.translateATGtoTG(edgeCaseTree)
+      lazy val isApplicativeTree = translatorToApplicativeTreeGrammar.translateTGtoATG(isTree3a)
+      val omegaRule:TreeGrammar = Map(Constructor("omega")-> Set(("*", Seq())) )
+      println("ppp", prettyPrintTreeGrammar(isTree3a))
+      it("should not be empty3") {
+        assert(isAppTree.nonEmpty)
+      }
+      it("should include { omega -> *() }"
+      ) {
+        omegaRule.toSet.subsetOf(isTree3a.toSet)
+      }
+      it("should be equal to T_ta(T_at(edgeCaseTree)) = edgeCaseTree}"
+      ) {
+        println("pp", prettyPrintRuleSet(isApplicativeTree))
+        assert(isApplicativeTree.equals(edgeCaseTree))
+      }
     }
   }
 
