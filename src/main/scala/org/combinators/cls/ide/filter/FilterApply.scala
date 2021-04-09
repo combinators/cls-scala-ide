@@ -3,6 +3,7 @@ package org.combinators.cls.ide.filter
 import org.combinators.cls.ide.translator.{Apply, Combinator, Failed, Rule}
 import org.combinators.cls.inhabitation.TreeGrammar
 import org.combinators.cls.types.{Constructor, Type}
+import scala.collection.parallel.ParSet
 
 /**
   * This class filters by pattern using power set
@@ -185,6 +186,78 @@ class FilterApply {
       }
     (additionalGrammar + (Constructor(newLhs) -> newRhss), matched)
   }
+  def prune(rules: Set[Rule]): Set[Rule] = {
+    val parRules = rules.par
+    lazy val groundTypes = groundTypesOf(parRules)
+    def keepGround: PartialFunction[Rule, Rule] = {
+      case Apply(tgt, _, _) if !groundTypes.contains(tgt) => Failed(tgt)
+      case app @ Apply(_, arr, tgt)
+        if groundTypes.contains(arr) && groundTypes.contains(tgt) =>
+        app
+      case c @ Combinator(_, _) => c
+      case f @ Failed(_)        => f
+    }
+    parRules.collect(keepGround).seq.toSet
+  }
+  final def groundTypesOf(rules: ParSet[Rule]): ParSet[Type] = {
+    def groundStep(previousGroundTypes: ParSet[Type]): ParSet[Type] = {
+      rules.par.aggregate(previousGroundTypes)(
+        {
+          case (s, Apply(sigma, arr, tgt))
+            if s.contains(arr) && s.contains(tgt) =>
+            s + sigma
+          case (s, _) => s
+        },
+        { case (s1, s2) => s1.union(s2) }
+      )
+    }
+    var lastGround: ParSet[Type] = ParSet.empty[Type]
+    var nextGround: ParSet[Type] = rules.collect {
+      case Combinator(target, _) => target
+    }
+    while (lastGround.size < nextGround.size) {
+      lastGround = nextGround
+      nextGround = groundStep(lastGround)
+    }
+    nextGround
+  }
+  def isInfinite(rules: Set[Rule], target: Type): (Boolean, Set[Rule]) = {
+    val grRule = groupedRules(rules)
+    println("gggg", grRule)
+    def visit(seen: Set[Type], start: Type, vRules:Set[Rule] ): (Boolean, Set[Rule] )  = {
+      if (seen.contains(start)) {
+        val newvRules = vRules++rules.filterNot(_.target==start)
+        println("true", newvRules)
+        (true, newvRules)
+      }
+      else {
+        var newvRules = vRules
+        (grRule(start).exists {
+          case Apply(_, lhs, rhs) =>
+            //println("1111", start)
+            //println("vvvv", seen)
+            val v1 = visit(seen + start, lhs, vRules)
+            //println("v111", v1)
+            newvRules = newvRules ++v1._2
+            val v2 =  visit(seen + start, rhs, newvRules)
+            newvRules = newvRules ++v2._2
+            //println("v222", v2)
+            v1._1 || v2._1
+          case _ => false
+        }, newvRules)
+      }
+    }
+    val (isVisited, visitedRules) = visit(Set.empty, target, Set.empty)
+    (!isEmpty(rules, target) && isVisited, visitedRules)
+  }
+
+  def isEmpty(rules:Set[Rule], target: Type): Boolean =
+    rules.exists(_ == Failed(target)) || rules.forall(_.target != target)
+
+  def groupedRules(rules:Set[Rule]): Map[Type, Set[Rule]] = {
+      rules.groupBy(_.target)
+    }
+
 }
 
 

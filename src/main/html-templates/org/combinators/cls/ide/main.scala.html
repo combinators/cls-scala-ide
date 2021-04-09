@@ -19,6 +19,7 @@
 @import shapeless.feat.Enumeration
 @import controllers.Assets
 @import play.api.mvc.Call
+@import helper._
 
 @(webJarsUtil: org.webjars.play.WebJarsUtil,
 asset: Assets,
@@ -65,7 +66,7 @@ projectName: String)
 <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header">
-            <a class="navbar-brand" href="#" id="projectName">Projectname: @projectName</a>
+            <a class="navbar-brand" href="#" id="projectName">Project name: @projectName</a>
         </div>
             <!-- <div id="navbar" class="collapse navbar-collapse ">
             <ul class="nav navbar-nav navbar-right">
@@ -168,8 +169,16 @@ projectName: String)
             </div>
             <h3>
                 <span id="position"></span></h3>
+            <ul class="nav nav-tabs">
+                <li class="active"><a data-toggle="tab" href="#cy-graph">Tree Grammar</a></li>
+                <li><a data-toggle="tab" href="#cy-app-graph">Applicative Tree Grammar</a></li>
+            </ul>
             <h3>
-                <div id="cy-graph">
+                <div class="tab-content">
+                    <div id ="cy-graph" class = "tab-pane fade in active" >
+                    </div>
+                    <div id ="cy-app-graph" class = "tab-pane fade">
+                    </div>
                 </div>
             </h3>
         </div>
@@ -288,20 +297,20 @@ projectName: String)
     </div>
         <div id="filter" class="tab-pane fade">
             <h3>Filter:</h3>
-            <pre class="well">
+            <div class="form-group well">
                 <textarea class="form-control" id="filterEntry" type="text" placeholder="CombinatorName1(CombinatorName2(*))"></textarea>
                 <button class="btn btn-primary btn-toggle" id="submitFilter">Filter</button>
-            </pre>
+                <div id = "newFilterRequest"></div>
+            </div>
             <div id="cy-filter-graph">
             </div>
         </div>
-        <div id="paths" class="tab-pane fade">
+        <div id="paths" class="tab-pane fade collapse">
             <div class="panel-group">
                 <div class="well">
                     <a><h4>Combinator:</h4></a>
                     <div class="panel-body well"><div id="combinatorName"></div>
                     </div>
-
                     <div class="well second">
                     <a><h4>Number of Arguments:</h4></a>
                     <div class="panel-body well"><div id="numberOfArgs"></div></div>
@@ -315,7 +324,7 @@ projectName: String)
 
                 <a><h4>to Cover:</h4></a>
                 <ul class="panel-body well" id="targetsToCover"></ul>
-
+                        <button class="btn btn-primary btn-toggle" id="resetCover">Reset</button>
             </div>
         </div>
     </div>

@@ -75,7 +75,10 @@ object Examples {
       start = (0, 0),
       (goalX, goalY))
 
+  //productive cycle
   lazy val lab3_1: Repository = lab3(0, 1)
+  // no inhabitant, no combinator
   lazy val lab3_2: Repository = lab3(4, 1)
+  // unproductive cycle
   lazy val lab3_3: Repository = lab3(2, 0)
 }

@@ -17,27 +17,29 @@
 package org.combinators.cls.ide
 
 
-import akka.http.scaladsl.model
+import akka.http.impl.util.JavaAccessors.HttpEntity
+import akka.stream.javadsl.FileIO
+import akka.util.ByteString
+import controllers.Assets
+import org.combinators.cls.ide.filter.{FilterApply, Star, StarPattern}
 import org.combinators.cls.ide.inhabitation._
+import org.combinators.cls.ide.parser.{NewFilterParser, NewPathParser, NewRequestParser}
+import org.combinators.cls.ide.translator.{ApplicativeTreeGrammarToTreeGrammar, Apply, Combinator, Rule, TreeGrammarToApplicativeTreeGrammar}
 import org.combinators.cls.inhabitation._
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.SubtypeEnvironment
-import org.combinators.cls.types._
+import play.api.libs.concurrent.Execution.Implicits._
+
+import java.io.File
+import java.nio.file.Paths
+import scala.io.Source
+//import org.combinators.cls.smt.{GrammarToModel, ParallelInterpreterContext}
+import org.combinators.cls.types.{SubtypeEnvironment, _}
 import org.webjars.play.WebJarsUtil
 import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc._
-import controllers.Assets
-import org.apache.commons.io.FileUtils
-import org.combinators.cls.ide.filter.{FilterList, Muster, Star, Term}
-import org.combinators.cls.smt.{GrammarToModel, ModelToTerm, ModelToTree, ParallelInterpreterContext}
+import play.filters.csrf._
 //import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
-import smtlib.Interpreter
-import smtlib.trees.Commands.{CheckSat, GetModel, GetUnsatCore}
-
-import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.Future
-import scala.util.Try
 
 
 class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController { // scalastyle:off
@@ -60,15 +62,15 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var repo: Map[String, Type] = Map()
   var combinatorName = ""
   var selectedCombinator: String = ""
-  var model: Option[GrammarToModel] = None
-  val filter = new FilterList()
-
+  //var model: Option[GrammarToModel] = None
+  val filter = new FilterApply()
+  val translatorToApplyRules = new TreeGrammarToApplicativeTreeGrammar()
+  val translatorToTreeGrammar = new ApplicativeTreeGrammarToTreeGrammar()
 
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
   }
-
   def computeResults(repository: Option[Map[String, Type]] = None, targets: Seq[Type]): TreeGrammar = {
     combinatorComponents = refRepo.get.combinatorComponents
     repo = repository match {
@@ -86,9 +88,9 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       repo).apply(targets)
     showDebuggerMessage().foreach {
       case BclDebugger(b, _, _, re, _) =>
-      bcl = Some(b)
-      combinators = re
-    case _ =>
+        bcl = Some(b)
+        combinators = re
+      case _ =>
     }
     newGraph
   }
@@ -109,6 +111,8 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   case object InvisibleTypeNode extends Style
 
   case object ArgumentNode extends Style
+
+  case object ApplyNode extends Style
 
   case object TargetNode extends Style
 
@@ -138,18 +142,20 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     case SubTypeNode => Json.toJson[String]("subType-node")
     case CombinatorNode => Json.toJson[String]("combinator-node")
     case UnusableCombinatorNode => Json.toJson[String]("unusable-combinator-node")
-   // case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
-   // case InvisibleTypeNode => Json.toJson[String]("invisible-uninhabited-type-node")
+    // case InvisibleCombinatorNode => Json.toJson[String]("invisible-unusable-combinator-node")
+    // case InvisibleTypeNode => Json.toJson[String]("invisible-uninhabited-type-node")
     case ArgumentNode => Json.toJson[String]("argument-node")
     case TargetNode => Json.toJson[String]("target-node")
+    case ApplyNode => Json.toJson[String]("apply-node")
     case UninhabitedTypeNode => Json.toJson[String]("uninhabited-type-node")
   }
 
   /**
     * Generates a hypergraph
-    * @param treeGrammar computes tree grammar
-    * @param tgts target types
-    * @param uninhabitedTypes types that can not be inhabited
+    *
+    * @param treeGrammar         computes tree grammar
+    * @param tgts                target types
+    * @param uninhabitedTypes    types that can not be inhabited
     * @param cannotUseCombinator combinators that can not be used because of their types
     * @return graph
     */
@@ -161,20 +167,63 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         .map { case (ty, _) => ty -> Node(ty.toString, TypeNode)
         }
     val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
-    val (combinatorNodes, edgeTo, (argsTy, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
+    val (combinatorNodes, edgeTo, (_, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
       treeGrammar
         .flatMap { case (ty, r) =>
           r.map { case (c, args) =>
             val combinatorNode = Node(c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
             val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
+            val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
+              val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
+
+              val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
+              (node, edgeFrom)
+            }
+            (combinatorNode, edgeTo, argsTyNode)
+          }
+        }.toSeq.unzip3 match {
+        case (x, xt, xs) => (x, xt, xs.flatten.unzip)
+      }
+    allNodes.map(e => if (e._2.style == UninhabitedTypeNode) warnings = warnings + e._1)
+    Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
+  }
+
+def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
+    val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, UninhabitedTypeNode) }.toMap
+    val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, TargetNode) }.toMap
+
+    val typeNodes: Map[Type, Node] =
+      treeGrammar.map(rule => rule match
+      { case Combinator(ty, _) => ty -> Node(ty.toString, TypeNode)
+        case Apply(ty, _, _) => ty -> Node(ty.toString, TypeNode)
+      }).toMap
+    val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
+    val (combinatorNodes, edgeTo, (argsTy, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
+      treeGrammar
+        .map { case Combinator(ty, r) =>
+          // r.map { case (c, args) =>
+          val combinatorNode = Node(r, //if (cannotUseCombinator.contains((r, _))) UnusableCombinatorNode else
+            CombinatorNode)
+          val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
+          // Todo: remove args !!!
+          val args: Seq[Type] = Seq.empty
           val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
             val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
 
             val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
             (node, edgeFrom)
           }
-            (combinatorNode, edgeTo, argsTyNode)
-          }
+          (combinatorNode, edgeTo, argsTyNode)
+        case Apply(ty, fType, argType) =>
+          val combinatorNode = Node(s"@", ApplyNode)
+          val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null)
+          val nodeFType = Node(fType.toString(), TypeNode, Some(combinatorNode.id))
+          val edgeFrom = Edge(combinatorNode.id, allNodes(fType).id, "0")
+          val nodeArgType = Node(argType.toString(), TypeNode, Some(combinatorNode.id))
+          val edgeFromArgs = Edge(combinatorNode.id, allNodes(argType).id, "1")
+          val argsTyNode: Seq[(Node, Edge)] = Seq.empty//, Seq(nodeArgType, edgeFromArgs)))
+        val argsTyNode1 = argsTyNode :+ ((nodeFType, edgeFrom)) :+ ((nodeArgType, edgeFromArgs))
+          (combinatorNode, edgeTo, argsTyNode1)
         }.toSeq.unzip3 match {
         case (x, xt, xs) => (x, xt, xs.flatten.unzip)
       }
@@ -182,30 +231,32 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
+
   def toTaxonomyGraph(taxonomy: Map[String, Set[String]]): Graph = {
     val (superTy, (subType, edges)): (Seq[Node], (Seq[Node], Seq[Edge])) =
       taxonomy
         .map { case (superTy, subTy) =>
-          val typeNodeSuper =  Node(superTy, TypeNode)
+          val typeNodeSuper = Node(superTy, TypeNode)
           val typeNodeSubTys = subTy.map { sub =>
-            val subNode= Node(sub, SubTypeNode)
+            val subNode = Node(sub, SubTypeNode)
             val edgeFrom = Edge(subNode.id, typeNodeSuper.id, null)
             (subNode, edgeFrom)
           }
           (typeNodeSuper, typeNodeSubTys)
-      }.toSeq.unzip match {
+        }.toSeq.unzip match {
         case (x, xs) => (x, xs.flatten.unzip)
       }
-    Graph((subType ++ superTy).map(FullNode).toSeq, (edges).map(FullEdge))
+    Graph((subType ++ superTy).map(FullNode), edges.map(FullEdge))
   }
 
   /**
     * Returns the domain specified repository
+    *
     * @return repository with variables
     */
   def showRepo: Action[AnyContent] = Action {
     if (combinators.nonEmpty) {
-      Ok("\u2023 " + combinators.mkString("\n"+"\u2023 "))
+      Ok("\u2023 " + combinators.mkString("\n" + "\u2023 "))
     }
     else {
       Ok("Empty Repository")
@@ -217,7 +268,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     */
   def showRepoWithoutVars: Action[AnyContent] = Action {
     if (bcl.get.repository.nonEmpty) {
-      Ok("\u2023 " + bcl.get.repository.mkString("\n"+"\u2023 "))
+      Ok("\u2023 " + bcl.get.repository.mkString("\n" + "\u2023 "))
     }
     else {
       Ok("Empty Repository")
@@ -242,7 +293,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     *
     * @param label the chosen combinator
     */
-  def showPosition(label: String) = Action {
+  def showPosition(label: String): Action[AnyContent] = Action {
     var newEntry = ""
     val combinatorToString = DebuggerController.toCombinatorsWithDeclarationInfo(combinatorComponents)
 
@@ -257,7 +308,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   /**
     * Returns the uninhabited types
     */
-  def showUninhabitedTy() = Action {
+  def showUninhabitedTy(): Action[AnyContent] = Action {
     val messages = showDebuggerMessage().map {
       case CannotInhabitType(ty) => ty
       case _ =>
@@ -268,7 +319,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     if (messages.isEmpty) {
       Ok("No messages.")
     } else {
-      val htmlMessage = s"""<lu>${(messages.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+      val htmlMessage = s"""<lu>${messages.map(e => s"""<li>$e</li>""").mkString}</lu>"""
       Ok(htmlMessage)
     }
   }
@@ -276,7 +327,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   /**
     * Returns messages for unusable combinators
     */
-  def showUnusableCMsg() = Action {
+  def showUnusableCMsg(): Action[AnyContent] = Action {
     val message = showDebuggerMessage().map {
       case CannotUseCombinator(combinatorName, _, _) => combinatorName
       case _ =>
@@ -287,7 +338,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     if (message.isEmpty) {
       Ok("No messages.")
     } else {
-      val htmlMessage = s"""<lu>${(message.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+      val htmlMessage = s"""<lu>${message.map(e => s"""<li>$e</li>""").mkString}</lu>"""
       Ok(htmlMessage)
     }
   }
@@ -301,13 +352,14 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * For example, when the number of semantic types is not equal to the one of native types.
     */
   def showWarnings: Action[AnyContent] = Action {
-    if (warnings.isEmpty){
+    if (warnings.isEmpty) {
       Ok("No warnings!")
     } else {
-      val htmlMessage = s"""<lu>${(warnings.map(e => s"""<li>$e</li>""")).mkString}</lu>"""
+      val htmlMessage = s"""<lu>${warnings.map(e => s"""<li>$e</li>""").mkString}</lu>"""
       Ok(htmlMessage)
     }
   }
+
   /**
     * @return all types that cannot be inhabiteted
     */
@@ -315,10 +367,10 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     if (debugMsgChannel.debugOutput.nonEmpty) {
       val newSet = debugMsgChannel.debugOutput.collect {
         case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
-     /*   case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
-          s"""Combinator <b>$combinatorName</b> cannot be used with target \n
-             <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
-             """.stripMargin*/
+        /*   case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
+             s"""Combinator <b>$combinatorName</b> cannot be used with target \n
+                <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
+                """.stripMargin*/
       }
       Ok(newSet.mkString("\n"))
     }
@@ -326,14 +378,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       Ok("No messages")
     }
   }
+
   /**
     * @return all unused combinators is there are any
     */
   def showUnusedCombinators: Action[AnyContent] = Action {
     if (debugMsgChannel.debugOutput.nonEmpty) {
       val newSet = debugMsgChannel.debugOutput.collect {
-     //   case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
+        //   case CannotInhabitType(ty) => s"""Type <b>$ty</b> cannot be inhabited! \n"""
         case CannotUseCombinator(combinatorName, tgt, uninhabitedAgrs) =>
+          //Todo handle "head"
           s"""Combinator <b>$combinatorName</b> cannot be used with target \n
              <b>$tgt</b> because of type <b>${uninhabitedAgrs.head}</b>!
              """.stripMargin
@@ -347,16 +401,17 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Computes the number of the arguments of a selected combinator
-    * @param selectedComb
+    *
+    * @param selectedComb the user select a combinator
     * @return paths for the selected combinator
     */
-  def computeNumberOfArgs(selectedComb: String) = Action {
+  def computeNumberOfArgs(selectedComb: String): Action[AnyContent] = Action {
     selectedCombinator = selectedComb
-    var splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
+    val splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var radioNumbers: Set[Int] = Set()
     splittedRepo.foreach {
       case (combName, paths) => if (combName == selectedComb) paths.flatten.foreach {
-        case (args, ty) => radioNumbers += args.length
+        case (args, _) => radioNumbers += args.length
       }
     }
     val radioButtons = s"""${radioNumbers.map(e => s"""<input class = "form-radio" type="radio" name="optradio" value ="$e"> $e </label>""").mkString("\n")}"""
@@ -369,10 +424,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Show the combinator types
+    *
     * @param numbOfArgs The selected number of the arguments
     * @return paths
     */
-  def showPaths(numbOfArgs: Int) = Action {
+  def showPaths(numbOfArgs: Int): Action[AnyContent] = Action {
+    //println("hallo", numbOfArgs)
     val splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
@@ -383,20 +440,28 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         }
       }
     }
-    val htmlArgs = s"""${newPaths.map(e =>
-      if (toCover(e).isEmpty) {
-        s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e" disabled> $e"""}
-      else{
-        s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e"> $e"""}
-    ).mkString("\n")}"""
-    Ok (htmlArgs)
+    val htmlArgs =
+      s"""${
+        newPaths.map(e =>
+          if (toCover(e).isEmpty) {
+            s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e" disabled> $e"""
+          }
+          else {
+            s"""<input class="form-check-input" type= "checkbox" name="checkToCover" value="$e"> $e"""
+          }
+        ).mkString("\n")
+      }"""
+    //println("xxx", htmlArgs)
+    Ok(htmlArgs)
   }
 
   /**
     * Computes the paths for target type tau
+    *
     * @return paths
     */
-  def showOrganizedTy() = Action {
+  def showOrganizedTy(): Action[AnyContent] = Action {
+    //Todo handle "head"
     val orgTy = Organized(newTargets.head).paths
     Ok(orgTy.mkString("\n"))
   }
@@ -404,39 +469,47 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Computes all paths for the selected combinator
+    *
     * @param selected selected combinator
     * @return all paths
     */
 
-  def showToCover(selected: String) = Action {
+  def showToCover(selected: String): Action[AnyContent] = Action {
     var newRequest = selected.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     val newSelection: Option[(Seq[Type], Type)] = NewPathParser.compute(newRequest)
     val toCoverIs: Seq[Type with Path] = toCover(newSelection.get)
-    val str = s"""${toCoverIs.map(e =>
-      s"""<li name="$selected"> $e </li>""").mkString("\n")}"""
+    val str =
+      s"""${
+        toCoverIs.map(e =>
+          s"""<li name="$selected"> $e </li>""").mkString("\n")
+      }"""
     Ok(str)
   }
 
   /**
     * Computes the missing paths to cover
+    *
     * @param sel selected path
     * @return to cover path
     */
   def toCover(sel: (Seq[Type], Type)): Seq[Type with Path] = {
     val subt = bcl.get.algorithm.subtypes
     import subt._
-   // val prob = Organized((if(newTargets.isEmpty)tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
-    val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    //Todo handle "head"
+    val prob = Organized((if (newTargets.isEmpty) tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    //println("ssss", subt)
+    //  val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     prob
   }
 
   /**
     * Computes the graph for the step-wise visualisation
+    *
     * @param step step to create a graph
     * @return Graph with the targets for the current step
     */
-  def showSteps(step: Int) = Action {
+  def showSteps(step: Int): Action[AnyContent] = Action {
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
@@ -447,12 +520,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
       bcl.get.algorithm.prune(grammar, tgts.toSet.filter(tgt => !grammar.keys.toSeq.contains(tgt)))
       unusableCombinator =
         computeUnusableCombinator(grammar)
-      tgts.isEmpty match {
-        case true => Ok("No more steps!")
-        case false =>
-          uninhabitedTypes = unusableCombinator.flatMap(_._2)
-          graphObj = Json.toJson[Graph](toGraph(grammar, tgts.toSet, uninhabitedTypes, unusableCombinator))
-          Ok(graphObj.toString())
+      if (tgts.isEmpty) {
+        Ok("No more steps!")
+      } else {
+        uninhabitedTypes = unusableCombinator.flatMap(_._2)
+        graphObj = Json.toJson[Graph](toGraph(grammar, tgts.toSet, uninhabitedTypes, unusableCombinator))
+        Ok(graphObj.toString())
       }
     }
     catch {
@@ -461,15 +534,16 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   private def getInhabitStep = {
-    bcl.get.algorithm.inhabitRec((if(newTargets.isEmpty) tgts else newTargets): _*)
+    bcl.get.algorithm.inhabitRec((if (newTargets.isEmpty) tgts else newTargets): _*)
   }
 
   /**
     * Toggles all unproductive cycles and provides a clean view
+    *
     * @param step current step
     * @return graph without unproductive cycles
     */
-  def toggleCycles(step: Int) = Action {
+  def toggleCycles(step: Int): Action[AnyContent] = Action {
     val newInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = getInhabitStep
     var uninhabitedTypes: Set[Type] = Set.empty
     var unusableCombinator: Set[(String, Seq[Type])] = Set.empty
@@ -482,12 +556,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         computeUnusableCombinator(grammar)
 
       uninhabitedTypes = unusableCombinator.flatMap(_ match {
-        case (com, arg) =>
+        case (_, arg) =>
           arg
       }
       )
       val newGrammarWithoutTypes = prunedGrammar.filterNot {
-        case (ty, r) =>
+        case (ty, _) =>
           uninhabitedTypes.contains(ty)
       }
       graphObj = Json.toJson[Graph](toGraph(newGrammarWithoutTypes, tgts.toSet, uninhabitedTypes, unusableCombinator))
@@ -542,11 +616,26 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   /**
     * Returns a result overview
     */
-  def showGraph = Action {
+  def showGraph: Action[AnyContent] = Action {
+    newGraph = computeResults(reposit, tgts)
+    if (newGraph.nonEmpty) {
+      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      Ok(graphObj.toString)
+    } else {
+      Ok("Inhabitant not found!")
+    }
+  }
+  /**
+    * Returns a result overview as an applicative tree grammar
+    */
+  def showAppGraph = Action {
     newGraph = computeResults(reposit, tgts)
     newGraph.nonEmpty match {
       case true =>
-        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+        //graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+        val treeGrammarTo = new TreeGrammarToApplicativeTreeGrammar
+        val applicativeTreeGrammar = treeGrammarTo.translateTGtoATG(newGraph)
+        graphObj = Json.toJson[Graph](toBinaryGraph(applicativeTreeGrammar, Set.empty, Set.empty, Set.empty))
         Ok(graphObj.toString)
       case false =>
         Ok("Inhabitant not found!")
@@ -556,7 +645,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   /**
     * Returns an inhabitants
     */
-  def showResult(index: Int) = Action {
+  def showResult(index: Int): Action[AnyContent] = Action {
     try {
       val res = result.get.terms.index(index)
       Ok(res.toString)
@@ -566,18 +655,70 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
   /**
+    * Returns an interpreted terms, if there is an interpretation
+    */
+  /*def showInterpretation(index: Int): Action[AnyContent] = Action {
+    //println("hallo interpret")
+    val filename = "jts_out_inhabitant_000.xml"
+    try {
+      val file: String = "CAM_CLS_out/20210304_1641/jts_out_inhabitant_000.xml"
+     // println("res", result.get.interpretedTerms)
+     // val res = result.get.interpretedTerms.values(0)
+     val source = Source.fromFile(file).getLines()
+      println("res", source)
+      Ok(source.mkString())
+    } catch {
+      case _: Throwable => Ok(s"Inhabitant ${index} not found!")
+    }
+  }*/
+
+
+  def aktDir(): String = {
+    val dir: File = new File(s"CAM_CLS_out")
+   dir.listFiles.sorted
+    .filter(_.isDirectory)(0).getName
+  }
+
+  def getSolutionsSize(index:Int) = Action {
+  val strIndex = padLeadingZeros(index)
+    val dir = aktDir()
+    val size = Option(new File(s"CAM_CLS_out/${dir}/${strIndex}").list).map(_.filter(_.endsWith(".p")).size).getOrElse(0)
+    Ok(size.toString)
+}
+  def showInterpretation(solution:Int, index: Int) = Action(parse.temporaryFile) {
+    implicit request =>
+      val strSol = padLeadingZeros(solution)
+      val dir = aktDir()
+      val file = new java.io.File(s"CAM_CLS_out/${dir}/${strSol}/${index}.p")
+       Ok.sendFile(file)
+  }
+  def getXMLInterpretation(index: Int) = Action(parse.temporaryFile) {
+    implicit request =>
+      val strIndex = padLeadingZeros(index)
+      val dir = aktDir()
+      val file = new java.io.File(s"CAM_CLS_out/${dir}/jts_out_inhabitant_${strIndex}.xml")
+       Ok.sendFile(file)
+  }
+  def padLeadingZeros(num:Int): String = {
+    val size = 3
+    var s = num+""
+    while (s.length < size) s = "0" + s
+    s
+  }
+  /**
     * @return the number of computed inhabitants or a message if there are infinitely many inhabitants
     */
-  def countsSolutions() = Action {
-      val results = if (result.get.isInfinite) "The result is infinite! How many solutions should be shown?" else result.get.size.get
+  def countsSolutions(): Action[AnyContent] = Action {
+    val results = if (result.get.isInfinite) "The result is infinite! How many solutions should be shown?" else result.get.size.get
     Ok(results.toString)
   }
 
   /**
     * Generates a graph for a taxonomy
+    *
     * @return a graph of taxonomy relation
     */
-  def showTaxonomyGraph = Action{
+  def showTaxonomyGraph: Action[AnyContent] = Action {
     val graph = toTaxonomyGraph(refRepo.get.semanticTaxonomy.underlyingMap)
     graphObj = Json.toJson[Graph](graph)
     Ok(graphObj.toString())
@@ -585,13 +726,14 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Represents the defined taxonomies
+    *
     * @return the taxonomy specifications if there are any.
     */
-  def showTaxonomy = Action {
+  def showTaxonomy: Action[AnyContent] = Action {
     val taxonomy = refRepo.get.semanticTaxonomy.underlyingMap
-    if (taxonomy.size != 0) {
-      Ok(taxonomy.head._1.toString())
-    }else     {
+    if (taxonomy.nonEmpty) {
+      Ok(taxonomy.head._1)
+    } else {
       Ok("")
     }
   }
@@ -600,7 +742,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return the number of taxonomies
     */
 
-  def getTaxonomySize = Action{
+  def getTaxonomySize: Action[AnyContent] = Action {
     val size = refRepo.get.semanticTaxonomy.underlyingMap.size
     Ok(size.toString)
   }
@@ -608,127 +750,276 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   /**
     * Generates a graph for an given inhabitant
+    *
     * @param index number of inhabitant
     * @return a graph for selected inhabitant
     */
-  def inhabitantToGraph(index: Int) = Action {
+  def inhabitantToGraph(index: Int): Action[AnyContent] = Action {
     try {
-      var allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
+      val allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
       allPartGrammars.clear()
       val partTree: Seq[Tree] = Seq(result.get.terms.index(index))
 
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
         trees.map {
-           t => val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
-            var in: TreeGrammar = Map(t.target -> Set(c))
+          t =>
+            val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
+            val in: TreeGrammar = Map(t.target -> Set(c))
             allPartGrammars.add(in)
-            partTreeGrammar = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
+            partTreeGrammar = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.flatMap(_._2))
             mkTreeMap(t.arguments)
         }
         partTreeGrammar
       }
+
       mkTreeMap(partTree)
-      newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.map(_._2).flatten)
+      newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.flatMap(_._2))
       graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-      newGraph = Map()
+      //newGraph = Map()
       Ok(graphObj.toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
 
+
   /**
     * Translates the tree grammar to SMT model
+    *
     * @return SMT model
     */
-  def mkModel: GrammarToModel = {
-    val grammar = bcl.get.inhabit(newTargets: _*)
-    model =
-      Some(GrammarToModel(grammar, newTargets))
-    model.get
-  }
+  /* def mkModel: GrammarToModel = {
+     val grammar = bcl.get.inhabit(newTargets: _*)
+     model =
+       Some(GrammarToModel(grammar, newTargets))
+     model.get
+
+   }*/
 
   /**
     * Looks for the combinators that was used for the computation of the tree grammar.
+    *
     * @return the used combinators
     */
-  def grammarToModel() = Action{
-    val model: GrammarToModel = mkModel
-    var usedCombinators = s"""${model.combinatorSeq.map(e =>
-      s"""<input class="form-check-input" type= "checkbox" name="optCheckSMT" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")}"""
-    if (usedCombinators.isEmpty){
+  def grammarToModel(): Action[AnyContent] = Action {
+    /*val model: GrammarToModel = mkModel
+    var usedCombinators =
+      s"""${
+        model.combinatorSeq.map(e =>
+          s"""<input class="form-check-input" type= "checkbox" name="optCheckSMT" value ="${model.getIndexForCombinatorName(e)}"> $e </label>""").mkString("\n")
+      }"""
+    if (usedCombinators.isEmpty) {
       usedCombinators = "Inhabitant not found!"
     }
-    Ok(usedCombinators)
+    Ok(usedCombinators)*/
+    Ok("smt not implemented")
   }
 
   /** Searches for inhabitants without certainly combinators
+    *
     * @param combinatorNames Combinators used for the filtering
     * @return If there is an inhabitant, the inhabitant, if not a message "No inhabitant found!"
     */
-  def inhabitantsWithoutCombinator(combinatorNames: Seq[Int]) = Action {
-    var smtResult = ""
+  def inhabitantsWithoutCombinator(combinatorNames: Seq[Int]): Action[AnyContent] = Action {
+    /*var smtResult = ""
     val exContext = ParallelInterpreterContext(model.get)
-    for(c <- combinatorNames){
-    val inhabitant: Option[Tree] = Assertions().filterCombinators(c, exContext)
+    for (c <- combinatorNames) {
+      val inhabitant: Option[Tree] = Assertions().filterCombinators(c, exContext)
       smtResult = inhabitant match {
-      case Some(tree) => tree.toString
-      case None => "No inhabitant found!" // Without difference between "unknown" and "unsat"
+        case Some(tree) => tree.toString
+        case None => "No inhabitant found!" // Without difference between "unknown" and "unsat"
       }
     }
-    Ok(smtResult)
+    Ok(smtResult)*/
+    Ok("smt not implemented")
   }
-  /**
-    * Computes a new request
-    * @param muster for filtering
-    */
-  def filterMuster(muster: String) = Action {
-    var newMuster = muster.replaceAll("91", "[")
+
+  /* def reachable(treeGrammar: TreeGrammar, target: Type): Boolean = {
+     lazy val groundTypes = bcl.get.algorithm.groundTypesOf(treeGrammar, Set(target))
+     treeGrammar.foldLeft[TreeGrammar](Map.empty) {
+       case (g, (tgt, vs)) =>
+         val pruned = vs.filter {
+           case (c, args) if (!args.forall(groundTypes)) =>
+             false
+           case _ =>
+             true
+         }
+         if (pruned.isEmpty) {
+           g
+         } else {
+
+           g + (tgt -> pruned)
+         }
+     }
+     true
+     }*/
+  def filterRequest(muster: String): Action[AnyContent] = Action {
+    Ok(computeFilterTarget(muster).toString())
+  }
+
+  private def computeFilterTarget(pattern: String): Type = {
+    var newMuster = pattern.replaceAll("91", "[")
     newMuster = newMuster.replaceAll("93", "]")
-    val parsedMuster = NewFilterParser.compute(newMuster)
-    val filter = new FilterList()
-    newGraph = filter.forbid(newGraph, parsedMuster.get)
-    //newGraph = computeResults(reposit, newTargets)
-    newGraph.nonEmpty match {
-      case true =>
-        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-        Ok(graphObj.toString)
-      case false => Ok("Inhabitant not found!")
+
+    //Todo handle "head"
+    var nameTgt = tgts.head
+    if (newMuster.contains("|")) {
+      val result = newMuster.split('|')
+      nameTgt = Constructor(s"{${result.toSeq.reverse.mkString("!")}}! ${nameTgt.toString()}")
     }
+    else {
+      nameTgt = Constructor(s"${NewFilterParser.compute(newMuster).get}! ${nameTgt.toString()}")
+    }
+    nameTgt
   }
 
   /**
     * Computes a new request
+    *
+    * @param muster for filtering
+    */
+  def filterMuster(muster: String): Action[AnyContent] = Action {
+    var newMuster = muster.replaceAll("91", "[")
+    newMuster = newMuster.replaceAll("93", "]")
+    //println("hallo", newMuster)
+    val filterGraph: TreeGrammar = Map()
+    var newTgtsFilter = computeFilterTarget(muster)
+    val appTree = translatorToApplyRules.translateTGtoATG(newGraph)
+    if (newMuster.contains("|")) {
+      //println("if")
+      val result = newMuster.split('|')
+      for (i <- result.indices) {
+        val pattern = filter.translatePatternToApply(NewFilterParser.compute(result(i)).get)
+        newGraph = translatorToTreeGrammar.translateATGtoTG(
+          filter.prune(filter.forbidApply(appTree,
+            pattern)))
+      }
+    } else {
+      //println("else")
+      val parsed = NewFilterParser.compute(newMuster)
+      //println("parsed ", parsed)
+      val pattern = filter.translatePatternToApply(parsed.get)
+      //println("pattern", pattern)
+      //nameTgt = s"p! ${nameTgt}"
+      newGraph = translatorToTreeGrammar.translateATGtoTG(filter.forbidApply(appTree,
+        pattern))
+      // filterGraph = bcl.get.algorithm.prune(filterGraph, Set(newTgtsFilter))
+    }
+    newGraph = bcl.get.algorithm.prune(newGraph, Set(newTgtsFilter))
+
+    val newres = InhabitationResult[Unit](newGraph, newTgtsFilter, _ => ())
+    //println("<<<<<xxxx>>>>>", filterGraph)
+    //val newest = filterGraph.filterNot(e => e._1.toString().contains("Term"))
+    //println("<<<<<1111>>>>>", newres)
+    //println("<<<<<1111>>>>>", newTgtsFilter)
+    //println("<<<<<xxxx>>>>>", bcl.get.algorithm.groundTypesOf(newGraph,Set(newTgtsFilter)))
+
+    filter.forbidApply(appTree,
+      filter.translatePatternToApply(NewFilterParser.compute(muster).get))
+    if (newres.isInfinite) {
+      for (i <- 0 to 5) {
+        //println("iii", newres.terms.index(i))
+      }
+    } else {
+      for (i <- 0 until newres.size.get.toInt) {
+      }
+
+    }
+    if (newGraph.nonEmpty) {
+      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      Ok(graphObj.toString)
+    } else {
+      Ok("Inhabitant not found!")
+    }
+
+
+
+
+
+    /*  if(newMuster.contains("|")){
+        val result =  newMuster.split('|')
+        newMuster1 = newMuster.split('|').head
+        newMuster2 = newMuster.split('|').tail.head
+
+        println("xxxx", result.size)
+      }
+      if(newMuster2.equals("")){
+        val parsedMuster = NewFilterParser.compute(newMuster)
+        newGraph = filter.forbid(newGraph, parsedMuster.get)
+      }else{
+        println("xxxx", newMuster2)
+        println("xxx", newMuster)
+        val parsedMuster = NewFilterParser.compute(newMuster1)
+        newGraph = filter.forbid(newGraph, parsedMuster.get)
+        val parsedMuster2 = NewFilterParser.compute(newMuster2)
+        newGraph = filter.forbid(newGraph,parsedMuster2.get)
+      }
+      //newGraph = computeResults(reposit, newTargets)
+      var newTgtsFilter = Constructor(s"p! ${tgts.head}")
+      if(!newMuster2.equals("")){
+        newTgtsFilter = Constructor(s"p! p! ${tgts.head}")
+      }
+
+      val prunedFilteredGrammar = bcl.get.algorithm.prune(newGraph, Set(newTgtsFilter))
+      println("xxxx", prunedFilteredGrammar)
+      val newres = InhabitationResult[Unit](prunedFilteredGrammar, newTgtsFilter, x => ())
+      println("<<<<<xxxx>>>>>", newTgtsFilter)
+      println("<<<<<xxxx>>>>>", newres.isEmpty)
+      println("<<<<<xxxx>>>>>", newres.isInfinite)
+      if(newres.isInfinite){
+        for(i <- 0 to 5){
+          println("iii", newres.terms.index(i))
+        }
+      }else{
+        for ( i <- 0 to newres.size.get.toInt-1){
+          println("nnnn", newres.terms.index(i))
+        }
+
+      }
+
+      prunedFilteredGrammar.nonEmpty match {
+        case true =>
+          graphObj = Json.toJson[Graph](toGraph(prunedFilteredGrammar, Set.empty, Set.empty, Set.empty))
+          Ok(graphObj.toString)
+        case false => Ok("Inhabitant not found!")
+      }
+      */
+  }
+
+  /**
+    * Computes a new request
+    *
     * @param request new target
     * @return graph if there is a solution or a message
     */
-  def computeRequest(request: String) = Action {
+  def computeRequest(request: String): Action[AnyContent] = Action {
     debugMsgChannel.reset()
     var newRequest = request.replaceAll("91", "[")
     newRequest = newRequest.replaceAll("93", "]")
     newTargets = NewRequestParser.compute(newRequest)
     newGraph = computeResults(reposit, newTargets)
-    newGraph.nonEmpty match {
-      case true =>
-        graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-        Ok(graphObj.toString)
-      case false => Ok("Inhabitant not found!")
+    if (newGraph.nonEmpty) {
+      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      Ok(graphObj.toString)
+    } else {
+      Ok("Inhabitant not found!")
     }
   }
 
   /**
     * Renders an overview page
+    *
     * @return the html code of the page
     */
-  def index() = Action {request =>
+  def index(): Action[AnyContent] = Action { request =>
     val targets: Seq[Type] =
       try {
-   if (newTargets.isEmpty)tgts else newTargets
-    }
-    catch {
-      case e : NullPointerException => tgts
-    }
+        if (newTargets.isEmpty) tgts else newTargets
+      }
+      catch {
+        case _: NullPointerException => tgts
+      }
     Ok(org.combinators.cls.ide.html.main.render(webjarsUtil, assets, targets, request.path, projectName))
 
   }

@@ -52,7 +52,9 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
      // "org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1",
       "org.combinators" %% "cls-scala" % "2.1.0+22-fff1dbf4",
-      "org.combinators" %% "cls-scala-smt" % "e1e9153f+20190711-0904",
+    //  "org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1+20200608-1714",
+     //"org.combinators" %% "cls-scala-smt" % "95ce292b+20200117-1509",
+     // "org.combinators" %% "cls-scala-smt" % "95ce292b+20210123-1321",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
@@ -62,7 +64,8 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       "org.webjars" % "bootstrap" % "3.3.7-1",
       "org.webjars.bower" % "cytoscape" % "3.2.5",
       "com.typesafe.play" %% "play-json" % "2.6.2",
-      guice
+      guice,
+      filters
     ),
     resolvers += "LocalCLS" at "file:///C:\\Users/Anna/.ivy2/local/org.combinators",
     sourceDirectories in (Compile, TwirlKeys.compileTemplates) := Seq(sourceDirectory.value / "main" / "html-templates"),
