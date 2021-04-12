@@ -398,7 +398,6 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             });
 
         });
-
         $('#forwardButton, #backwardButton, #toggleCyclesButton').click(function () {
             if (this.id == 'toggleCyclesButton') {
                 if (toggle == true) {
@@ -578,7 +577,6 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
 
     function mkGraph(graph, canvas) {
         // Setup basic graph
-
         var cy = cytoscape({
             container: $(canvas),
             boxSelectionEnabled: false,
@@ -598,11 +596,12 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         'padding-bottom': '10px',
                         'padding-right': '10px',
                         'text-valign': 'top',
+                        'text-max-width' : '1',
                         'text-halign': 'center',
                         'background-color': '#FFB147',
                         'shape': 'roundrectangle'
 
-                    }
+                    },
                 },
                 {
                     selector: 'node[style = "apply-node"]',
@@ -816,6 +815,13 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
         }
 
         adjustLayout();
+
+        cy.nodes().unbind('mouseover');
+        cy.nodes().bind('mouseover', (event) => event.target.style('label', event.target.data('hiddenLabel')));
+
+        cy.nodes().unbind('mouseout');
+        //if node
+        cy.nodes().bind('mouseout', (event) => event.target.style('label', event.target.data('label')));
 
         // Adjust layout on window size change
         window.resizeEvt;

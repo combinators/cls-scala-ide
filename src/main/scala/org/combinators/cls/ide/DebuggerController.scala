@@ -118,7 +118,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
 
   case object UninhabitedTypeNode extends Style
 
-  case class Node(label: String, style: Style, parent: Option[String] = None, id: String = java.util.UUID.randomUUID().toString)
+  case class Node(label: String, hiddenLabel: String, style: Style, parent: Option[String] = None, id: String = java.util.UUID.randomUUID().toString)
 
   case class FullNode(data: Node)
 
@@ -160,21 +160,26 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     * @return graph
     */
   def toGraph(treeGrammar: TreeGrammar, tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
-    val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, UninhabitedTypeNode) }.toMap
-    val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, TargetNode) }.toMap
+    val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, ty.toString(),UninhabitedTypeNode) }.toMap
+    val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, ty.toString,TargetNode) }.toMap
     val typeNodes: Map[Type, Node] =
       treeGrammar
-        .map { case (ty, _) => ty -> Node(ty.toString, TypeNode)
+        .map { case (ty, _) =>
+          var tyName: String= ty.toString()
+          if(tyName.contains("!") ){
+            tyName = "..."+ty.toString().split("! ")(1)
+          }
+          ty -> Node(tyName, ty.toString(),TypeNode)
         }
     val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
     val (combinatorNodes, edgeTo, (_, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
       treeGrammar
         .flatMap { case (ty, r) =>
           r.map { case (c, args) =>
-            val combinatorNode = Node(c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
+            val combinatorNode = Node(c, c, if (cannotUseCombinator.contains((c, args))) UnusableCombinatorNode else CombinatorNode)
             val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
             val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
-              val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
+              val node = Node(ty.toString(), ty.toString(),TypeNode, Some(combinatorNode.id))
 
               val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
               (node, edgeFrom)
@@ -189,13 +194,13 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   }
 
 def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set[Type], cannotUseCombinator: Set[(String, Seq[Type])]): Graph = {
-    val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, UninhabitedTypeNode) }.toMap
-    val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, TargetNode) }.toMap
+    val uninhabitedTypeNode: Map[Type, Node] = uninhabitedTypes.map { ty => ty -> Node(ty.toString, ty.toString,UninhabitedTypeNode) }.toMap
+    val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, ty.toString(),TargetNode) }.toMap
 
     val typeNodes: Map[Type, Node] =
       treeGrammar.map(rule => rule match
-      { case Combinator(ty, _) => ty -> Node(ty.toString, TypeNode)
-        case Apply(ty, _, _) => ty -> Node(ty.toString, TypeNode)
+      { case Combinator(ty, _) => ty -> Node(ty.toString, if(ty.toString().contains("!")) "hallo" else ty.toString(),TypeNode)
+        case Apply(ty, _, _) => ty -> Node(ty.toString, if(ty.toString().contains("!")) "hallo" else ty.toString(),TypeNode)
       }).toMap
     val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
     val (combinatorNodes, edgeTo, (argsTy, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
@@ -203,23 +208,23 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
         .map { case Combinator(ty, r) =>
           // r.map { case (c, args) =>
           val combinatorNode = Node(r, //if (cannotUseCombinator.contains((r, _))) UnusableCombinatorNode else
-            CombinatorNode)
+            r,CombinatorNode)
           val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null) // scalastyle:off
           // Todo: remove args !!!
           val args: Seq[Type] = Seq.empty
           val argsTyNode = args.zipWithIndex map { case (ty, pos) =>
-            val node = Node(ty.toString(), TypeNode, Some(combinatorNode.id))
+            val node = Node(ty.toString(), ty.toString() ,TypeNode, Some(combinatorNode.id))
 
             val edgeFrom = Edge(combinatorNode.id, allNodes(ty).id, pos.toString)
             (node, edgeFrom)
           }
           (combinatorNode, edgeTo, argsTyNode)
         case Apply(ty, fType, argType) =>
-          val combinatorNode = Node(s"@", ApplyNode)
+          val combinatorNode = Node(s"@", s"@",ApplyNode)
           val edgeTo = Edge(allNodes(ty).id, combinatorNode.id, null)
-          val nodeFType = Node(fType.toString(), TypeNode, Some(combinatorNode.id))
+          val nodeFType = Node(fType.toString(), fType.toString(),TypeNode, Some(combinatorNode.id))
           val edgeFrom = Edge(combinatorNode.id, allNodes(fType).id, "0")
-          val nodeArgType = Node(argType.toString(), TypeNode, Some(combinatorNode.id))
+          val nodeArgType = Node(argType.toString(), argType.toString(),TypeNode, Some(combinatorNode.id))
           val edgeFromArgs = Edge(combinatorNode.id, allNodes(argType).id, "1")
           val argsTyNode: Seq[(Node, Edge)] = Seq.empty//, Seq(nodeArgType, edgeFromArgs)))
         val argsTyNode1 = argsTyNode :+ ((nodeFType, edgeFrom)) :+ ((nodeArgType, edgeFromArgs))
@@ -236,9 +241,9 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     val (superTy, (subType, edges)): (Seq[Node], (Seq[Node], Seq[Edge])) =
       taxonomy
         .map { case (superTy, subTy) =>
-          val typeNodeSuper = Node(superTy, TypeNode)
+          val typeNodeSuper = Node(superTy, superTy,TypeNode)
           val typeNodeSubTys = subTy.map { sub =>
-            val subNode = Node(sub, SubTypeNode)
+            val subNode = Node(sub, sub,SubTypeNode)
             val edgeFrom = Edge(subNode.id, typeNodeSuper.id, null)
             (subNode, edgeFrom)
           }
@@ -429,7 +434,6 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     * @return paths
     */
   def showPaths(numbOfArgs: Int): Action[AnyContent] = Action {
-    //println("hallo", numbOfArgs)
     val splittedRepo: Map[String, Seq[Seq[(Seq[Type], Type)]]] = getSplitRepository
     var newPaths: Set[(Seq[Type], Type)] = Set()
     splittedRepo.foreach {
@@ -882,7 +886,6 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
   def filterMuster(muster: String): Action[AnyContent] = Action {
     var newMuster = muster.replaceAll("91", "[")
     newMuster = newMuster.replaceAll("93", "]")
-    //println("hallo", newMuster)
     val filterGraph: TreeGrammar = Map()
     var newTgtsFilter = computeFilterTarget(muster)
     val appTree = translatorToApplyRules.translateTGtoATG(newGraph)
