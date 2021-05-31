@@ -1,3 +1,4 @@
+
 /*
 /*
  * Copyright 2018 Anna Vasileva
@@ -30,11 +31,11 @@ class FilterApplyParser extends RegexParsers {
   def star: Parser[ApplicativePattern] = "*" ^^ {
     case _ => StarPattern()
   }
-  def tyProduct: Parser[Seq[ApplicativePattern]] = muster ~ opt("," ~ muster) ^^ {
+  def tyProduct: Parser[Seq[ApplicativePattern]] = musterApp ~ opt("," ~ musterApp) ^^ {
     case lhs ~ Some(_ ~ rhs) => Seq(lhs, rhs)
     case lhs ~ None => Seq(lhs)
   }
-  def muster: Parser[ApplicativePattern] = combinator | applyP | star
+  def musterApp: Parser[ApplicativePattern] = combinator | applyP | star
 
   def combinator: Parser[ApplicativePattern] = word ~ opt("("~ tyProduct ~ ")") ^^ {
     case name ~ None => CombinatorPattern(name)
@@ -43,11 +44,12 @@ class FilterApplyParser extends RegexParsers {
   def applyP: Parser[ApplicativePattern] = word
 }
 
-object NewFilterParser extends FilterParser {
+object NewFilterParserApply extends FilterParser {
 
-  def compute(request: String): Option[ApplicativePattern] = parseAll(muster, request) match {
+  def compute(request: String): Option[ApplicativePattern] = parseAll(musterApp, request) match {
     case Success(result, _) => Some(result)
     case failure: NoSuccess => None
   }
 }
+
 */

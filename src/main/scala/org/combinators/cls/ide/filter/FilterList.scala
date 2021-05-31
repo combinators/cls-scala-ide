@@ -42,8 +42,6 @@ class FilterList {
     var pPartGrammar = emptyGrammar
     val recSet = mkSetPat(pattern)
     val recSetNew: Set[Set[Muster]]= Set() + Set(pattern) ++ recSet.map(e => Set(pattern) + e)
-    println("<<<xxx>>>", recSet)
-    println("<<<xxx>>>", recSetNew)
     for (p <- recSet.subsets()) {
       val merge = pPartGrammar.toSeq ++ forbidPP(grammar, p).toSeq
 

@@ -201,6 +201,8 @@ projectName: String)
                     </div>
                 </div>
             </div>
+            <div id="allSolutions">
+            </div>
         </div>
         <div id="taxonomy" class="tab-pane fade" >
             <h3>Taxonomy Overview:</h3>
@@ -303,6 +305,20 @@ projectName: String)
                 <div id = "newFilterRequest"></div>
             </div>
             <div id="cy-filter-graph">
+            </div>
+            <div class="modal fade" id="isInfiniteFilter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="titleFilter"></h5>
+                        </div>
+                        <textarea class="form-control" type="number" min="0" step="1" placeholder="Type only Number" id="message-text-filter" data-bind="value:replyNumber" maxlength="4"></textarea>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id = "saveFilter">Save changes</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="paths" class="tab-pane fade collapse">

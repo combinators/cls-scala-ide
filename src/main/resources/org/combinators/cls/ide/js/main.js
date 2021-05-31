@@ -145,7 +145,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             if (elements.length != 0) {
                 var length = elements.length;
                 for (var i = 0; i <= length - 1; i++) {
-                    elements[0].remove();
+                   // elements[0].remove();
                 }
             }
             $.get("countSolutions", function (result) {
@@ -154,13 +154,13 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     $('#cy-part-graph').html("Inhabitant not found!");
                 } else {
                     if (!parseInt(result)) {
+
                         $('#isInfinite').modal('show');
                         $('#exampleModalLongTitle').html(result);
                         $('#save').click(function () {
                             var number = document.getElementById("message-text").value;
                             $('#isInfinite').modal('hide');
                             //TODO remove x2, x3, x4....
-                            //console.log(number);
                             makeSolutions(number, "Variation", "results");
                             makeSolutions(number, "Download", "download");
                         });
@@ -200,11 +200,10 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
 
         function makeSolutions(number, nameButtonPart, direction) {
             var nameButton = ""
-
             for (var item = 0; item < number; item++) {
                 if(direction != "download") {
                     var nav = document.createElement("nav");
-                    nav.className = "navbar navbar-default well";
+                    nav.className = "navbar navbar-default well result";
                     nav.id = "nav";
                     var div = document.createElement("div");
                     div.className = "container-fluid download";
@@ -242,23 +241,24 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     btn.appendChild(txt);
 
                     //on click shows one solution
-                    btn.addEventListener("click", function (e) {
+                    btn.addEventListener("click", function (buttonID) {
                         $('#inhabRequest').collapse('hide');
                         var allElements = document.querySelectorAll('*[id]')
-                        var allIds = [];
+
                         for (var i = 0, n = allElements.length; i < n; ++i) {
                             var el = allElements[i];
-                            if (el.id != e.target.id) {
+                            if (el.id != buttonID.target.id) {
                                 $('#' + el.id).prop('disabled', false);
                             } else {
-                                $('#' + e.target.id).prop('disabled', true);
+                                $('#' + buttonID.target.id).prop('disabled', true);
                             }
                         }
                         $("divSol").remove();
-                        var divSol = document.createElement("divSol");
-                        divSol.className = "container-fluid";
+                        var divSol= document.createElement("divSol");
+
+                       divSol.className = "container-fluid";
                         $('.divSol').addClass('collapse');
-                        divSol.id = "solutionSol" + e.target.id;
+                        divSol.id = "solutionSol" + buttonID.target.id;
                         var solution = document.createElement("solution");
                         if (direction == "taxonomy") {
                             showTaxonomyGraph();
@@ -267,33 +267,40 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                                     // Generate download of hello.txt file with some content
                                 //var filename = e.target.id;
 
-                                $.get("getSolutionSize/" + parseInt(e.target.id), function (size) {
+                                $.get("getSolutionSize/" + parseInt(buttonID.target.id), function (size) {
                                     if(size!= 0){
                                         for(i = 1; i <=size; i ++){
-                                            const filename = triString(parseInt(e.target.id))+"_"+i.toString() + ".p";
-                                        $.get("showInterpretation/" + parseInt(e.target.id)+"/"+i, function (text) {
+                                            const filename = triString(parseInt(buttonID.target.id))+"_"+i.toString() + ".p";
+                                        $.get("showInterpretation/" + parseInt(buttonID.target.id)+"/"+i, function (text) {
                                             download(filename, text, false);
                                         });}
                                     }
-                                    $.get("getXMLInterpretation/" + parseInt(e.target.id), function (xml) {
-                                        var filename = "jts_out_inhabitant_"+triString(parseInt(e.target.id))+".xml";
+                                    $.get("getXMLInterpretation/" + parseInt(buttonID.target.id), function (xml) {
+                                        var filename = "jts_out_inhabitant_"+triString(parseInt(buttonID.target.id))+".xml";
                                         download(filename, xml, true);
                                     });
                                 });
-
                             }else{
-                            $.get("showResult/" + parseInt(e.target.id), function (data) {
-                                showPartGraph(parseInt(e.target.id));
-                                text = document.createTextNode(data);
-                                divSol.appendChild(solution);
-                                solution.appendChild(text);
-                            });
+                                if(direction == "filter") {
+                                    getPartSolutions("showFilteredResult/", "cy-filter-graph", divSol, solution, buttonID);
+                                }else{
+                                    getPartSolutions("showResult/", "cy-part-graph", divSol, solution, buttonID);
+                                }
+                            }
                         }
-                        }
-                        document.getElementById("divNav" + parseInt(e.target.id)).appendChild(divSol);
+                        document.getElementById("divNav" + parseInt(buttonID.target.id)).appendChild(divSol);
                     });
                 }
             }
+        }
+
+        function getPartSolutions(address, canvas, divSol, solution, buttonID){
+            $.get(address + parseInt(buttonID.target.id), function (data) {
+                showPartGraph(("showOnePossibleSolutionGraph"+canvas+"/"+parseInt(buttonID.target.id)), "#"+canvas);
+                text = document.createTextNode(data);
+                divSol.appendChild(solution);
+                solution.appendChild(text);
+            });
         }
 
         function triString(num){
@@ -336,6 +343,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 var request = document.getElementById("filterEntry").value;
                 var req = request.replace(/\[/g, '91')
                 req = req.replace(/\]/g, '93')
+                req = req.replace(/\"/g, '34')
                 $.get("filter/" + req, function (data) {
                     $("#cy-filter-graph").html(" ");
                     try {
@@ -347,8 +355,34 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     $.get("filterRequest/" + req, function (e) {
                         $("#newFilterRequest").html("<label for=&quot;request&quot;><h4 class=&quot;secondary&quot;>&Gamma; &vdash; ? : " + e + "</h4></label>");
                     });
+                    $.get("countFilteredSolutions", function (result) {
+                        if (result == 0) {
+                            $('#cy-filter-graph').html("Inhabitant not found!");
+                        } else {
+                            if (!parseInt(result)) {
+                                if(String(result).includes('?')) {
+                                    $('#isInfiniteFilter').modal('show');
+                                    $('#titleFilter').html(result);
+                                    $('#saveFilter').click(function () {
+                                        var number = document.getElementById("message-text-filter").value;
+                                        $('#isInfiniteFilter').modal('hide');
+                                        //TODO remove x2, x3, x4....
+                                        makeSolutions(number, "Variation", "filter");
+                                    });
+                                    $('#isInfiniteFilter').on('hidden', function () {
+                                        $(this).data('modal', null);
+                                    });
+                                } else{
+                                    $('#isInfiniteFilter').modal('show');
+                                    $('#titleFilter').html(result);
+                                } } else {
+                                makeSolutions(result, "Variation", "filter");
+                            }
+                        }
+                    });
                 });
             });
+
         });
 
         $('.nav-sidebar a[href="#smt"]').on('shown.bs.tab', function () {
@@ -435,13 +469,13 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
         });
 
 
-        function showPartGraph(index) {
-            $.get("showOnePossibleSolutionGraph/" + index, function (data) {
+        function showPartGraph(address, canvas) {
+            $.get(address, function (data) {
                 try {
                     var graph = JSON.parse(data);
-                    mkGraph(graph, "#cy-part-graph");
+                    mkGraph(graph, canvas);
                 } catch {
-                    $("#cy-part-graph").html(data.replace(/\n/g, '<br />'));
+                    $(canvas).html(data.replace(/\n/g, '<br />'));
                 }
             });
         }

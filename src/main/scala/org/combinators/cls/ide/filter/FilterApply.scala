@@ -38,33 +38,61 @@ class FilterApply {
     }
     pPartGrammar
   }
-  def reachableRules(grammar: Set[Rule], tgt: Type, checkedTypes: Set[Type]): (Set[Type],Set[Rule]) ={
-    var reachableGrammar: Set[Rule] = Set.empty
-    var newCheckedTypes = checkedTypes + tgt
-    grammar.foreach(r => if (r.target.equals(tgt)){r match {
-      case Combinator(tar, n) =>
-        newCheckedTypes=newCheckedTypes+tar
+  def reachableRules(grammar: Set[Rule], tgt: Type, checkedTypes: Set[Rule]): (Boolean,Set[Rule]) ={
+    var reachableGrammar: Set[Rule] = checkedTypes
+    val parRules = grammar.par
+    lazy val groundTypes = groundTypesOf(parRules)
+    var completed: Boolean = false
+    grammar.foreach(f = r => if (r.target.equals(tgt) && groundTypes.contains(r.target)) {
+      if(reachableGrammar.contains(r)) {
+        completed = true
+      }
+      else{
+      r match {
+        case Failed(_) => completed
+        case Combinator(tar, n) =>
+          //newCheckedTypes = newCheckedTypes + tar
           reachableGrammar = reachableGrammar + Combinator(tar, n)
-          Combinator(tar, n)
-
-      case Apply(tar, fType, aType) =>
-        if(!newCheckedTypes.contains(fType)) {
-          newCheckedTypes = newCheckedTypes + tar
-          val reachableRecFtype = reachableRules(grammar, fType, newCheckedTypes)
-          newCheckedTypes = newCheckedTypes ++ reachableRecFtype._1
-          reachableGrammar = reachableGrammar++ reachableRecFtype._2
-        }
-          if(!newCheckedTypes.contains(aType)){
-            val reachableRecAtype = reachableRules(grammar, aType, newCheckedTypes)
-            newCheckedTypes = newCheckedTypes ++ reachableRecAtype._1
-            reachableGrammar = reachableGrammar++ reachableRecAtype._2
+          completed = true
+        case Apply(tar, fType, aType) =>
+          if (grammar.exists(_.target.equals(fType)) && grammar.exists(_.target.equals(aType))) {
+            if (tgt.equals(aType)|| tgt.equals(fType)) reachableGrammar = reachableGrammar + Apply(tar, fType, aType)
+            reachableGrammar = reachableGrammar + Apply(tar, fType, aType)
+            val reach1 = reachableRules(grammar, fType, reachableGrammar)
+              val reach2 = reachableRules(grammar, aType, reach1._2++reachableGrammar)
+            if(reach1._1 && reach2._1){
+              reachableGrammar = reachableGrammar ++reach1._2++
+                reach2._2
+              completed = true
+            }else{
+              completed
+            }
+      }else{
+            completed = false
           }
-        reachableGrammar = reachableGrammar+Apply(tgt, fType, aType)
-        Apply(tgt, fType, aType)
+      }}
+    })
+    (completed,reachableGrammar)
+  }
 
-      case _ => ()
-    }})
-    (newCheckedTypes,reachableGrammar)
+  def reachableTreeGrammar(grammar: TreeGrammar, tgt: Seq[Type], checkedTypes: Set[Type]): TreeGrammar ={
+    var reachableGrammar: TreeGrammar = Map.empty
+    var currentTypes = checkedTypes
+    reachableGrammar = reachableGrammar ++ grammar.find(k=> tgt.contains(k._1))
+    tgt.foreach(e=> if(!currentTypes.contains(e)) {
+      currentTypes = currentTypes++tgt
+      reachableGrammar.foreach(r => r._2.map(e => if (e._2.nonEmpty) reachableGrammar = reachableGrammar ++ reachableTreeGrammar(grammar, e._2, currentTypes)))
+    })
+    //reachableTreeGrammar(grammar, e._2, Map.empty)) )
+      /*r match {
+      case (t, args) => args.map(e => if(e._2.isEmpty) {
+        println("ccc", (t, e))
+      }else{
+         e._2.foreach(k=> println("rec", reachableTreeGrammar(grammar, k, reachableGrammar)._2))
+      })
+      case _ => println("rule", r)
+    })*/
+    reachableGrammar
   }
 
   def computeLeftAndRightArgsOfApply(pattern: Set[ApplicativePattern]): ((Set[ApplicativePattern], Set[ApplicativePattern])) = {
@@ -223,25 +251,19 @@ class FilterApply {
   }
   def isInfinite(rules: Set[Rule], target: Type): (Boolean, Set[Rule]) = {
     val grRule = groupedRules(rules)
-    println("gggg", grRule)
     def visit(seen: Set[Type], start: Type, vRules:Set[Rule] ): (Boolean, Set[Rule] )  = {
       if (seen.contains(start)) {
         val newvRules = vRules++rules.filterNot(_.target==start)
-        println("true", newvRules)
         (true, newvRules)
       }
       else {
         var newvRules = vRules
         (grRule(start).exists {
           case Apply(_, lhs, rhs) =>
-            //println("1111", start)
-            //println("vvvv", seen)
             val v1 = visit(seen + start, lhs, vRules)
-            //println("v111", v1)
             newvRules = newvRules ++v1._2
             val v2 =  visit(seen + start, rhs, newvRules)
             newvRules = newvRules ++v2._2
-            //println("v222", v2)
             v1._1 || v2._1
           case _ => false
         }, newvRules)
@@ -251,12 +273,10 @@ class FilterApply {
     (!isEmpty(rules, target) && isVisited, visitedRules)
   }
 
-  def isEmpty(rules:Set[Rule], target: Type): Boolean =
+  private def isEmpty(rules:Set[Rule], target: Type): Boolean =
     rules.exists(_ == Failed(target)) || rules.forall(_.target != target)
 
-  def groupedRules(rules:Set[Rule]): Map[Type, Set[Rule]] = {
-      rules.groupBy(_.target)
-    }
+  def groupedRules(rules:Set[Rule]): Map[Type, Set[Rule]] = rules.groupBy(_.target)
 
 }
 
