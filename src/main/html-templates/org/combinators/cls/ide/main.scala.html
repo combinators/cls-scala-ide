@@ -301,7 +301,10 @@ projectName: String)
             <h3>Filter:</h3>
             <div class="form-group well">
                 <textarea class="form-control" id="filterEntry" type="text" placeholder="CombinatorName1(CombinatorName2(*))"></textarea>
-                <button class="btn btn-primary btn-toggle" id="submitFilter">Filter</button>
+                <div class = "step-buttons container-buttons">
+                <button class="btn btn-primary btn-filter" id="submitFilter">Filter</button>
+                <button class="btn btn-secondary btn-toggle" id="resetFilter">Reset</button>
+                </div>
                 <div id = "newFilterRequest"></div>
             </div>
             <div id="cy-filter-graph">
@@ -315,11 +318,12 @@ projectName: String)
                         <textarea class="form-control" type="number" min="0" step="1" placeholder="Type only Number" id="message-text-filter" data-bind="value:replyNumber" maxlength="4"></textarea>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id = "saveFilter">Save changes</button>
+                            <button class="btn btn-primary" id = "saveFilter" type = "submit">Save changes</button>
                         </div>
                     </div>
                 </div>
             </div>
+            <div id="nav-collector"></div>
         </div>
         <div id="paths" class="tab-pane fade collapse">
             <div class="panel-group">

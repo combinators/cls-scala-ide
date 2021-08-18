@@ -1,13 +1,16 @@
 package org.combinators.cls.ide.filter
 
 import org.combinators.cls.ide.filter.FilterApply
-import org.combinators.cls.ide.inhabitation.{DebugMsgChannel, FiniteCombinatoryLogicDebugger}
+import org.combinators.cls.ide.inhabitation.{BoundedCombinatoryLogicDebugger, DebugMsgChannel, FiniteCombinatoryLogicDebugger}
 import org.combinators.cls.ide.translator
 import org.combinators.cls.ide.translator.{ApplicativeTreeGrammarToTreeGrammar, Apply, Combinator, Failed, Rule, TreeGrammarToApplicativeTreeGrammar}
+import org.combinators.cls.inhabitation
 import org.combinators.cls.inhabitation.{Tree, TreeGrammar}
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.cls.types._
 import org.scalatest.FunSpec
+
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 
 class FilterApplyTest extends FunSpec {
 
@@ -17,6 +20,9 @@ class FilterApplyTest extends FunSpec {
 
 
   val testPattern = Term("c", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty), Term("c3", Seq.empty)))
+  val testPatternAssoc = Term("c", Seq(Star(), Term("c", Seq(Star(), Star()))))
+  val testPatternAssocDouble = Term("c", Seq(Term("c", Seq(Term("e", Seq.empty), Term("x", Seq()))), Term("d", Seq.empty)))
+  //val testPatternAssocDouble = Term("c", Seq(Term("c", Seq(Term("e", Seq.empty), Term("x", Seq(Star())))), Term("d", Seq.empty)))
   val testPattern2 = Term("c", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty)))
   val testPatternStar = Term("c", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty), Star()))
   val testPattern1 = Term("c", Seq(Term("c1", Seq.empty)))
@@ -33,15 +39,16 @@ class FilterApplyTest extends FunSpec {
       Constructor("E") -> Set(("e", Seq())),
       Constructor("F") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()))
     )
-
   val testGrammar3: TreeGrammar =
     Map(
       Constructor("A") -> Set(("c", Seq(Constructor("D"), Constructor("E"), Constructor("K"), Constructor("F"), Constructor("L"), Constructor("M"), Constructor("N"))),
-        ("c", Seq(Constructor("D"))), ("c", Seq(Constructor("D"), Constructor("F"))), ("f", Seq(Constructor("D"), Constructor("E")))),
+        ("c", Seq(Constructor("D"))), ("c", Seq(Constructor("D"), Constructor("F"))),("c", Seq(Constructor("F"), Constructor("D"))), ("f", Seq(Constructor("D"), Constructor("E")))),
       Constructor("B") -> Set(("c", Seq(Constructor("D"), Constructor("E")))),
-      Constructor("D") -> Set(("d", Seq(Constructor("B"))), ("d", Seq()), ("x", Seq(Constructor("A")))),
-      Constructor("E") -> Set(("e", Seq())),
-      Constructor("F") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()))
+      Constructor("D") -> Set(("d", Seq(Constructor("B"))), ("d", Seq()), ("c", Seq(Constructor("E"),Constructor("F")))),
+      Constructor("E") -> Set(("e", Seq()),("k", Seq())),
+      //Constructor("F") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()), ("x", Seq(Constructor("A")))),
+      Constructor("F") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()), ("x", Seq.empty)),
+      Constructor("Z") -> Set(("y", Seq(Constructor("B"))), ("d", Seq()))
     )
   val repository =
     Map(
@@ -87,11 +94,22 @@ class FilterApplyTest extends FunSpec {
       ("c", Seq(Constructor("A"), Constructor("B"))),
       ("c2", Seq.empty)),
     Constructor("A") -> Set(
-      ("c", Seq(Constructor("A"), Constructor("B"))),
+     // ("c", Seq(Constructor("A"), Constructor("B"))),
       ("c1", Seq.empty)),
     Constructor("B") -> Set(
       ("c2", Seq.empty))
   )
+
+  describe("testAssociation vvvvv") {
+  val results = InhabitationResult[Unit](treeGrammar, Constructor("S"), x => ())
+
+    println("....", results.size)
+  for(i <- 0 until  results.size.get.toInt){
+    println("....", results.grammar)
+    println(results.terms.index(i))
+
+    println("....")
+  }}
 
   val edgeCaseRepository =
     Map(
@@ -203,6 +221,70 @@ class FilterApplyTest extends FunSpec {
         ("f", Seq(Constructor("D"), Constructor("E"))))
     )
   }
+
+  describe("testAssociation ") {
+    val treeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map(
+      Constructor("A") -> Set(
+        ("GC", Seq(Constructor("A"), Constructor("A"))),
+        ("MC", Seq(Constructor("Cr"), Constructor("Cf"))),
+        ("SR", Seq(Constructor("C")))),
+      Constructor("C") -> Set(
+        ("SR", Seq.empty),
+        ("SF", Seq.empty)),
+      Constructor("Cr") -> Set(
+        ("SR", Seq.empty)),
+      Constructor("Cf") -> Set(
+        ("SF", Seq.empty)),
+      Constructor("B") -> Set(
+        ("AS", Seq(Constructor("A"))))
+    )
+    val patternAssoc = Term("GC", Seq(Star(), Term("GC", Seq(Star(), Star()))))
+    val patternAssocDouble = Term("GC", Seq(Term("GC", Seq(Term("SR", Seq(Star())), Term("SR", Seq()))), Term("SR", Seq(Star()))))
+    val patternUse = Term("GC", Seq(Term("GC", Seq(Star(), Term("SR", Seq(Star())))), Term("SR", Seq(Star()))))
+    val tgt = "{@(@(GC, *), @(@(GC, *), *))}! B"
+    val tgtUse = "{@(@(GC, @(@(GC, *), @(SR, *))), @(SR, *))}! B"
+
+    val translatedApp = translator.translateTGtoATG(treeGrammar)
+    //println(prettyPrintRuleSet(translatedApp))
+    val filteredFirst = filter.forbidApply(translatedApp, filter.translatePatternToApply(patternUse))
+    val filteredFirst4 = filter.forbidApply(filteredFirst, filter.translatePatternToApply(patternAssocDouble))
+    val filteredFirst5 = filter.forbidApply(filteredFirst, filter.translatePatternToApply(patternUse))
+    val filteredFirst2 = filter.reachableRules(filter.prune(filteredFirst),Constructor(tgtUse), Set.empty)._2
+    val filteredFirst3 = filter.prune(filteredFirst2)
+
+    println("---------")
+    //println(prettyPrintRuleSet(filteredFirst5))
+    println("XXXXXXXXX")
+    val pw =new BufferedWriter(new FileWriter(new File("AppGraFiltered.txt")))
+    val terms = prettyPrintRuleSet(filteredFirst2)
+    pw.write(terms.toString())
+    pw.write("\n")
+    pw.close()
+    val pw3 =new BufferedWriter(new FileWriter(new File("treeGrammar.txt")))
+    val terms2 = prettyPrintTreeGrammar(translatorBack.translateATGtoTG(filteredFirst3))
+    pw3.write(terms2)
+    pw3.write("\n")
+    pw3.close()
+    //println(prettyPrintRuleSet(filteredFirst3))
+    //println(prettyPrintTreeGrammar(filter.reachableTreeGrammar(GammaAssociation.prune(translatorBack.translateATGtoTG(filteredFirst3), Set(Constructor(tgt))), Seq(Constructor(tgt)),  Map.empty, Set.empty)._1))
+    println("XXXXXXXXX")
+    //println(prettyPrintTreeGrammar(translatorBack.translateATGtoTG(filteredFirst)))
+    println("-----")
+    //println(prettyPrintTreeGrammar(translatorBack.translateATGtoTG(filteredFirst)))
+    //println(prettyPrintRuleSet(filteredFirst3))
+    val newFilRes = Some(InhabitationResult[Unit](translatorBack.translateATGtoTG(filteredFirst2),
+      Constructor(tgtUse), x=>()))
+    val pw2 =new BufferedWriter(new FileWriter(new File("Filter.txt")))
+    for (index <- 0 until 1000){
+
+      println("result in ", newFilRes.get.size)
+      val terms3 = mkTreeMap(Seq(newFilRes.get.terms.index(index)))
+      pw2.write(terms3.toString())
+      pw2.write("\n")
+
+    }
+    pw2.close()
+  }
   describe("testGrammar to applicative tree grammar to testGrammar") {
 
     val treeGrammarRule: Map[Type, Set[(String, Seq[Type])]] = Map(
@@ -238,8 +320,8 @@ class FilterApplyTest extends FunSpec {
     val pattern = filter.translatePatternToApply(pat)
     val appGrammar = translator.translateTGtoATG(treeGrammar)
     val filteredGrammar = filter.forbidApply(appGrammar, pattern)
-    it("should contain : Apply({@(@(c, c1), c2); c; c2}! B -> S,{@(@(c, c1), c2); @(c, c1); c; c2}! A -> B -> S,{@(@(c, c1), c2)}! A)") {
-      assert(filteredGrammar.contains(Apply(Constructor("{@(@(c, c1), c2); c; c2}! B -> S"), Constructor("{@(@(c, c1), c2); @(c, c1); c; c2}! A -> B -> S"),
+    it("should contain : Apply({@(@(c, c1), c2); c2; c}! B -> S,{@(@(c, c1), c2); @(c, c1)}! A -> B -> S,{@(@(c, c1), c2)}! A)") {
+      assert(filteredGrammar.contains(Apply(Constructor("{@(@(c, c1), c2); c2; c}! B -> S"), Constructor("{@(@(c, c1), c2); @(c, c1)}! A -> B -> S"),
         Constructor("{@(@(c, c1), c2)}! A"))))
     }
     it("should contain:  {@(@(c, c1), c2); c}! B --> c2 ") {
@@ -282,17 +364,69 @@ class FilterApplyTest extends FunSpec {
       )
     }
     val tgt = Constructor("A")
-    println("----")
     val reach = filter.reachableRules(testRulesReachable, tgt, Set.empty)._2
-    println(prettyPrintRuleSet(reach))
-    println("----")
-    //println(prettyPrintTreeGrammar(translatorBack.translateATGtoTG(reach)))
-    println(prettyPrintTreeGrammar(testGrammar3))
-    println("-----")
-    //println(prettyPrintTreeGrammar(filter.reachableTreeGrammar(translatorBack.translateATGtoTG(reach), Seq(tgt), Set.empty)._2))
-    println(prettyPrintTreeGrammar(filter.reachableTreeGrammar(testGrammar3, Seq(tgt), Set.empty)))
-    println(":::::::")
-    val prune = filter.prune(testRulesGrammar)
+    val GammaAssociation = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), Map.empty)
+
+    val resTreeAssociation = GammaAssociation.inhabit(tgt)
+    val results = InhabitationResult[Unit](testGrammar3, Constructor("A"), x => ())
+    //println(results.size)
+    //val trPat = filter.translatePatternToApply(testPatternAssoc)
+    val trPatDouble = filter.translatePatternToApply(testPatternAssocDouble)
+
+   // for(i <- 0 until 100) println(results.terms.index(i))
+    val filt = filter.forbidApply(translator.translateTGtoATG(testGrammar3),
+      trPatDouble)
+    val pruneAsso = filter.prune(filt)
+
+    val newTarget = "{@(@(c, @(@(c, e), x)), d)}! A"
+    val newResultsAcco = InhabitationResult[Unit](translatorBack.translateATGtoTG(pruneAsso), Constructor(newTarget), x => ())
+
+    //println("xxxx", newResultsAcco.isInfinite)
+    //println("xxxx", trPatDouble)
+    val pw =new BufferedWriter(new FileWriter(new File("Assoc.txt")))
+    for (index <- 0 until 1000){
+
+      val terms = mkTreeMap(Seq(newResultsAcco.terms.index(index)))
+      pw.write(terms.toString())
+      pw.write("\n")
+
+      assert(!terms.contains(Seq(testPatternAssoc)))
+    }
+    pw.close()
+
+  /*  val filtDouble = filter.forbidApply(filt, filter.translatePatternToApply(testPatternAssocDouble))
+
+
+    //println(prettyPrintRuleSet(filtDouble))
+    val newTargetDouble = "{@(@(c, @(@(c, e), @(x, *))), d)}! {@(@(c, *), @(@(c, *), *))}! A"
+
+    val prune = filter.prune(filtDouble)
+
+    //new PrintWriter("AppTreeGrammar.txt") { write(prettyPrintRuleSet(prune)); close }
+    //println(prettyPrintTreeGrammar(translatorBack.translateATGtoTG(filt)))
+    val newResults = InhabitationResult[Unit](translatorBack.translateATGtoTG(prune), Constructor(newTargetDouble), x => ())
+    println(".....", newResults.isInfinite)
+    println(results.size)
+   // for(i <- 0 until 100) println(newResults.terms.index(i))
+    println("<<<<<")
+    if (results.isInfinite){
+      //val pw =  new PrintWriter(new File("Terms.txt"))
+      val pw =new BufferedWriter(new FileWriter(new File("Terms.txt")))
+      for (index <- 0 until 100){
+
+        val terms = mkTreeMap(Seq(newResults.terms.index(index)))
+        pw.write(terms.toString())
+        pw.write("\n")
+
+        assert(!terms.contains(Seq(testPatternAssoc)))
+      }
+      pw.close()
+    }else {
+      for (index <- 0 until results.size.get.toInt){
+        assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(testPatternAssoc)))
+      }
+    }*/
+  }
   //  val reachableGrammar = filter.reachableRules(prune, tgt, Set.empty)
  /*   it("should be equal") {
       assert(filter.reachableRules(testRulesGrammar, Constructor("A"), Set.empty)._2.size.equals(testRulesGrammar.size))
@@ -305,7 +439,7 @@ class FilterApplyTest extends FunSpec {
       assert(!filter.reachableRules(testRulesGrammar,
         Constructor("B"), Set.empty)._2.size.equals(testRulesGrammar.size))
     }*/
-  }
+
   describe("test forbid StarPattern in Patterns Tree Grammar") {
     val patStar= ApplyPattern(CombinatorPattern("J"), StarPattern())
     val appGrammar = translator.translateTGtoATG(treeGrammar)
@@ -362,12 +496,25 @@ class FilterApplyTest extends FunSpec {
   //  println("ttt", translatorBack.translateATGtoTG(reachableGrammar._2))
    // println("rrr", prettyPrintRuleSet(translator.translateTGtoATG(prune)))
     it("should not contain for example: S |-> J") {
-      //assert(!filteredGrammar.contains(Combinator(Constructor("{J}! A -> B"), "J")))
+      assert(!filteredGrammar.contains(Combinator(Constructor("{J}! A -> B"), "J")))
     }
     it("should contain {J}! C --> K") {
-      //assert(filteredGrammar.contains(Combinator(Constructor("{J}! C"), "K")))
+      assert(filteredGrammar.contains(Combinator(Constructor("{J}! C"), "K")))
     }
   }
+
+  def mkTreeMap(trees: Seq[Tree]): Seq[Muster] = {
+    var seqTree: Seq[Muster] = Seq.empty
+    for (tree <- trees){
+      seqTree = seqTree ++ Seq(tree match {
+        case Tree(name, _, arguments@_*)=>
+        Term(name, mkTreeMap(arguments))
+        case _ => Star()
+      })
+    }
+    seqTree
+  }
+
   describe("test forbid Pattern in Terms") {
     val pattern= CombinatorPattern("J")
     val newTreeGrammarTestTerm = filter.forbidApply(applicativeTreeGrammarTest, pattern)

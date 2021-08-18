@@ -46,6 +46,7 @@ trait DebuggerEnabled extends SimpleRouter with NoHttpFiltersComponents{self: De
       case GET(p"/$prefix/repositoryWithoutVars") if prefix == controllerAddress => showRepoWithoutVars()
       case GET(p"/$prefix/smt") if prefix == controllerAddress => grammarToModel()
       case GET(p"/$prefix/filter/${muster}") if prefix == controllerAddress => filterMuster(muster)
+      case GET(p"/$prefix/resetFilter") if prefix == controllerAddress => resetFilter()
       case GET(p"/$prefix/filterRequest/${muster}") if prefix == controllerAddress => filterRequest(muster)
       case GET(p"/$prefix/showUnusedCombinators") if prefix == controllerAddress => showUnusedCombinators()
       case GET(p"/$prefix/showUninhabitedTypes") if prefix == controllerAddress => showUninhabitedTypes()

@@ -29,7 +29,7 @@ import org.combinators.cls.inhabitation._
 import org.combinators.cls.interpreter._
 import play.api.libs.concurrent.Execution.Implicits._
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
 import scala.io.Source
 //import org.combinators.cls.smt.{GrammarToModel, ParallelInterpreterContext}
@@ -53,6 +53,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   var bcl: Option[BoundedCombinatoryLogicDebugger] = None
   var debugMsgChannel = new DebugMsgChannel
   val tgts: Seq[Type] = Seq()
+  var tgtFilter: Seq[Type] = Seq()
   var warnings: Set[Type] = Set()
   var newTargets: Seq[Type] = Seq()
   val refRepo: Option[ReflectedRepository[_]] = None
@@ -66,9 +67,11 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   //var model: Option[GrammarToModel] = None
   val filter = new FilterApply()
   val downloadUtils = None
+  var tempFilterGraph: TreeGrammar = Map.empty
   val translatorToApplyRules = new TreeGrammarToApplicativeTreeGrammar()
   val translatorToTreeGrammar = new ApplicativeTreeGrammarToTreeGrammar()
-
+  var filteredTreeGraph:TreeGrammar = Map.empty
+  var tgtsFilter:Type = Constructor("")
 
   def apply(): InhabitationAlgorithm = {
     BoundedCombinatoryLogicDebugger.algorithm(debugMsgChannel)
@@ -170,7 +173,12 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
         .map { case (ty, _) =>
           var tyName: String= ty.toString()
           if(tyName.contains("!") ){
-            tyName = "..."+ty.toString().split("! ")(1)
+            if (tyName.contains(".") ){
+              val size = ty.toString().split("\\.").size
+              tyName = "..."+ty.toString().split("\\.")(size-1)
+            }else{
+              tyName = "..."+ty.toString().split("! ").last
+            }
           }
           ty -> Node(tyName, ty.toString(),TypeNode)
         }
@@ -257,7 +265,11 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
 
-
+  /**
+    * Returns a visualization of the subtyping
+    *
+    * @return graph
+    */
   def toTaxonomyGraph(taxonomy: Map[String, Set[String]]): Graph = {
     val (superTy, (subType, edges)): (Seq[Node], (Seq[Node], Seq[Edge])) =
       taxonomy
@@ -557,7 +569,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     }
   }
 
-  private def getInhabitStep = {
+  private def getInhabitStep: Stream[(TreeGrammar, Stream[Stream[Type]])] = {
     bcl.get.algorithm.inhabitRec((if (newTargets.isEmpty) tgts else newTargets): _*)
   }
 
@@ -682,7 +694,8 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
       val res = (if(filter)filteredResult else result).get.terms.index(index)
       res.toString
     } catch {
-      case _: IndexOutOfBoundsException => s"404, Inhabitant not found: $index"
+      case _: IndexOutOfBoundsException =>
+        s"404, Inhabitant not found: $index"
     }
   }
 
@@ -708,7 +721,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
   def aktDir(): String = {
     val dir: File = new File(s"CAM_CLS_out")
    dir.listFiles.sorted
-    .filter(_.isDirectory)(0).getName
+    .filter(_.isDirectory).last.getName
   }
 
   def getSolutionsSize(index:Int) = Action {
@@ -747,13 +760,13 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
 
   def countFilteredSolutions(): Action[AnyContent] = Action {
     var textToShow = ""
+    try{
     if (filteredResult.get.isInfinite){
-      try{
         textToShow =  "The filtered result is infinite! How many solutions should be shown?"
-      }catch {
-        case _ => textToShow = "Something went wrong. Check the pattern!"
-      }
     } else textToShow = filteredResult.get.size.get.toString()
+    }catch {
+      case _ => textToShow = "Something went wrong. Check the pattern!"
+    }
     Ok(textToShow)
   }
 
@@ -907,7 +920,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
   }
 
   def filterRequest(muster: String): Action[AnyContent] = Action {
-    Ok(computeFilterTarget(muster).toString())
+    Ok(tgtFilter.head.toString())
   }
 
   private def computeFilterTarget(pattern: String): Type = {
@@ -923,49 +936,54 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     nameTgt
   }
 
+  def resetFilter() = Action {
+    tgtFilter = Seq.empty
+    tempFilterGraph = Map.empty
+    Ok("reset Okay")
+  }
+
   /**
     * Filters the given pattern out
     *
     * @param pattern for filtering
     */
   def filterMuster(pattern: String): Action[AnyContent] = Action {
-    var newMuster = pattern.replaceAll("91", "[")
-    newMuster = newMuster.replaceAll("93", "]")
-    newMuster = newMuster.replaceAll("34", "\"")
-    var updateLab = LabDebugger
-    var filterGraph: TreeGrammar = newGraph
+    var actionResult = ""
+    val newMuster = pattern.replaceAll("91", "[").replaceAll("93", "]").replaceAll("34", "\"")
+    tempFilterGraph = if(tempFilterGraph.isEmpty) newGraph else tempFilterGraph
+    val appTree = translatorToApplyRules.translateTGtoATG(tempFilterGraph)
+    var newFilterGrammar = appTree
     val nameTgt = tgts.head
-    var newTgtsFilter: Type = Constructor(s"${newMuster}! ${nameTgt.toString()}")
-    val appTree = translatorToApplyRules.translateTGtoATG(filterGraph)
+    tgtFilter = if (tgtFilter.isEmpty) Seq(nameTgt)else tgtFilter
+    try {
+      val patternParsed = filter.translatePatternToApply(NewFilterParser.compute(newMuster).get)
+      tgtFilter = Seq(Constructor(s"{${patternParsed}}! ${tgtFilter.head.toString()}"))
+      newFilterGrammar = filter.forbidApply(newFilterGrammar,
+        patternParsed)
+      val reachableGrammar = filter.reachableRules(filter.prune(newFilterGrammar),tgtFilter.head, Set.empty)._2
+      tempFilterGraph = translatorToTreeGrammar.translateATGtoTG(reachableGrammar)
 
-    if (newMuster.contains("|")) {
-      val result = newMuster.replaceAll(" ", "").split('|')
-      for (i <- result.indices) {
-        val pattern = filter.translatePatternToApply(NewFilterParser.compute(result(i)).get)
-        newTgtsFilter = Constructor(s"{$pattern}! ${nameTgt.toString()}")
-        val newFilterGrammar = filter.forbidApply(appTree,
-          pattern)
-        val reachableGrammar = filter.reachableRules(filter.prune(newFilterGrammar),newTgtsFilter, Set.empty)._2
-        filterGraph = translatorToTreeGrammar.translateATGtoTG(reachableGrammar)
+      filteredTreeGraph = filter.reachableTreeGrammar(
+        bcl.get.algorithm.prune(tempFilterGraph, tgtFilter.toSet),
+        tgtFilter, Map.empty, Set.empty)._1
+      tgtsFilter = tgtFilter.head
+      computeTermsForDownload()
+      if (filteredTreeGraph.nonEmpty) {
+        graphObj = Json.toJson[Graph](toGraph(filteredTreeGraph, Set.empty, Set.empty, Set.empty))
+        //graphObj = Json.toJson[Graph](toBinaryGraph(reachableGrammar, Set.empty, Set.empty, Set.empty))
+        tgtFilter = tgtFilter
+        actionResult=graphObj.toString
+      } else {
+        actionResult= "Inhabitant not found!"
       }
-    } else {
-      val parsed = NewFilterParser.compute(newMuster)
-      val pattern = filter.translatePatternToApply(parsed.get)
-      newTgtsFilter = Constructor(s"{${pattern}}! ${nameTgt.toString()}")
-      val newFilterGrammar = filter.forbidApply(appTree,
-        pattern)
-      val reachableGrammar = filter.reachableRules(filter.prune(newFilterGrammar),newTgtsFilter, Set.empty)._2
-      filterGraph = translatorToTreeGrammar.translateATGtoTG(reachableGrammar)
-   }
-    filterGraph = filter.reachableTreeGrammar(filterGraph, Seq(newTgtsFilter), Set.empty)
-    filterGraph = bcl.get.algorithm.prune(filterGraph, Set(newTgtsFilter))
-    filteredResult = Some(InhabitationResult[Unit](filterGraph, newTgtsFilter,  refRepo.get.evalInhabitant(_)))
-    if (filterGraph.nonEmpty) {
-      graphObj = Json.toJson[Graph](toGraph(filterGraph, Set.empty, Set.empty, Set.empty))
-      Ok(graphObj.toString)
-    } else {
-      Ok("Inhabitant not found!")
+    }catch {
+      case _:NoSuchElementException => actionResult="The pattern is incorrect!"
     }
+    Ok(actionResult)
+  }
+
+  def computeTermsForDownload() = {
+    filteredResult = Some(InhabitationResult[Unit](filteredTreeGraph, tgtsFilter,  refRepo.get.evalInhabitant(_)))
   }
 
   /**

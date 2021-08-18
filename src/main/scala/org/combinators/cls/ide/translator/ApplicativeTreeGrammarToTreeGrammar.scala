@@ -15,31 +15,21 @@ class ApplicativeTreeGrammarToTreeGrammar {
       case Combinator(target, combinator) =>
         treeGrammar = updateMap(treeGrammar, target, (combinator, Seq[Type]()))
       case Apply(nt, funcType, atgType) =>
-        val (str, argsList) = computeRules(applicativeTreeGrammar, funcType)
+        val res = computeRules(applicativeTreeGrammar, funcType, Seq(atgType), Seq.empty)
         val rule = treeGrammar.find(_._1.equals(nt))
-        if (argsList.contains(Constructor("*"))) {
+        if(res.nonEmpty){
+        if ( res.head._2.contains(Constructor("*"))) {
           treeGrammar = treeGrammar + (nt -> Set(("*", Seq.empty)))
         } else {
           rule match {
             case Some(_) =>
-              if (str.size == 1) {
-                treeGrammar = updateMap(treeGrammar, nt, (str.head, argsList :+ atgType))
-              } else {
-                str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, (e, argsList :+ atgType)))
-              }
+              res.foreach(r => treeGrammar = updateMap(treeGrammar, nt, r))
+
             case None =>
-              if (argsList.nonEmpty) {
-                val newEntry = nt -> Set((str.head, argsList :+ atgType))
+                val newEntry = nt -> Set((res.head._1, res.head._2))
                 treeGrammar = treeGrammar + newEntry
-              } else {
-                if (str.size == 1) {
-                  treeGrammar = treeGrammar + (nt -> Set((str.head, argsList :+ atgType)))
-                } else {
-                  str.foreach(e => treeGrammar = updateMap(treeGrammar, nt, (e, argsList :+ atgType)))
-                }
-              }
           }
-        }
+        }}
       case Failed(_) => treeGrammar
     }
     treeGrammar
@@ -54,26 +44,34 @@ class ApplicativeTreeGrammarToTreeGrammar {
   }
 
 
-  def computeRules(appTG: Set[Rule], funcType: Type): (Seq[String], Seq[Type]) = {
+  def computeRules(appTG: Set[Rule], funcType: Type, actArgs:Seq[Type], allAkt:Seq[(String, Seq[Type])]): Seq[(String, Seq[Type])] = {
+    var argsUpdate: Seq[Type] = actArgs
+    var all: Seq[(String, Seq[Type])] = allAkt
     var argsList: Seq[Type] = Seq.empty
     var comb: Seq[String] = Seq.empty
     functionTypes = functionTypes + funcType
-    appTG.foreach(rule =>
-      if (rule.target.equals(funcType)) rule match {
+    val filter = appTG.filter(_.target.equals(funcType))
+    if(filter.size==2){
+    }
+    filter.foreach(rule =>
+      rule match {
         case Apply(_, fType, argType) =>
           if (fType.equals(Omega)) {
             argsList = Seq(Constructor("*"))
           } else {
-            val (str, args) = computeRules(appTG, fType)
-            argsList = argsList ++ args :+ argType
-            comb = comb ++ str
+            if(all.isEmpty){
+            argsUpdate = argType +: argsUpdate
+            all = all ++ computeRules(appTG, fType, argsUpdate, all)
+            }
+            else{
+              val newArgs = argType +: actArgs
+              all = all ++ computeRules(appTG, fType, newArgs, all)
+            }
           }
-        case Combinator(tgt, combinator) =>
-          if (tgt.equals(funcType)) {
-            comb = comb :+ combinator
-          }
+        case Combinator(_, combinator) =>
+          all = all :+ ((combinator, argsUpdate))
         case Failed(_) =>
       })
-    (comb, argsList)
+    all
   }
 }

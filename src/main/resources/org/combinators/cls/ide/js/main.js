@@ -149,7 +149,6 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 }
             }
             $.get("countSolutions", function (result) {
-
                 if (result == 0) {
                     $('#cy-part-graph').html("Inhabitant not found!");
                 } else {
@@ -200,8 +199,9 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
 
         function makeSolutions(number, nameButtonPart, direction) {
             var nameButton = ""
+            console.log(direction, number)
             for (var item = 0; item < number; item++) {
-                if(direction != "download") {
+                if((direction != "download") ||(direction != "downloadFilter")) {
                     var nav = document.createElement("nav");
                     nav.className = "navbar navbar-default well result";
                     nav.id = "nav";
@@ -222,20 +222,27 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     var divBtn = document.createElement("divBtn");
                     var txt = document.createTextNode(nameButton + ":");
                     var btn = document.createElement("button");
-                    if(direction == "download") {
+                    if((direction == "download") || (direction == "downloadFilter")) {
                         btn.className = "btn btn-primary btn-download";
                     }else{
                         btn.className = "btn btn-primary";
                     }
                     btn.id = item + direction+nameButtonPart;
-                    if(direction != "download") {
+                    if((direction != "download")&&(direction != "downloadFilter")) {
                         div.appendChild(divNavbar);
                         nav.appendChild(div);
                         divNavbar.appendChild(divBtn);
-                        document.getElementById(direction).appendChild(nav);
+
+                        document.getElementById("nav-collector").appendChild(nav);
+                      //  document.getElementById(direction).appendChild(nav);
                     }else{
-                        var downloadNavbar = document.getElementById("divNav" + item);
-                        downloadNavbar.appendChild(divBtn);
+                        if(direction == "downloadFilter"){
+                            var downloadNavbar = document.getElementById("divNav" + item);
+                            downloadNavbar.appendChild(divBtn);
+                        }else{
+                            var downloadNavbar = document.getElementById("divNav" + item);
+                            downloadNavbar.appendChild(divBtn);
+                        }
                     }
                     divBtn.appendChild(btn);
                     btn.appendChild(txt);
@@ -263,7 +270,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         if (direction == "taxonomy") {
                             showTaxonomyGraph();
                         } else {
-                            if(direction == "download"){
+                            if(direction == "download"||direction == "downloadFilter"){
                                     // Generate download of hello.txt file with some content
                                 //var filename = e.target.id;
 
@@ -337,9 +344,17 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             });
         });
 
+
         $('.nav-sidebar a[href="#filter"]').on('shown.bs.tab', function () {
+            $("#saveFilter").on("click", function (e) {
+                var number = document.getElementById("message-text-filter").value;
+                $('#isInfiniteFilter').modal('hide');
+                 makeSolutions(number, "Variation", "filter");
+                 makeSolutions(number, "Download", "downloadFilter");
+            });
             $('#inhabRequest').collapse('hide');
             $("#submitFilter").click(function () {
+                $("#nav-collector").empty();
                 var request = document.getElementById("filterEntry").value;
                 var req = request.replace(/\[/g, '91')
                 req = req.replace(/\]/g, '93')
@@ -359,27 +374,30 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         if (result == 0) {
                             $('#cy-filter-graph').html("Inhabitant not found!");
                         } else {
-                            if (!parseInt(result)) {
-                                if(String(result).includes('?')) {
-                                    $('#isInfiniteFilter').modal('show');
-                                    $('#titleFilter').html(result);
-                                    $('#saveFilter').click(function () {
-                                        var number = document.getElementById("message-text-filter").value;
-                                        $('#isInfiniteFilter').modal('hide');
-                                        //TODO remove x2, x3, x4....
-                                        makeSolutions(number, "Variation", "filter");
-                                    });
-                                    $('#isInfiniteFilter').on('hidden', function () {
-                                        $(this).data('modal', null);
-                                    });
-                                } else{
-                                    $('#isInfiniteFilter').modal('show');
-                                    $('#titleFilter').html(result);
-                                } } else {
+                            if (!parseInt(result) && !result.toString().includes("pattern")) {
+                             //   console.log("result", result)
+                                $('#isInfiniteFilter').modal('show');
+                                $('#titleFilter').html(result);
+                                  //  $('#isInfiniteFilter').modal('show');
+                                  //  $('#titleFilter').html(result);
+                                   // $('#isInfiniteFilter').on('hidden', function () {
+                                   //     $(this).data('modal', null);
+                                   // });
+
+                            } else {
                                 makeSolutions(result, "Variation", "filter");
+                                makeSolutions(result, "Download", "downloadFilter");
                             }
                         }
                     });
+                });
+            });
+            $("#resetFilter").click(function () {
+                $.get("resetFilter", function (data) {
+                    $("#newFilterRequest").empty();
+                    $("#cy-filter-graph").empty();
+                    $("#nav-collector").empty();
+                    console.log("reset okay", data)
                 });
             });
 

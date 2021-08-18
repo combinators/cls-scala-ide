@@ -1,8 +1,9 @@
 package org.combinators.cls.ide.filter
 
 import org.combinators.cls.ide.translator.{Apply, Combinator, Failed, Rule}
-import org.combinators.cls.inhabitation.TreeGrammar
+import org.combinators.cls.inhabitation.{TreeGrammar, prettyPrintTreeGrammar}
 import org.combinators.cls.types.{Constructor, Type}
+
 import scala.collection.parallel.ParSet
 
 /**
@@ -12,7 +13,10 @@ class FilterApply {
   val emptyGrammar: TreeGrammar = Map.empty
   var tys: Set[String] = Set.empty
 
-  def newNameArg(forbidIn: String, tm: Set[ApplicativePattern]) = s"${tm.toSeq.sortBy(p=>p.toString).mkString("{", "; ", "}")}! $forbidIn"
+  def newNameArg(forbidIn: String, tm: Set[ApplicativePattern]) = {
+    val newName = tm.toSeq.sortBy(p=>p.toString.length).reverse.mkString("{", "; ", "}")
+    s"${newName}! $forbidIn"
+  }
 
   def translatePatternToApply(pattern:Muster):ApplicativePattern={
     pattern match {
@@ -74,15 +78,56 @@ class FilterApply {
     })
     (completed,reachableGrammar)
   }
+  def updateGrammar(reachableGrammar:TreeGrammar, ty:Type, rhs: (String, Seq[Type])):TreeGrammar = {
+    var newGram = reachableGrammar
+    newGram.get(ty) match {
+      case Some(e) => newGram = newGram.updated(ty, (e+rhs))
+      case None    => newGram += ((ty, Set(rhs)))
+    }
+    newGram
+  }
 
-  def reachableTreeGrammar(grammar: TreeGrammar, tgt: Seq[Type], checkedTypes: Set[Type]): TreeGrammar ={
+  def reachableTreeGrammar(grammar: TreeGrammar, tgt: Seq[Type], checkedGrammar: TreeGrammar, toCheck:Set[Type]): (TreeGrammar, Boolean) ={
     var reachableGrammar: TreeGrammar = Map.empty
-    var currentTypes = checkedTypes
-    reachableGrammar = reachableGrammar ++ grammar.find(k=> tgt.contains(k._1))
+    var currentTypes: TreeGrammar = checkedGrammar
+    var typesToCheck: Set[Type] = toCheck
+    var exist = false
+    val probe = grammar.map(_._1)
+    if(tgt.forall(t => probe.toSeq.contains(t))){
+    val existRule = grammar.filter(k=> tgt.contains(k._1))
+    for (elem <- existRule) {
+        if(!currentTypes.exists(_ == elem) && !typesToCheck.contains(elem._1) ){
+          for (e <- elem._2){
+            if(e._2.isEmpty){
+              //reachableGrammar = updateGrammar(reachableGrammar, elem._1, e)
+              reachableGrammar = reachableGrammar + elem
+              currentTypes = currentTypes + elem
+              exist = true
+            }else{
+              typesToCheck = typesToCheck + elem._1
+              val rechGr = reachableTreeGrammar(grammar, e._2, currentTypes, typesToCheck)
+                reachableGrammar = updateGrammar(reachableGrammar, elem._1, e) ++ rechGr._1
+                currentTypes = currentTypes + elem
+                exist = true
+                currentTypes = currentTypes + ((elem._1, Set(e)))
+            }
+          }
+          }
+        //println(prettyPrintTreeGrammar(reachableGrammar))
+    }}
+    (reachableGrammar, exist)
+    /*val newReach = reachableGrammar.map(e=> e._2.map(k => if (k._2.isEmpty) {
+      //checkedTypes= checkedTypes++
+    }else{
+      (reachableTreeGrammar(grammar,k._2, checkedTypes))
+    }))
+    println("WWW ", newReach)
     tgt.foreach(e=> if(!currentTypes.contains(e)) {
       currentTypes = currentTypes++tgt
-      reachableGrammar.foreach(r => r._2.map(e => if (e._2.nonEmpty) reachableGrammar = reachableGrammar ++ reachableTreeGrammar(grammar, e._2, currentTypes)))
+      reachableGrammar.foreach(r => r._2.map(e => if (e._2.nonEmpty) reachableGrammar = reachableGrammar ++ reachableTreeGrammar(grammar, e._2, currentTypes)._1))
     })
+
+   // if(checked && exist)
     //reachableTreeGrammar(grammar, e._2, Map.empty)) )
       /*r match {
       case (t, args) => args.map(e => if(e._2.isEmpty) {
@@ -92,12 +137,12 @@ class FilterApply {
       })
       case _ => println("rule", r)
     })*/
-    reachableGrammar
+    (reachableGrammar, true)*/
   }
 
   def computeLeftAndRightArgsOfApply(pattern: Set[ApplicativePattern]): ((Set[ApplicativePattern], Set[ApplicativePattern])) = {
-    var patternLeft: Set[ApplicativePattern] = pattern
-    var patternRight: Set[ApplicativePattern] = pattern
+    var patternLeft: Set[ApplicativePattern] = Set.empty
+    var patternRight: Set[ApplicativePattern] = Set.empty
     pattern foreach {
       case ApplyPattern(p1, p2) =>
         patternRight = patternRight + p2
@@ -107,7 +152,7 @@ class FilterApply {
     (patternLeft, patternRight)
   }
 
-  def forbidInApplyGrammar(grammar: Set[Rule], pattern: ApplicativePattern, subsetOfPowerSet: Set[ApplicativePattern]): Set[Rule] = {
+ /* def forbidInApplyGrammar(grammar: Set[Rule], pattern: ApplicativePattern, subsetOfPowerSet: Set[ApplicativePattern]): Set[Rule] = {
     var partGrammar: Set[Rule] = Set.empty
     if(subsetOfPowerSet.contains(StarPattern())) {
       partGrammar
@@ -125,6 +170,33 @@ class FilterApply {
               Constructor(newNameArg(aType.toString(), Set(pattern)))) +
             Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), Set(pattern))),
               Constructor(newNameArg(aType.toString(), partPatternRight)))
+        case Apply(tgt, fType, aType) => partGrammar = partGrammar + Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)),
+          Constructor(newNameArg(fType.toString(), Set(pattern))),
+          Constructor(newNameArg(aType.toString(), Set(pattern))))
+      }
+      partGrammar
+    }
+  }*/
+  def forbidInApplyGrammar(grammar: Set[Rule], pattern: ApplicativePattern, subsetOfPowerSet: Set[ApplicativePattern]): Set[Rule] = {
+    var partGrammar: Set[Rule] = Set.empty
+    if(subsetOfPowerSet.contains(StarPattern())) {
+      partGrammar
+    }else{
+      val hasApplyPattern = subsetOfPowerSet.exists(p=>p.isApplyPattern)
+      grammar foreach {
+        case Combinator(tgt, n) =>
+          if (!subsetOfPowerSet.contains(CombinatorPattern(n))) {
+            partGrammar = partGrammar + Combinator(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), n)
+          }
+        case Apply(tgt, fType, aType) if(hasApplyPattern) =>
+          val (partPatternLeft, partPatternRight): (Set[ApplicativePattern],Set[ApplicativePattern])= computeLeftAndRightArgsOfApply(subsetOfPowerSet)
+          val newFtype =Set(pattern) ++partPatternRight
+          val newAtype = Set(pattern) ++partPatternLeft
+          partGrammar = partGrammar +
+            Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), newAtype)),
+              Constructor(newNameArg(aType.toString(), Set(pattern)))) +
+            Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), Set(pattern))),
+              Constructor(newNameArg(aType.toString(), newFtype)))
         case Apply(tgt, fType, aType) => partGrammar = partGrammar + Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)),
           Constructor(newNameArg(fType.toString(), Set(pattern))),
           Constructor(newNameArg(aType.toString(), Set(pattern))))
