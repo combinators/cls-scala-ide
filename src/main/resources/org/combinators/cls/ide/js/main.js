@@ -138,9 +138,17 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             return true;
         });
 
+        $("#save").on("click", function (e)  {
+            var number = document.getElementById("message-text").value;
+            $('#isInfinite').modal('hide');
+            makeSolutions(number, "Variation", "results", "results");
+            makeSolutions(number, "Download", "download", "results");
+        });
 
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function () {
             $('#inhabRequest').collapse('hide');
+            $("#nav-collector-results").empty();
+
             var elements = document.getElementsByClassName("navbar navbar-default");
             if (elements.length != 0) {
                 var length = elements.length;
@@ -153,26 +161,16 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     $('#cy-part-graph').html("Inhabitant not found!");
                 } else {
                     if (!parseInt(result)) {
-
                         $('#isInfinite').modal('show');
                         $('#exampleModalLongTitle').html(result);
-                        $('#save').click(function () {
-                            var number = document.getElementById("message-text").value;
-                            $('#isInfinite').modal('hide');
-                            //TODO remove x2, x3, x4....
-                            makeSolutions(number, "Variation", "results");
-                            makeSolutions(number, "Download", "download");
-                        });
-                        $('#isInfinite').on('hidden', function(){
+                        /*$('#isInfinite').on('hidden', function(){
                             $(this).data('modal', null);
-                        });
+                        });*/
                     } else {
-                        makeSolutions(result, "Variation", "results");
-                        makeSolutions(result, "Download", "download");
+                        makeSolutions(result, "Variation", "results", "results");
+                        makeSolutions(result, "Download", "download", "results");
                     }
                 }
-
-
             });
 
         });
@@ -190,16 +188,15 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     $('#cy-taxonomy-graph').html("No taxonomy defined!");
                 } else {
                     $.get("getTaxonomySize", function (number) {
-                        makeSolutions(number, "Taxonomy " + result, "taxonomy");
+                        makeSolutions(number, "Taxonomy " + result, "taxonomy", "taxonomy");
                     });
                 }
             });
 
         });
 
-        function makeSolutions(number, nameButtonPart, direction) {
+        function makeSolutions(number, nameButtonPart, direction, dir) {
             var nameButton = ""
-            console.log(direction, number)
             for (var item = 0; item < number; item++) {
                 if((direction != "download") ||(direction != "downloadFilter")) {
                     var nav = document.createElement("nav");
@@ -209,7 +206,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                     div.className = "container-fluid download";
                     var divNavbar = document.createElement("navBar");
                     divNavbar.className = "navbar-header";
-                    divNavbar.id = "divNav" + item;
+                    divNavbar.id = "divNav" + item+dir;
                 }
 
                 //create variation or taxonomy buttons
@@ -232,15 +229,14 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         div.appendChild(divNavbar);
                         nav.appendChild(div);
                         divNavbar.appendChild(divBtn);
-
-                        document.getElementById("nav-collector").appendChild(nav);
+                        document.getElementById("nav-collector-"+dir).appendChild(nav);
                       //  document.getElementById(direction).appendChild(nav);
                     }else{
                         if(direction == "downloadFilter"){
-                            var downloadNavbar = document.getElementById("divNav" + item);
+                            var downloadNavbar = document.getElementById("divNav" + item+dir);
                             downloadNavbar.appendChild(divBtn);
                         }else{
-                            var downloadNavbar = document.getElementById("divNav" + item);
+                            var downloadNavbar = document.getElementById("divNav" + item+dir);
                             downloadNavbar.appendChild(divBtn);
                         }
                     }
@@ -295,7 +291,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                                 }
                             }
                         }
-                        document.getElementById("divNav" + parseInt(buttonID.target.id)).appendChild(divSol);
+                        document.getElementById("divNav" + parseInt(buttonID.target.id)+dir).appendChild(divSol);
                     });
                 }
             }
@@ -346,15 +342,15 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
 
 
         $('.nav-sidebar a[href="#filter"]').on('shown.bs.tab', function () {
-            $("#saveFilter").on("click", function (e) {
+            $("#saveFilter").on("click", function () {
                 var number = document.getElementById("message-text-filter").value;
                 $('#isInfiniteFilter').modal('hide');
-                 makeSolutions(number, "Variation", "filter");
-                 makeSolutions(number, "Download", "downloadFilter");
+                 makeSolutions(number, "Variation", "filter", "filter");
+                 makeSolutions(number, "Download", "downloadFilter", "filter");
             });
             $('#inhabRequest').collapse('hide');
             $("#submitFilter").click(function () {
-                $("#nav-collector").empty();
+                $("#nav-collector-filter").empty();
                 var request = document.getElementById("filterEntry").value;
                 var req = request.replace(/\[/g, '91')
                 req = req.replace(/\]/g, '93')
@@ -375,18 +371,11 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                             $('#cy-filter-graph').html("Inhabitant not found!");
                         } else {
                             if (!parseInt(result) && !result.toString().includes("pattern")) {
-                             //   console.log("result", result)
                                 $('#isInfiniteFilter').modal('show');
                                 $('#titleFilter').html(result);
-                                  //  $('#isInfiniteFilter').modal('show');
-                                  //  $('#titleFilter').html(result);
-                                   // $('#isInfiniteFilter').on('hidden', function () {
-                                   //     $(this).data('modal', null);
-                                   // });
-
                             } else {
-                                makeSolutions(result, "Variation", "filter");
-                                makeSolutions(result, "Download", "downloadFilter");
+                                makeSolutions(result, "Variation", "filter", "filter");
+                                makeSolutions(result, "Download", "downloadFilter", "filter");
                             }
                         }
                     });
@@ -396,7 +385,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 $.get("resetFilter", function (data) {
                     $("#newFilterRequest").empty();
                     $("#cy-filter-graph").empty();
-                    $("#nav-collector").empty();
+                    $("#nav-collector-filter").empty();
                     console.log("reset okay", data)
                 });
             });

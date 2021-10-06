@@ -145,8 +145,8 @@ class FilterApply {
     var patternRight: Set[ApplicativePattern] = Set.empty
     pattern foreach {
       case ApplyPattern(p1, p2) =>
-        patternRight = patternRight + p2
-        patternLeft = patternLeft + p1
+        patternRight = patternRight++pattern + p2
+        patternLeft = patternLeft ++pattern + p1
       case _ => ()
     }
     (patternLeft, patternRight)
@@ -190,12 +190,12 @@ class FilterApply {
           }
         case Apply(tgt, fType, aType) if(hasApplyPattern) =>
           val (partPatternLeft, partPatternRight): (Set[ApplicativePattern],Set[ApplicativePattern])= computeLeftAndRightArgsOfApply(subsetOfPowerSet)
-          val newFtype =Set(pattern) ++partPatternRight
-          val newAtype = Set(pattern) ++partPatternLeft
+          val newFtype =Set(pattern) ++ subsetOfPowerSet ++ partPatternRight
+          val newAtype = Set(pattern) ++ subsetOfPowerSet ++partPatternLeft
           partGrammar = partGrammar +
             Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), newAtype)),
-              Constructor(newNameArg(aType.toString(), Set(pattern)))) +
-            Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), Set(pattern))),
+              Constructor(newNameArg(aType.toString(), Set(pattern)++subsetOfPowerSet))) +
+            Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)), Constructor(newNameArg(fType.toString(), Set(pattern)++subsetOfPowerSet)),
               Constructor(newNameArg(aType.toString(), newFtype)))
         case Apply(tgt, fType, aType) => partGrammar = partGrammar + Apply(Constructor(newNameArg(tgt.toString(), subsetOfPowerSet)),
           Constructor(newNameArg(fType.toString(), Set(pattern))),

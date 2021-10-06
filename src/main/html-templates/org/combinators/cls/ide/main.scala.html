@@ -191,23 +191,22 @@ projectName: String)
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="exampleModalLongTitle"></h5>
-
                         </div>
                         <textarea class="form-control" type="number" min="0" step="1" placeholder="Type only Number" id="message-text" data-bind="value:replyNumber" maxlength="4"></textarea>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id = "save">Save changes</button>
+                            <button class="btn btn-primary" id = "save" type = "submit">Save changes</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div id="allSolutions">
-            </div>
+            <div id="nav-collector-results"></div>
         </div>
         <div id="taxonomy" class="tab-pane fade" >
             <h3>Taxonomy Overview:</h3>
             <div id="cy-taxonomy-graph">
             </div>
+            <div id="nav-collector-taxonomy"></div>
         </div>
         <div id="steps" class="tab-pane fade flex-items">
             <div class = "container-show">
@@ -323,7 +322,7 @@ projectName: String)
                     </div>
                 </div>
             </div>
-            <div id="nav-collector"></div>
+            <div id="nav-collector-filter"></div>
         </div>
         <div id="paths" class="tab-pane fade collapse">
             <div class="panel-group">

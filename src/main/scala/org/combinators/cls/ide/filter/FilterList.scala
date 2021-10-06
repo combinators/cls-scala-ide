@@ -193,7 +193,6 @@ class FilterList {
 
   def forbidPP(grammar: TreeGrammar, allPattern: Set[Muster]): TreeGrammar = {
 
-    println("<<<", allPattern)
     var additionalGrammar = emptyGrammar
     var newRhs = Set.empty[(String, Seq[Type])]
     grammar.foldLeft(emptyGrammar) {
@@ -212,13 +211,9 @@ class FilterList {
               }*/
 
           val (subPats, matches) = isMatched(allPattern, rhs)
-          println("xxx", rhs)
-        //  println("<<<<", matches1)
           if(!matches.isEmpty){
             val computeRule1 = computeRule(rhs, matches, None)
-            println("rule", computeRule1)
             newRhs = newRhs ++ computeRule1
-
           }else{
             var newArgs = Seq.empty[Type]
             if (rhs._2.nonEmpty) {

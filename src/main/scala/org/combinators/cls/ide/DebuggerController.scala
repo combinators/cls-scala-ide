@@ -21,7 +21,7 @@ import akka.http.impl.util.JavaAccessors.HttpEntity
 import akka.stream.javadsl.FileIO
 import akka.util.ByteString
 import controllers.Assets
-import org.combinators.cls.ide.filter.{FilterApply, Star, StarPattern}
+import org.combinators.cls.ide.filter.{FilterApply, FilterRec, Star, StarPattern, Term}
 import org.combinators.cls.ide.inhabitation._
 import org.combinators.cls.ide.parser.{NewFilterParser, NewPathParser, NewRequestParser}
 import org.combinators.cls.ide.translator.{ApplicativeTreeGrammarToTreeGrammar, Apply, Combinator, Failed, Rule, TreeGrammarToApplicativeTreeGrammar}
@@ -171,15 +171,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     val typeNodes: Map[Type, Node] =
       treeGrammar
         .map { case (ty, _) =>
-          var tyName: String= ty.toString()
-          if(tyName.contains("!") ){
-            if (tyName.contains(".") ){
-              val size = ty.toString().split("\\.").size
-              tyName = "..."+ty.toString().split("\\.")(size-1)
-            }else{
-              tyName = "..."+ty.toString().split("! ").last
-            }
-          }
+          var tyName: String= computeShortTypeName(ty.toString())
           ty -> Node(tyName, ty.toString(),TypeNode)
         }
     val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
@@ -203,6 +195,61 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
     allNodes.map(e => if (e._2.style == UninhabitedTypeNode) warnings = warnings + e._1)
     Graph((allNodes.values ++ combinatorNodes).map(FullNode).toSeq, (edgeTo ++ edges).map(FullEdge))
   }
+  private def computeShortTypeName(tyNameOrg: String):String= {
+    var tyName = tyNameOrg
+    if (tyName.contains(".") ){
+      val size = tyNameOrg.split("\\.").size
+      tyName = "..."+tyNameOrg.split("\\.")(size-1)
+    }else{
+      if(tyName.contains("!") ){
+        tyName = "..."+tyNameOrg.split("! ").last
+      }
+    }
+    tyName
+  }
+
+  private def computeTypeNodes(tree: Seq[Tree]): Seq[(Type, Node)] = {
+    var types: Seq[(Type, Node)] = Seq.empty
+    tree.foreach {
+      t =>
+        val c: (Type, Node) = (t.target -> Node(t.target.toString(), t.target.toString(),TypeNode))
+        //val in: TreeGrammar = Map(t.target -> Set(c))
+        types= types :+c
+        types = types ++ computeTypeNodes(t.arguments)
+    }
+    types
+  }
+
+  private def computeTree(tree: Seq[Tree], combinator: Option[String], position: String): (Seq[Node], Seq[Edge]) = {
+    var allTypes: Seq[Node] = Seq.empty
+    var allEdges: Seq[Edge] = Seq.empty
+    tree.map {
+      t =>
+        val tyNode: Node= Node(computeShortTypeName(t.target.toString()), t.target.toString(),TypeNode)
+        //val in: TreeGrammar = Map(t.target -> Set(c))
+        //types = types ++ computeTypeNodes(t.arguments)
+        val combinatorNode = Node(t.name, t.name, CombinatorNode)
+        val edgeTo = Edge(tyNode.id, combinatorNode.id, null) // scalastyle:off
+        if(combinator.getOrElse("")== ""){
+          allEdges = allEdges:+edgeTo
+        }else{
+          allEdges = allEdges:+edgeTo:+ Edge(combinator.get, tyNode.id, position)
+        }
+        allTypes= allTypes :+ tyNode :+ combinatorNode
+        t.arguments.zipWithIndex map { case (ty, pos) =>
+          val res = computeTree(Seq(ty), Some(combinatorNode.id), pos.toString)
+          allTypes = allTypes ++ res._1
+          allEdges = allEdges ++ res._2
+        }
+    }
+    (allTypes, allEdges)
+  }
+
+  def toPartGraph(tree: Seq[Tree]): Graph = {
+    val resultTree = computeTree(tree, None, "")
+    Graph(resultTree._1.map(FullNode).toSeq, resultTree._2.map(FullEdge))
+  }
+
   /**
     * Generates a binary hypergraph
     *
@@ -217,19 +264,11 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     val tgtNodes: Map[Type, Node] = tgts.map { ty => ty -> Node(ty.toString, ty.toString(),TargetNode) }.toMap
 
     val typeNodes: Map[Type, Node] =
-      treeGrammar.map(rule => rule match
-      { case Combinator(ty, _) =>
-          var tyName: String= ty.toString()
-          if(tyName.contains("!") ){
-            tyName = "..."+ty.toString().split("! ")(1)
-          }
-          ty -> Node(tyName, ty.toString(),TypeNode)
-         case Apply(ty, _, _) =>
-           var tyName: String= ty.toString()
-           if(tyName.contains("!") ){
-             tyName = "..."+ty.toString().split("! ")(1)
-           }
-           ty -> Node(tyName, ty.toString(),TypeNode)
+      treeGrammar.map(f = {
+        case Combinator(ty, _) =>
+          ty -> Node(computeShortTypeName(ty.toString()), ty.toString(), TypeNode)
+        case Apply(ty, _, _) =>
+          ty -> Node(computeShortTypeName(ty.toString()), ty.toString(), TypeNode)
       }).toMap
     val allNodes: Map[Type, Node] = tgtNodes ++ uninhabitedTypeNode ++ typeNodes
     val (combinatorNodes, edgeTo, (argsTy, edges)): (Seq[Node], Seq[Edge], (Seq[Node], Seq[Edge])) =
@@ -812,10 +851,23 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     * @return a graph for selected inhabitant
     */
   def inhabitantToGraph(index: Int): Action[AnyContent] = Action {
+    computePartGraph(result, index)
+  }
+  /**
+    * Generates a graph for an given inhabitant
+    *
+    * @param index number of inhabitant
+    * @return a graph for selected filtered inhabitant
+    */
+  def inhabitantToFilteredGraph(index: Int): Action[AnyContent] = Action {
+    computePartGraph(filteredResult, index)
+  }
+
+  private def computePartGraph(res: Option[InhabitationResult[_]], index: Int) = {
     try {
       val allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
       allPartGrammars.clear()
-      val partTree: Seq[Tree] = Seq(result.get.terms.index(index))
+      val partTree: Seq[Tree] = Seq(res.get.terms.index(index))
 
       def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
         var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
@@ -829,44 +881,13 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
         }
         partTreeGrammar
       }
-
       mkTreeMap(partTree)
-      newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.flatMap(_._2))
-      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-      //newGraph = Map()
+      graphObj = Json.toJson[Graph](toPartGraph(partTree))
       Ok(graphObj.toString)
     } catch {
       case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
     }
   }
- def inhabitantToFilteredGraph(index: Int): Action[AnyContent] = Action {
-   try {
-     val allPartGrammars: mutable.Set[TreeGrammar] = mutable.Set.empty
-     allPartGrammars.clear()
-     val partTree: Seq[Tree] = Seq(filteredResult.get.terms.index(index))
-
-     def mkTreeMap(trees: Seq[Tree]): TreeGrammar = {
-       var partTreeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map()
-       trees.map {
-         t =>
-           val c: (String, Seq[Type]) = (t.name, t.arguments.map(c => c.target))
-           val in: TreeGrammar = Map(t.target -> Set(c))
-           allPartGrammars.add(in)
-           partTreeGrammar = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.flatMap(_._2))
-           mkTreeMap(t.arguments)
-       }
-       partTreeGrammar
-     }
-
-     mkTreeMap(partTree)
-     newGraph = allPartGrammars.toSet.flatten.groupBy(_._1).mapValues(_.flatMap(_._2))
-     graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
-     //newGraph = Map()
-     Ok(graphObj.toString)
-   } catch {
-     case _: IndexOutOfBoundsException => play.api.mvc.Results.NotFound(s"404, Inhabitant not found: $index")
-   }
- }
 
   /**
     * Translates the tree grammar to SMT model

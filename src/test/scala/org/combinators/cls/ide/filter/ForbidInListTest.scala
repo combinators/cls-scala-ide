@@ -1,11 +1,15 @@
 
 package org.combinators.cls.ide.filter
 
-import org.combinators.cls.inhabitation.TreeGrammar
+import org.combinators.cls.inhabitation.{Tree, TreeGrammar}
+import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.cls.types.{Constructor, Type}
+
+import java.io.{BufferedWriter, File, FileWriter}
 
 object ForbidInListTest extends App {
   val filter = new FilterList
+  val filter2 = new FilterRec
   type NT = Type
 
   /*  sealed trait Pattern
@@ -26,6 +30,17 @@ object ForbidInListTest extends App {
         )
     )
 
+  val treeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map(
+    Constructor("S") -> Set(
+      ("c", Seq(Constructor("A"), Constructor("B"))),
+      ("c2", Seq.empty)),
+    Constructor("A") -> Set(
+      ("c", Seq(Constructor("A"), Constructor("B"))),
+      ("c1", Seq.empty)),
+    Constructor("B") -> Set(
+      ("c2", Seq.empty))
+  )
+
   val testGrammar: TreeGrammar =
     Map(
       Constructor("A") -> Set(("c", Seq[Type](Constructor("D"), Constructor("E"))), ("c", Seq[Type](Constructor("D"))), ("c", Seq[Type](Constructor("D"), Constructor("F"))), ("f", Seq[Type](Constructor("D"), Constructor("E")))),
@@ -37,6 +52,7 @@ object ForbidInListTest extends App {
 
   //val testPattern = Term("c", Seq(Term("d", Seq.empty), Term("e", Seq.empty)))
   val testPattern = Term("c", Seq(Term("d", Seq(Term("m", Seq.empty))), Term("e", Seq.empty)))
+  val testPatternAsso = Term("c", Seq(Term("c", Seq(Star(), Star())), Star()))
   //val testPattern = Term("c", Seq(Term("d", Seq(Term("c", Seq(Term("d", Seq(Star())), Star())))), Term("e", Seq.empty)))
   val testPattern1 = Term("c", Seq(Term("d", Seq(Star())), Term("e", Seq.empty)))
 
@@ -139,7 +155,43 @@ object ForbidInListTest extends App {
   val postprocessed1 = filter.forbid(testGrammar,
     testPattern)
   postprocessed1.foreach { case (n, rhss) =>
+    //println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")
+  }
+
+  val postprocessed2 = filter2.forbid(treeGrammar,
+    testPatternAsso)
+  println("wwwwwwwwwwwwwwwwwwwwwwwwwww", testPatternAsso)
+  postprocessed2.foreach { case (n, rhss) =>
     println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")
+  }
+
+  val results = InhabitationResult[Unit](postprocessed2, Constructor("S"), x => ())
+  //val resultsOrg = InhabitationResult[Unit](treeGrammar, Constructor("S"), x => ())
+  println(results.size)
+  println(results.size, results.isInfinite)
+
+
+  val pw2 =new BufferedWriter(new FileWriter(new File("orgREs.txt")))
+  for (index <- 0 until 10){
+    val terms3 = mkTreeMap(Seq(results.terms.index(index)))
+
+    println(index,": ", results.terms.index(index))
+    pw2.write(terms3.toString())
+    pw2.write("\n")
+
+  }
+  pw2.close()
+
+  def mkTreeMap(trees: Seq[Tree]): Seq[Muster] = {
+    var seqTree: Seq[Muster] = Seq.empty
+    for (tree <- trees){
+      seqTree = seqTree ++ Seq(tree match {
+        case Tree(name, _, arguments@_*)=>
+          Term(name, mkTreeMap(arguments))
+        case _ => Star()
+      })
+    }
+    seqTree
   }
 }
 
