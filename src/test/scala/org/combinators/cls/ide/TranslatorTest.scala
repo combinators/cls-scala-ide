@@ -310,7 +310,6 @@ class TranslatorTest extends FunSpec {
       lazy val isTree3a = translatorToTreeGrammar.translateATGtoTG(edgeCaseTree)
       lazy val isApplicativeTree = translatorToApplicativeTreeGrammar.translateTGtoATG(isTree3a)
       val omegaRule:TreeGrammar = Map(Constructor("omega")-> Set(("*", Seq())) )
-      println("ppp", prettyPrintTreeGrammar(isTree3a))
       it("should not be empty3") {
         assert(isAppTree.nonEmpty)
       }
@@ -320,14 +319,11 @@ class TranslatorTest extends FunSpec {
       }
       it("should be equal to T_ta(T_at(edgeCaseTree)) = edgeCaseTree}"
       ) {
-        println("pp", prettyPrintRuleSet(isApplicativeTree))
         assert(isApplicativeTree.equals(edgeCaseTree))
       }
     }
   }
 
 
-  //println("--------a", prettyPrintRuleSet(edgeCaseTree))
-  //println("--------a", prettyPrintRuleSet(isAppTree))
 
 }

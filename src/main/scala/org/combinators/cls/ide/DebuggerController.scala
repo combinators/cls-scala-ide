@@ -17,9 +17,9 @@
 package org.combinators.cls.ide
 
 
-import akka.http.impl.util.JavaAccessors.HttpEntity
 import akka.stream.javadsl.FileIO
 import akka.util.ByteString
+import akka.http.impl.util.JavaAccessors.HttpEntity
 import controllers.Assets
 import org.combinators.cls.ide.filter.{FilterApply, FilterRec, Star, StarPattern, Term}
 import org.combinators.cls.ide.inhabitation._
@@ -61,7 +61,7 @@ class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends Injec
   val result: Option[InhabitationResult[_]] = None
   var filteredResult: Option[InhabitationResult[_]] = None
   val reposit: Option[Map[String, Type]] = None
-  var repo: Map[String, Type] = Map()
+  var repo: Map[String, Type] = Map.empty
   var combinatorName = ""
   var selectedCombinator: String = ""
   //var model: Option[GrammarToModel] = None
@@ -353,7 +353,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
   }
 
   /**
-    * Returns the repository for the covering
+    * Returns the combinators for the covering
     */
   def showRepoCovering: Action[AnyContent] = Action {
     if (combinators.nonEmpty) {
@@ -572,7 +572,8 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     val subt = bcl.get.algorithm.subtypes
     import subt._
     //Todo handle "head"
-    val prob = Organized((if (newTargets.isEmpty) tgts else newTargets).head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
+    val org = Organized((if (newTargets.isEmpty) tgts else newTargets).head)
+    val prob = org.paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     //println("ssss", subt)
     //  val prob = Organized(newTargets.head).paths.filter(pathInTau => !sel._2.isSubtypeOf(pathInTau))
     prob
@@ -693,6 +694,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     */
   def showGraph: Action[AnyContent] = Action {
     newGraph = computeResults(reposit, tgts)
+    newGraph = result.get.grammar
     if (newGraph.nonEmpty) {
       graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
       Ok(graphObj.toString)
@@ -804,7 +806,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
         textToShow =  "The filtered result is infinite! How many solutions should be shown?"
     } else textToShow = filteredResult.get.size.get.toString()
     }catch {
-      case _ => textToShow = "Something went wrong. Check the pattern!"
+      case e:Exception => textToShow = "Something went wrong. Check the pattern!"
     }
     Ok(textToShow)
   }
@@ -979,11 +981,14 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     try {
       val patternParsed = filter.translatePatternToApply(NewFilterParser.compute(newMuster).get)
       tgtFilter = Seq(Constructor(s"{${patternParsed}}! ${tgtFilter.head.toString()}"))
+      println("start filter")
+      val start = System.nanoTime
       newFilterGrammar = filter.forbidApply(newFilterGrammar,
         patternParsed)
-      val reachableGrammar = filter.reachableRules(filter.prune(newFilterGrammar),tgtFilter.head, Set.empty)._2
-      tempFilterGraph = translatorToTreeGrammar.translateATGtoTG(reachableGrammar)
-
+      println("done")
+      println("duration: ", (System.nanoTime - start) / 1e9d, "sec")
+      //val reachableGrammar = filter.reachableRules(filter.prune(newFilterGrammar),tgtFilter.head, Set.empty)._2
+      tempFilterGraph = translatorToTreeGrammar.translateATGtoTG(newFilterGrammar)
       filteredTreeGraph = filter.reachableTreeGrammar(
         bcl.get.algorithm.prune(tempFilterGraph, tgtFilter.toSet),
         tgtFilter, Map.empty, Set.empty)._1
@@ -998,7 +1003,9 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
         actionResult= "Inhabitant not found!"
       }
     }catch {
-      case _:NoSuchElementException => actionResult="The pattern is incorrect!"
+      case e:NoSuchElementException =>
+        println("Something went wrong!", e)
+        actionResult="The pattern is incorrect!"
     }
     Ok(actionResult)
   }

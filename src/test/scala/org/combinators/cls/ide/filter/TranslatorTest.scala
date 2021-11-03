@@ -269,12 +269,7 @@ class TranslatorTest extends FunSpec {
       val tra = translator.translateTGtoATG(testTranslatorGrammar)
       val tgt = Constructor("A")
       val reach = filter.reachableRules(testRulesReachable2, tgt, Set.empty)._2
-     // println("-----")
       val traGrammar = translatorBack.translateATGtoTG(testRulesReachable2)
-      //println("-----")
-      //println(prettyPrintTreeGrammar(traGrammar))
-      //println(".....")
-      //  val reachableGrammar = filter.reachableRules(prune, tgt, Set.empty)
         it("should be equal") {
            assert(traGrammar.exists(e=>e._1 == A && e._2.contains("up", Seq(A,A))))
          }

@@ -68,7 +68,7 @@ class FilterList {
       case (leftArgs, rightArgs) =>
         if (leftArgs.nonEmpty) {
           val rhsSide = rhsNew._1 -> (Seq(Constructor(newNameArg(leftArgs.head.toString(), "")))
-            ++ (Constructor(newNameArg(rightArgs.toString(), computeTM(leftArgs.size))) +: Seq()))
+            ++ (Constructor(newNameArg(rightArgs.toString(), computeTM(leftArgs.size-1))) +: Seq()))
           computeNewRhs = computeNewRhs + rhsSide
         } else {
           val newRhsArgs: Seq[Type] = if (rhsNew._2.tail.nonEmpty) {
@@ -107,15 +107,12 @@ class FilterList {
     var patArgs: Option[Seq[Muster]] = None
     pattern.foreach(p=> p match {
       case Term(c, pats) if rhs._1 == c && pats.size == rhs._2.size =>
-        println("patter", p)
         matches = matches :+ p
         patArgs = Some(pats)
       case Star() =>
-        println("patter*", p)
         matches = matches :+ p
         patArgs= None
       case _ =>
-        println("patter_", p)
         patArgs = None
     })
     (patArgs, matches)
@@ -255,12 +252,10 @@ class FilterList {
             ""
           }
         }! $lhs") -> newRhs)
-        println("....", additionalGrammar)
         additionalGrammar = additionalGrammar ++ ruleNew
         additionalGrammar
     }
 
-    println("....1111", additionalGrammar)
     additionalGrammar
   }
 

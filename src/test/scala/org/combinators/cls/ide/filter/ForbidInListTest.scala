@@ -160,27 +160,12 @@ object ForbidInListTest extends App {
 
   val postprocessed2 = filter2.forbid(treeGrammar,
     testPatternAsso)
-  println("wwwwwwwwwwwwwwwwwwwwwwwwwww", testPatternAsso)
-  postprocessed2.foreach { case (n, rhss) =>
+   postprocessed2.foreach { case (n, rhss) =>
     println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")
   }
 
   val results = InhabitationResult[Unit](postprocessed2, Constructor("S"), x => ())
-  //val resultsOrg = InhabitationResult[Unit](treeGrammar, Constructor("S"), x => ())
-  println(results.size)
-  println(results.size, results.isInfinite)
 
-
-  val pw2 =new BufferedWriter(new FileWriter(new File("orgREs.txt")))
-  for (index <- 0 until 10){
-    val terms3 = mkTreeMap(Seq(results.terms.index(index)))
-
-    println(index,": ", results.terms.index(index))
-    pw2.write(terms3.toString())
-    pw2.write("\n")
-
-  }
-  pw2.close()
 
   def mkTreeMap(trees: Seq[Tree]): Seq[Muster] = {
     var seqTree: Seq[Muster] = Seq.empty

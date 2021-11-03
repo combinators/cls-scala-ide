@@ -9,7 +9,8 @@ import org.combinators.cls.types.syntax._
 import org.webjars.play.WebJarsUtil
 import play.api.inject.ApplicationLifecycle
 
-class LabDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: ApplicationLifecycle, assets: Assets)
+class LabDebugger @Inject()(val webJarsUtil: WebJarsUtil,
+                            val lifeCycle: ApplicationLifecycle, assets: Assets)
   extends DebuggerController(webJarsUtil, assets) with DebuggerEnabled {
   val labExample = Examples.lab3_1
   lazy val repository = labExample.moves
@@ -22,8 +23,8 @@ class LabDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
   override val projectName: String = controllerAddress
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   override val reposit: Option[Map[String, Type]] = Some(repository)
-
   override val result = Some(InhabitationResult[Unit](tree, target, x => ()))
+
   lazy val Gamma = ReflectedRepository(repository,
     substitutionSpace = FiniteSubstitutionSpace.empty,
     classLoader = this.getClass.getClassLoader,
@@ -32,7 +33,12 @@ class LabDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
     Gamma.substitutionSpace,
     SubtypeEnvironment(Map.empty),
     repository).apply(tgts)
+  val newInhabitationResult = Some(InhabitationResult[Unit](filteredTreeGraph, tgtsFilter,  refRepo.get.evalInhabitant(_)))
 
+  override def computeTermsForDownload ={
+
+  filteredResult = Some(InhabitationResult[Unit](filteredTreeGraph, tgtsFilter,  refRepo.get.evalInhabitant(_)))
+}
 
 }
 

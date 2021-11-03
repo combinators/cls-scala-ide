@@ -97,10 +97,11 @@ class FilterApplyTest extends FunSpec {
     )
   val treeGrammar: Map[Type, Set[(String, Seq[Type])]] = Map(
     Constructor("S") -> Set(
-      ("c", Seq(Constructor("A"), Constructor("B"))),
+      ("c", Seq(Constructor("A"), Constructor("B"))),("c", Seq(Constructor("B"), Constructor("B"))),("e", Seq(Constructor("A"), Constructor("B"))),("f", Seq(Constructor("A"), Constructor("B"))),
       ("c2", Seq.empty)),
     Constructor("A") -> Set(
       ("c", Seq(Constructor("A"), Constructor("B"))),
+      ("d", Seq(Constructor("A"), Constructor("B"))),
       ("c1", Seq.empty)),
     Constructor("B") -> Set(
       ("c2", Seq.empty))
@@ -297,6 +298,8 @@ class FilterApplyTest extends FunSpec {
 
     val terms2 = prettyPrintTreeGrammar(translatorBack.translateATGtoTG(filteredFirst3))
 
+      lazy val filteredGr = filter.reachableTreeGrammar(translatorBack.translateATGtoTG(filteredFirst3), Seq(Constructor(tgtLeftLong)), Map.empty, Set.empty)
+
     val newFilRes = Some(InhabitationResult[Unit](translatorBack.translateATGtoTG(filteredFirst2),
       Constructor(tgtUse), x=>()))
 
@@ -353,6 +356,14 @@ class FilterApplyTest extends FunSpec {
     val filteredGrammar = filter.forbidApply(appGrammar, patStar)
     it("should be empty") {
       assert(filteredGrammar==Set())
+    }
+  }
+  describe("test reachable Tree Grammar") {
+    val reach = filter.reachableTreeGrammar(treeGrammar, Seq(Constructor("S")), Map.empty, Set.empty)
+    //println("----", prettyPrintTreeGrammar(reach._1))
+
+    it("should contain non terminal A") {
+      assert(reach._1.exists(_._1.equals(Constructor("A"))))
     }
   }
   describe("test reachable rules") {
@@ -540,7 +551,6 @@ class FilterApplyTest extends FunSpec {
       assert(!testResults(resultsR, patRForTest))
     }
 
-    println(prettyPrintRuleSet(filter.prune(filterR)))
   }
 
   describe("test reachable") {
@@ -614,8 +624,6 @@ class FilterApplyTest extends FunSpec {
     if (results.isInfinite){
       breakable {
       for (index <- 0 until 100){
-        println("if ", index,mkTreeMap(Seq(results.terms.index(index))))
-        println("if ", index,mkTreeMap(Seq(results.terms.index(index))).toString().contains(musterTestTerm.toString))
         if(mkTreeMap(Seq(results.terms.index(index))).toString().contains(musterTestTerm.toString)){ret = true
         break
         }
@@ -623,10 +631,7 @@ class FilterApplyTest extends FunSpec {
     }else {
       breakable {
         for (index <- 0 until results.size.get.toInt){
-
-          println("el ", index,mkTreeMap(Seq(results.terms.index(index))))
-          println("el ", index,mkTreeMap(Seq(results.terms.index(index))).toString().contains(musterTestTerm.toString))
-          if(mkTreeMap(Seq(results.terms.index(index))).toString().contains(musterTestTerm.toString)){ret = true
+            if(mkTreeMap(Seq(results.terms.index(index))).toString().contains(musterTestTerm.toString)){ret = true
             break
           }
         }}

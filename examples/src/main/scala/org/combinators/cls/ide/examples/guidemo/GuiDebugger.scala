@@ -32,4 +32,11 @@ class GuiDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Applica
   override val result = Some(Gamma.inhabit[Form](target))
 
   override val tgts: Seq[Type] = Seq(result.get.target)
+
+  val newInhabitationResult = Some(InhabitationResult[Form](filteredTreeGraph, tgtsFilter,  refRepo.get.evalInhabitant(_)))
+
+  override def computeTermsForDownload ={
+
+    filteredResult = Some(InhabitationResult[Form](filteredTreeGraph, tgtsFilter,  refRepo.get.evalInhabitant(_)))
+  }
 }

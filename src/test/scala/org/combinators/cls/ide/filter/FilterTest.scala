@@ -3,7 +3,7 @@ package org.combinators.cls.ide.filter
 import akka.actor.FSM.->
 import com.sun.javafx.css.Combinator
 import org.combinators.cls.ide.inhabitation.{DebugMsgChannel, FiniteCombinatoryLogicDebugger}
-import org.combinators.cls.inhabitation.{BoundedCombinatoryLogic, FiniteCombinatoryLogic, Tree, TreeGrammar}
+import org.combinators.cls.inhabitation.{BoundedCombinatoryLogic, FiniteCombinatoryLogic, Tree, TreeGrammar, prettyPrintTreeGrammar}
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.cls.types.{Arrow, Constructor, Intersection, Kinding, SubtypeEnvironment, Type, Variable}
 import org.combinators.cls.types.syntax._
@@ -81,10 +81,12 @@ class FilterTest extends FunSpec {
   //val musterLowerBound = Term("c'", Seq(Term("d", Seq(Star())),Term("d", Seq(Star()))))
   val musterLowerBound1 = Term("c", Seq(Term("c", Seq(Term("d", Seq(Star())), Term("d", Seq(Star())))),Term("d", Seq(Star()))))
   //val musterLowerBound1 = Term("c", Seq(Term("d", Seq(Star())),Term("d", Seq(Star()))))
+  lazy val muster: Muster = Term("f", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty)))
   val muster2: Muster = Term("f", Seq(Term("c3", Seq.empty), Star()))
   val muster3: Muster = Term("id", Seq(Term("id", Seq(Star()))))
   val muster4: Muster = Term("f", Seq(Term("c2", Seq.empty), Term("c4", Seq.empty)))
   lazy val musterTestTerm: Muster = Term("f", Seq(Term("c4", Seq.empty)))
+  lazy val musterStar: Muster = Term("f", Seq(Star()))
   /*val repositoryAssociation =
     Map(
       "f" -> Arrow(Constructor("X"), Arrow(Constructor("Y"), Constructor("X"))),
@@ -93,6 +95,23 @@ class FilterTest extends FunSpec {
       "z" -> Intersection(Constructor("X"), Constructor("Y"))
 
     )*/
+
+  lazy val grammar: TreeGrammar =
+    Map[Type, Set[(String, Seq[Type])]](
+      Constructor("sigma0") -> Set(
+        // ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
+        ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4"))),
+        ("g", Seq[Type](Constructor("sigma3"))),
+        ("f", Seq[Type](Constructor("sigma3")))),
+      Constructor("sigma1") -> Set(("c1", Seq.empty[Type]),
+        ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4")))),
+      Constructor("sigma4") -> Set(("c2", Seq.empty[Type])),
+      Constructor("sigma3") ->
+        Set(
+          ("c4", Seq.empty[Type]),
+          ("c5", Seq[Type](Constructor("sigma0")))
+        )
+    )
   val repositoryAssociation =
     Map(
       "f" -> Arrow(Constructor("X"), Arrow(Constructor("X"), Constructor("X"))),
@@ -111,16 +130,12 @@ class FilterTest extends FunSpec {
   // val prune = GammaAssociation.prune(newTree, Set(Constructor("q")))
   //val resultTerm = InhabitationResult[Unit](prune, tgtPat, x => ())
 
-  //println("prune1", newTree.size, prune.size)
-  //print terms
-  //println(".....")
-  //println(resultTerm.isInfinite)
-  // for (i <- 0 to 100) println(resultTerm.terms.index(i))
 
 
 
 
-  /*  describe(s"Filter by muster with two arguments") {
+
+    describe(s"Filter by muster with two arguments") {
       val muster: Muster = Term("k", Seq(Term("h", Seq(Star())), Star()))
       val grammar: TreeGrammar =
         Map[Type, Set[(String, Seq[Type])]](
@@ -161,40 +176,32 @@ class FilterTest extends FunSpec {
       it("should make new treeGrammar with new sigma2") {
         assert(newTreeGrammar.exists(e => e._1.toString.startsWith("p!")))
       }
-    }*/
-  describe("Filter two star arguments") {
-    val grammar: TreeGrammar =
-      Map[Type, Set[(String, Seq[Type])]](
-        Constructor("sigma0") -> Set(
-          ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
-          ("g", Seq[Type](Constructor("sigma3"))),
-          ("f", Seq[Type](Constructor("sigma3")))),
-        Constructor("sigma1") -> Set(("c2", Seq.empty[Type])),
-        Constructor("sigma2") -> Set(("c3", Seq[Type](Constructor("sigma3")))),
-        Constructor("sigma4") -> Set(("c6", Seq.empty[Type])),
-        Constructor("sigma3") ->
-          Set(
-            ("c4", Seq.empty[Type]),
-            ("c5", Seq[Type](Constructor("sigma0")))
-          )
-      )
-    // lazy val muster: Muster = Term("f", Seq(Star(), Star()))
-    lazy val muster2222: Muster = Term("f", Seq(Term("f", Seq(Star())), Term("c3",Seq( Star()))))
-    // lazy val musterStar: Muster = Term("f", Seq(Star()))
+    }
 
-    describe(s"Filter by muster $muster2222 with two arguments") {
-
-      println("<<<<NNN>>>>", pat)
-      val newTreeGrammar: TreeGrammar = filter.forbid(grammar, pat)
-
-      println("<<<<tttt>>>>")
-      println("<<<<---->>>>", newTreeGrammar)
+  lazy val muster2222: Muster = Term("f", Seq(Term("f", Seq(Star())), Term("c3", Seq(Star()))))
+    describe(s"Filter by muster  with two arguments") {
+      val grammar: TreeGrammar =
+        Map[Type, Set[(String, Seq[Type])]](
+          Constructor("sigma0") -> Set(
+            ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
+            ("g", Seq[Type](Constructor("sigma3"))),
+            ("f", Seq[Type](Constructor("sigma3")))),
+          Constructor("sigma1") -> Set(("c2", Seq.empty[Type])),
+          Constructor("sigma2") -> Set(("c3", Seq[Type](Constructor("sigma3")))),
+          Constructor("sigma4") -> Set(("c6", Seq.empty[Type])),
+          Constructor("sigma3") ->
+            Set(
+              ("c4", Seq.empty[Type]),
+              ("c5", Seq[Type](Constructor("sigma0")))
+            )
+        )
+      val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster2222)
       newTreeGrammar.foreach { case (n, rhss) =>
         println(s"$n -> ${rhss.map { case (c, args) => s"$c${args.mkString("(", ",", ")")}" }.mkString("|")}")
       }
       val prune = GammaFCL.prune(newTreeGrammar, Set(tgtSymbolFilter))
       val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
-      /*it("the new tree grammar should be without muster"){
+      it("the new tree grammar should be without muster"){
         if (results.isInfinite){
           for (index <- 0 until 10){
             assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
@@ -204,6 +211,8 @@ class FilterTest extends FunSpec {
             assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
           }
         }
+
+        println(newTreeGrammar)
       }
       it("should make new treeGrammar with new sigma2") {
         assert(newTreeGrammar.contains(Constructor("p,Star()! sigma2")))
@@ -214,24 +223,25 @@ class FilterTest extends FunSpec {
       it("should make new treeGrammar without sigma0") {
         assert(!newTreeGrammar.contains(Constructor("sigma0")))
       }
-      it("should make new treeGrammar with new p,Star()! sigma3 -> Set()") {
-        assert(newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma3"), Set.empty)))
+      it("should not make new treeGrammar with new p,Star()! sigma3 -> Set()") {
+        assert(!newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma3"), Set.empty)))
       }
       it("should make new treeGrammar with new p! sigma4 -> Set(c6())") {
         assert(newTreeGrammar.exists(e => e.equals(Constructor("p! sigma4"), Set(("c6",List.empty[Type])))))
       }
-      it("should make new treeGrammar with new p! sigma0 -> f(p,Star()! sigma1, p! sigma2)") {
-        assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma0")) && (e._2.contains(("f",List(Constructor("p,Star()! sigma1"), Constructor("p! sigma2"))))))))//, ("f",List(Constructor("p! sigma1"), Constructor("p,Star()! sigma2")))))))
+      it("should make new treeGrammar with new p! sigma0 -> f(p! sigma1, p! sigma2)") {
+        assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma0")) && (e._2.contains(("f",List(Constructor("p! sigma1"), Constructor("p! sigma2"))))))))//, ("f",List(Constructor("p! sigma1"), Constructor("p,Star()! sigma2")))))))
       }
       it("the length should be greater or equal the length of the original") {
         assert(newTreeGrammar.size >= grammar.size)
       }
       it("should be different then the original") {
         assert(!newTreeGrammar.equals(grammar))
-      }*/
+      }
     }
 
-    /*describe(s"Filter by muster $muster with two arguments") {
+
+    describe(s"Filter by muster $muster with two arguments") {
       val newTreeGrammar: TreeGrammar = filter.forbid(grammar, muster)
       val prune = GammaFCL.prune(newTreeGrammar, Set(tgtSymbolFilter))
       val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
@@ -246,23 +256,20 @@ class FilterTest extends FunSpec {
           }
         }
       }
-      it("should make new treeGrammar with new sigma2") {
-        assert(newTreeGrammar.contains(Constructor("p,Star()! sigma2")))
+      it("should make new treeGrammar with new sigma4") {
+        assert(newTreeGrammar.contains(Constructor("p,Term(c1,List()),Term(c2,List())! sigma4")))
       }
       it("should make new treeGrammar with new sigma1") {
-        assert(newTreeGrammar.contains(Constructor("p,Star()! sigma1")))
+        assert(newTreeGrammar.contains(Constructor("p! sigma1")))
       }
       it("should make new treeGrammar without sigma0") {
         assert(!newTreeGrammar.contains(Constructor("sigma0")))
       }
-      it("should make new treeGrammar with new p,Star()! sigma3 -> Set()") {
-        assert(newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma3"), Set.empty)))
+      it("should not make new treeGrammar with new p,Star()! sigma3 -> Set()") {
+        assert(!newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma3"), Set.empty)))
       }
-      it("should make new treeGrammar with new p! sigma4 -> Set(c6())") {
-        assert(newTreeGrammar.exists(e => e.equals(Constructor("p! sigma4"), Set(("c6",List.empty[Type])))))
-      }
-      it("should make new treeGrammar with new p! sigma0 -> f(p,Star()! sigma1, p! sigma2)") {
-        assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma0")) && (e._2.contains(("f",List(Constructor("p,Star()! sigma1"), Constructor("p! sigma2"))))))))//, ("f",List(Constructor("p! sigma1"), Constructor("p,Star()! sigma2")))))))
+      it("should make new treeGrammar with new p! sigma0 -> f(p! sigma1, p! sigma4)") {
+        assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma0")) && (e._2.contains(("f",List(Constructor("p! sigma1"), Constructor("p! sigma4"))))))))//, ("f",List(Constructor("p! sigma1"), Constructor("p,Star()! sigma2")))))))
       }
       it("the length should be greater or equal the length of the original") {
         assert(newTreeGrammar.size >= grammar.size)
@@ -296,8 +303,8 @@ class FilterTest extends FunSpec {
       it("should make new treeGrammar with new p,Star()! sigma1") {
         assert(newTreeGrammar.contains(Constructor("p,Star()! sigma1")))
       }
-      it("should make new treeGrammar with new p,Star()! sigma2") {
-        assert(newTreeGrammar.contains(Constructor("p,Star()! sigma2")))
+      it("should make new treeGrammar with new p,Star()! sigma4") {
+        assert(newTreeGrammar.contains(Constructor("p,Star()! sigma4")))
       }
       it("should make new treeGrammar with new sigma1") {
         assert(!newTreeGrammar.contains(Constructor("sigma1")))
@@ -305,81 +312,50 @@ class FilterTest extends FunSpec {
       it("should make new treeGrammar without sigma0") {
         assert(newTreeGrammar.contains(Constructor("p! sigma0")))
       }
-      it("should make new treeGrammar with new sigma2 -> Set()") {
-        assert(newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma2"), Set.empty)))
-      }
-      it("should make new treeGrammar with new p,Star()! sigma0 -> f(p,Star()! sigma3)") {
-        assert(newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma0"), Set.empty)))
-      }
-      // (p! sigma0,Set((f,List(p,Star()! sigma1, sigma2)), (f,List(p! sigma1, p,Star()! sigma2)), (g,List(p! sigma3)), (f,List(p! sigma3))))
-      it("should make new treeGrammar with new p! sigma0 -> f(p,Star()! sigma1, p! sigma2)") {
-        assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma0"))) && (e._2.contains(("f",List(Constructor("p! sigma1"), Constructor("p! sigma2")))))))
-      }
       it("the length should be greater or equal the length of the original") {
         assert(newTreeGrammar.size >= grammar.size)
       }
       it("should be different then the original") {
         assert(!newTreeGrammar.equals(grammar))
       }
-    }*/
+    }
+  describe(s"Filter by muster $muster") {
+    val filterOld = new FilterRec
+    val newTreeGrammar: TreeGrammar = filterOld.forbid(grammar, muster)
+    val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
+    it("the new tree grammar should be without muster"){
+      if (results.isInfinite){
+        for (index <- 0 until 10){
+          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
+        }
+      }else {
+        for (index <- 0 until results.size.get.toInt){
+          assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
+        }
+      }
+    }
+    it("should make new treeGrammar with new sigma3") {
+      assert(newTreeGrammar.contains(Constructor("sigma3")))
+    }
+    it("should make new treeGrammar with new sigma1") {
+      assert(newTreeGrammar.contains(Constructor("sigma1''")))
+    }
+    it("should make new treeGrammar without sigma0") {
+      assert(newTreeGrammar.contains(Constructor("sigma4''")))
+    }
+    it("should make new treeGrammar with new sigma1' -> Set()") {
+      assert(newTreeGrammar.exists(e => !e.equals(Constructor("sigma1"), Set.empty)))
+    }
+    it("should make new treeGrammar with new sigma2' -> Set()") {
+      assert(newTreeGrammar.exists(e => !e.equals(Constructor("sigma2'"), Set.empty)))
+    }
+    it("the length should be greater or equal the length of the original") {
+      assert(newTreeGrammar.size >= grammar.size)
+    }
+    it("should be different then the original") {
+      assert(!newTreeGrammar.equals(grammar))
+    }
   }
-  /* describe("Filter two arguments") {
-     val grammar: TreeGrammar =
-       Map[Type, Set[(String, Seq[Type])]](
-         Constructor("sigma0") -> Set(
-          // ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma2"))),
-           ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4"))),
-           ("g", Seq[Type](Constructor("sigma3"))),
-           ("f", Seq[Type](Constructor("sigma3")))),
-         Constructor("sigma1") -> Set(("c1", Seq.empty[Type]),
-           ("f", Seq[Type](Constructor("sigma1"), Constructor("sigma4")))),
-         Constructor("sigma4") -> Set(("c2", Seq.empty[Type])),
-         Constructor("sigma3") ->
-           Set(
-             ("c4", Seq.empty[Type]),
-             ("c5", Seq[Type](Constructor("sigma0")))
-           )
-       )
-     lazy val muster: Muster = Term("f", Seq(Term("c1", Seq.empty), Term("c2", Seq.empty)))
-   /*  describe(s"Filter by muster $muster") {
-       val filterOld = new FilterRec
-       val newTreeGrammar: TreeGrammar = filterOld.forbid(grammar, muster)
-       val results = InhabitationResult[Unit](newTreeGrammar, tgtSymbolFilter, x => ())
-       it("the new tree grammar should be without muster"){
-         if (results.isInfinite){
-           for (index <- 0 until 10){
-             assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
-           }
-         }else {
-           for (index <- 0 until results.size.get.toInt){
-             assert(!mkTreeMap(Seq(results.terms.index(index))).contains(Seq(musterTestTerm)))
-           }
-         }
-       }
-       it("should make new treeGrammar with new sigma3") {
-         assert(newTreeGrammar.contains(Constructor("p,Term(c2,List())! sigma3")))
-       }
-       it("should make new treeGrammar with new sigma1") {
-         assert(newTreeGrammar.contains(Constructor("p! sigma1")))
-       }
-       it("should make new treeGrammar without sigma0'") {
-         assert(!newTreeGrammar.contains(Constructor("sigma0")))
-       }
-       it("should make new treeGrammar with new sigma1' -> Set()") {
-         assert(newTreeGrammar.exists(e => !e.equals(Constructor("sigma1"), Set.empty)))
-       }
-       it("should make new treeGrammar with new sigma2' -> Set()") {
-         assert(newTreeGrammar.exists(e => !e.equals(Constructor("sigma2'"), Set.empty)))
-       }
-       it("the length should be greater or equal the length of the original") {
-         assert(newTreeGrammar.size >= grammar.size)
-       }
-       it("should be different then the original") {
-         assert(!newTreeGrammar.equals(grammar))
-       }
-     }*/
-   }
-
    describe("Filter by muster with an argument") {
      val grammar: TreeGrammar =
        Map[Type, Set[(String, Seq[Type])]](
@@ -413,9 +389,6 @@ class FilterTest extends FunSpec {
      }
      it("should make new treeGrammar with new p! sigma3") {
        assert(newTreeGrammar.exists(e => e._2.contains("g", Seq(Constructor("p,Star()! sigma3")))))
-     }
-     it("should make new treeGrammar with new sigma3 -> Set()") {
-       assert(newTreeGrammar.exists(e => e.equals(Constructor("p,Star()! sigma3"), Set.empty)))
      }
      it("should make new treeGrammar without sigma0") {
        assert(newTreeGrammar.contains(Constructor("p! sigma0")))
@@ -585,7 +558,7 @@ class FilterTest extends FunSpec {
      }
 
      it("should make new treeGrammar with new p! sigma3-> f(p,Star()! sigma2)") {
-       assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p! sigma3"))) && (e._2.contains(("f",List(Constructor("p,Star()! sigma2")))))))
+       assert(newTreeGrammar.exists(e => (e._1.equals(Constructor("p,Star()! sigma3"))) && (e._2.contains(("f",List(Constructor("p,Star()! sigma2")))))))
      }
    }
    describe(s"Filter by muster with three arguments") {
@@ -654,7 +627,7 @@ class FilterTest extends FunSpec {
          }
        }
      }
-   }*/
+   }
 }
 
 

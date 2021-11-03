@@ -47,7 +47,7 @@ class FilterApply {
     val parRules = grammar.par
     lazy val groundTypes = groundTypesOf(parRules)
     var completed: Boolean = false
-    grammar.foreach(f = r => if (r.target.equals(tgt) && groundTypes.contains(r.target)) {
+    grammar.foreach(r => if (r.target.equals(tgt) && groundTypes.contains(r.target)) {
       if(reachableGrammar.contains(r)) {
         completed = true
       }
@@ -87,35 +87,33 @@ class FilterApply {
     newGram
   }
 
-  def reachableTreeGrammar(grammar: TreeGrammar, tgt: Seq[Type], checkedGrammar: TreeGrammar, toCheck:Set[Type]): (TreeGrammar, Boolean) ={
+  def reachableTreeGrammar(grammar: TreeGrammar, tgt: Seq[Type], checkedGrammar: TreeGrammar, toCheck:Set[Type]): (TreeGrammar, Set[Type]) ={
     var reachableGrammar: TreeGrammar = Map.empty
     var currentTypes: TreeGrammar = checkedGrammar
     var typesToCheck: Set[Type] = toCheck
-    var exist = false
     val probe = grammar.map(_._1)
     if(tgt.forall(t => probe.toSeq.contains(t))){
     val existRule = grammar.filter(k=> tgt.contains(k._1))
     for (elem <- existRule) {
-        if(!currentTypes.exists(_ == elem) && !typesToCheck.contains(elem._1) ){
+        if(!currentTypes.map(_._1).toSeq.contains(elem._1) && !typesToCheck.contains(elem._1) ){
           for (e <- elem._2){
             if(e._2.isEmpty){
               //reachableGrammar = updateGrammar(reachableGrammar, elem._1, e)
               reachableGrammar = reachableGrammar + elem
               currentTypes = currentTypes + elem
-              exist = true
+              typesToCheck = typesToCheck + elem._1
             }else{
               typesToCheck = typesToCheck + elem._1
               val rechGr = reachableTreeGrammar(grammar, e._2, currentTypes, typesToCheck)
                 reachableGrammar = updateGrammar(reachableGrammar, elem._1, e) ++ rechGr._1
+              typesToCheck = typesToCheck ++ rechGr._2
                 currentTypes = currentTypes + elem
-                exist = true
-                currentTypes = currentTypes + ((elem._1, Set(e)))
             }
           }
           }
         //println(prettyPrintTreeGrammar(reachableGrammar))
     }}
-    (reachableGrammar, exist)
+    (reachableGrammar, typesToCheck)
     /*val newReach = reachableGrammar.map(e=> e._2.map(k => if (k._2.isEmpty) {
       //checkedTypes= checkedTypes++
     }else{

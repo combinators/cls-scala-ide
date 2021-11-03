@@ -54,7 +54,6 @@ class BCLTest extends FunSpec {
       val tgt1 = Seq(tgt)
       val results = Gamma.inhabit(tgt)
       val algResult = tree.apply(tgt1)
-      println("refRepoComponenets", refRepo)
       val cannotUseCombinator = CannotUseCombinator("map", Constructor("List", Constructor("Char")), Seq(Constructor("List", Arrow(Constructor("Int"), Constructor("Char")))))
       val bclDebuggerInfo = BclDebugger(Gamma, kinding, subtypeEnvironment, refRepo.combinators, tgt1)
       it(s"should push $cannotUseCombinator") {

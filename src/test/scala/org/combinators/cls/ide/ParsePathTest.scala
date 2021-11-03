@@ -70,12 +70,10 @@ class ParserPathTest extends FunSpec {
     tys =>
       tys.foreach {
         case (s, ty) => if (s.length == 0) {
-          //println("REQ",ty,  request.compute(ty.toString()))
           selection = selection :+ (s, ty)}
       }
   }
 
-  // println("selection", selection)
   lazy val request = NewRequestParser
   val toCover = Organized(tau).paths.filter(pathInTau => !selection.exists(splitComponent =>
     splitComponent._2.isSubtypeOf(pathInTau)))

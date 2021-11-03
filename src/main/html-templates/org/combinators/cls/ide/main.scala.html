@@ -306,6 +306,14 @@ projectName: String)
                 </div>
                 <div id = "newFilterRequest"></div>
             </div>
+            <div id = "progressF" class = "collapse">
+                <h3>Searching for Solutions...</h3>
+                <div class="progress">
+                    <div id="dynamicF" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+                        <span id="current-progress" class="progress"></span>
+                    </div>
+                </div>
+            </div>
             <div id="cy-filter-graph">
             </div>
             <div class="modal fade" id="isInfiniteFilter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
@@ -328,7 +336,7 @@ projectName: String)
             <div class="panel-group">
                 <div class="well">
                     <a><h4>Combinator:</h4></a>
-                    <div class="panel-body well"><div id="combinatorName"></div>
+                    <div class="well"><div id="combinatorName"></div>
                     </div>
                     <div class="well second">
                     <a><h4>Number of Arguments:</h4></a>
@@ -336,13 +344,13 @@ projectName: String)
 
 
                     <a><h4>Paths:</h4></a>
-                    <div class="panel-body well">
+                    <div class="well">
                         <div id="combinatorTys">
                         </div>
                     </div>
 
                 <a><h4>to Cover:</h4></a>
-                <ul class="panel-body well" id="targetsToCover"></ul>
+                <ul class="well" id="targetsToCover"></ul>
                         <button class="btn btn-primary btn-toggle" id="resetCover">Reset</button>
             </div>
         </div>

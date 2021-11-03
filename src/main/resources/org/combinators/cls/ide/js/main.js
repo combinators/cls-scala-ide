@@ -130,6 +130,11 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 }
             });
         });
+        $("#message-text").on('keyup', function (event) {
+            if (event.keyCode === 13) {
+                document.getElementById("save").click();
+            }
+        });
 
         $('#message-text').keypress(function (evt) {
             var charCode = (evt.which) ? evt.which : evt.keyCode;
@@ -342,6 +347,11 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
 
 
         $('.nav-sidebar a[href="#filter"]').on('shown.bs.tab', function () {
+            $("#message-text-filter").on('keyup', function (event) {
+                if (event.keyCode === 13) {
+                    document.getElementById("saveFilter").click();
+                }
+            });
             $("#saveFilter").on("click", function () {
                 var number = document.getElementById("message-text-filter").value;
                 $('#isInfiniteFilter').modal('hide');
@@ -349,8 +359,15 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                  makeSolutions(number, "Download", "downloadFilter", "filter");
             });
             $('#inhabRequest').collapse('hide');
+            $("#filterEntry").on('keyup', function (event) {
+                if (event.keyCode === 13) {
+                    document.getElementById("submitFilter").click();
+                }
+            });
             $("#submitFilter").click(function () {
                 $("#nav-collector-filter").empty();
+                $('#progressF').addClass('collapse in');
+
                 var request = document.getElementById("filterEntry").value;
                 var req = request.replace(/\[/g, '91')
                 req = req.replace(/\]/g, '93')
@@ -367,6 +384,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         $("#newFilterRequest").html("<label for=&quot;request&quot;><h4 class=&quot;secondary&quot;>&Gamma; &vdash; ? : " + e + "</h4></label>");
                     });
                     $.get("countFilteredSolutions", function (result) {
+                        $('#progressF').collapse('hide');
                         if (result == 0) {
                             $('#cy-filter-graph').html("Inhabitant not found!");
                         } else {
@@ -504,7 +522,11 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             });
         }
     });
-
+    $("#request").on('keyup', function (event) {
+        if (event.keyCode === 13) {
+            document.getElementById("submit").click();
+        }
+    });
 
     $("#submit").click(function () {
         var x = document.getElementById("request").value;
@@ -565,6 +587,9 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
         } else {
             $.get("repositoryCovering", function (data) {
                 $("#combinatorName").html(data.replace(/\n/g, '<br />'));
+                $("#numberOfArgs").html("");
+                $("#combinatorTys").html("");
+                $("#targetsToCover").html("");
             });
         }
     }
