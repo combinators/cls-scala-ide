@@ -64,6 +64,10 @@ lazy val root = (Project(id = "cls-scala-ide", base = file(".")))
       "org.webjars" % "bootstrap" % "3.3.7-1",
       "org.webjars.bower" % "cytoscape" % "3.2.5",
       "com.typesafe.play" %% "play-json" % "2.6.2",
+      //pipeline
+      "org.combinators" %% "templating" % "1.1.0",
+      "org.scala-sbt" % "compiler-bridge_2.12" % "1.6.0-M2",
+      //pipeline
       guice,
       filters
     ),
