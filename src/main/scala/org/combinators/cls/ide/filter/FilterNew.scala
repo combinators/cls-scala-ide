@@ -6,6 +6,7 @@ import org.combinators.cls.inhabitation.TreeGrammar
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.{Constructor, SubtypeEnvironment, Type}
 
+// $COVERAGE-OFF$Disabling highlighting by default until a workaround for https://issues.scala-lang.org/browse/SI-8596 is found
 
 class FilterNew {
 

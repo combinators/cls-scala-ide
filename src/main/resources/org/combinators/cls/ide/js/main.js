@@ -27,30 +27,15 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 mkGraph(graph, "#cy-graph");
             } catch {
                 var news = loadDoc();
-                //  $("#cy-graph").html(data.replace(/\n/g, '<br />'));
                 $("#cy-graph").html(data);
             }
         });
 
-       /* $.get("appGraph", function (data) {
-            //$("#cy-app-graph").html(" ");
-            try {
-                var graph = JSON.parse(data);
-                mkGraph(graph, "#cy-app-graph");
-                console.log("hallo  try");
-            } catch {
-                console.log("hallo  catch");
-                var news = loadDoc();
-                $("#cy-app-graph").html(data.replace(/\n/g, '<br />'));
-            }
-            //   $("#cy-app-graph").html(data.replace(/\n/g, '<br />'));
-        });*/
 
         $(".nav-tabs a").click(function () {
 
             if ($(this).text() == "Applicative Tree Grammar") {
                 $.get("appGraph", function (data) {
-                    //$("#cy-app-graph").html(" ");
                     try {
                         var graph = JSON.parse(data);
                         mkGraph(graph, "#cy-app-graph");
@@ -58,7 +43,6 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         var news = loadDoc();
                         $("#cy-app-graph").html(data.replace(/\n/g, '<br />'));
                     }
-                    //   $("#cy-app-graph").html(data.replace(/\n/g, '<br />'));
                 });
             }
         });
@@ -147,7 +131,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
             var number = document.getElementById("message-text").value;
             $('#isInfinite').modal('hide');
             makeSolutions(number, "Variation", "results", "results");
-            makeSolutions(number, "Download", "download", "results");
+          //  makeSolutions(number, "Download", "download", "results");
         });
 
         $('.nav-sidebar a[href="#results"]').on('shown.bs.tab', function () {
@@ -173,7 +157,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                         });*/
                     } else {
                         makeSolutions(result, "Variation", "results", "results");
-                        makeSolutions(result, "Download", "download", "results");
+                     //   makeSolutions(result, "Download", "download", "results");
                     }
                 }
             });
@@ -356,7 +340,7 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                 var number = document.getElementById("message-text-filter").value;
                 $('#isInfiniteFilter').modal('hide');
                  makeSolutions(number, "Variation", "filter", "filter");
-                 makeSolutions(number, "Download", "downloadFilter", "filter");
+               //  makeSolutions(number, "Download", "downloadFilter", "filter");
             });
             $('#inhabRequest').collapse('hide');
             $("#filterEntry").on('keyup', function (event) {
@@ -393,7 +377,8 @@ require(['bootstrap', 'cytoscape'], function (bootstrap, cytoscape) {
                                 $('#titleFilter').html(result);
                             } else {
                                 makeSolutions(result, "Variation", "filter", "filter");
-                                makeSolutions(result, "Download", "downloadFilter", "filter");
+                                //Enables download of files
+                                //makeSolutions(result, "Download", "downloadFilter", "filter");
                             }
                         }
                     });

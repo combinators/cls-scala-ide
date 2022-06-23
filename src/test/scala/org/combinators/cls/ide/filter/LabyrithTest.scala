@@ -81,7 +81,6 @@ class LabyrinthTest extends FunSpec {
           for (index <- 0 to 1000) {
             val currentTerm = mkTreeMap(Seq(results.terms.index(index)))
             if (currentTerm.equals(Seq(termExists))) {
-              println("hi")
               assert(currentTerm.equals(Seq(termExists)))
               break
             }else{

@@ -17,10 +17,9 @@ import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.templating.persistable.Persistable
 import play.api.test.FakeRequest
 
+// $COVERAGE-OFF$Disabling highlighting by default until a workaround for https://issues.scala-lang.org/browse/SI-8596 is found
 
 class EmptyTest extends PlaySpec with GuiceOneServerPerSuite {
-
-
   "Calling the emptytest overview" must {
     "result in a valid response" in {
       val client = app.injector.instanceOf[WSClient]

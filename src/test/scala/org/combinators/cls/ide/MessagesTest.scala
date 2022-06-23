@@ -54,7 +54,7 @@ class MessageTestController @Inject()(val webJarsUtil: WebJarsUtil, assets: Asse
     webJarsUtil,
       assets) with DebuggerEnabled {
   override val controllerAddress: String = "testMessages"
- // override val routingPrefix: Option[String] = Some("/testMessages")
+  override val routingPrefix: Option[String] = Some("/testMessages")
   implicit val persistable: Persistable.Aux[Path] = new Persistable {
     override type T = Path
     override def rawText(elem: T): Array[Byte] = elem.toString.getBytes

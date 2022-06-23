@@ -20,14 +20,14 @@ while(noTerm) {
   }catch{
     case _: IndexOutOfBoundsException =>
       noTerm = true
-      //mkLab
+      mkLab
   }
 }
 
   def mkLab: InhabitationResult[Unit] = {
     val filter = new FilterList
     val filterOld = new FilterRec
-    val labyrinthSize = 24
+    val labyrinthSize = 18
     //val start: (Int, Int) = (Random.nextInt(labyrinthSize), Random.nextInt(labyrinthSize))
     val start: (Int, Int) = (1,1)
 
@@ -54,7 +54,10 @@ while(noTerm) {
       arr(start._2).update(start._1, false)
       arr
     }
-    val newBlocked = blocked.map(row => row.map(e => if (e) Random.nextBoolean() else false))
+    //with obstacles
+    //val newBlocked = blocked.map(row => row.map(e => if (e) Random.nextBoolean() else false))
+    //without obstacles
+    val newBlocked = blocked.map(row => row.map(e => if (e) false else false))
 
     val freeFields: Map[String, Type] =
       newBlocked.indices.foldLeft(Map.empty[String, Type]) {
@@ -83,13 +86,16 @@ while(noTerm) {
     println("lab ", labyrinth)
     val Gamma2 = new FiniteCombinatoryLogicDebugger(testChannel, SubtypeEnvironment(Map.empty), repository)
     if(resultedTree.nonEmpty) {
-      val muster: Muster = Term("down", Seq(Term("up", Seq(Star(), Star())), Star()))
-      //val muster: Muster = Term("down", Seq(Term("down", Seq(Term("up", Seq(Star()))))))
+      //val muster: Muster = Term("down", Seq(Term("up", Seq(Star(), Star())), Star()))
+      //val muster: Muster = Term("down", Seq(Term("down", Seq(Term("up", Seq(Term("down", Seq(Term("up", Seq(Star())), Star())))), Star())), Star()))
+      //val muster: Muster = Term("down", Seq(Star(), Star()))
+      val muster: Muster = Term("down", Seq(Term("down", Seq(Term("up", Seq(Term("down", Seq(Term("up", Seq(Star(), Star())), Star())))), Star())), Star()))
 
 
       val t1 = System.nanoTime()
       val newTreeNeu = filter.forbid(resultedTree, muster)
       val duration1 = System.nanoTime() - t1
+
 
       val t2 = System.nanoTime()
       val newTreeOld = filterOld.forbid(resultedTree, muster)
@@ -122,3 +128,4 @@ while(noTerm) {
 
 
 }
+

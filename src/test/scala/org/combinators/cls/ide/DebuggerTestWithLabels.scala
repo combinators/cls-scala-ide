@@ -1,3 +1,4 @@
+/*
 import org.combinators.cls.ide.TestRepository
 import org.combinators.cls.types.Constructor
 import org.scalatest.BeforeAndAfterAll
@@ -12,6 +13,13 @@ class DebuggerTestWithLabels extends PlaySpec with BeforeAndAfterAll {
   val app = new GuiceApplicationBuilder().build()
 
 
+  "Calling the init" must {
+    "result in a invalid response" in {
+      val request = FakeRequest(GET, "/testDebugger/ide")
+      val show = route(app, request).get
+      status(show) mustBe OK
+    }
+  }
   "Calling the test steps" must {
     "result in a invalid response" in {
       val request = FakeRequest(GET, "/testDebugger/steps/1")
@@ -106,4 +114,4 @@ class DebuggerTestWithLabels extends PlaySpec with BeforeAndAfterAll {
 
     }
   }
-}
+}*/

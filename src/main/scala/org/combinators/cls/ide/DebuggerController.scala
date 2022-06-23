@@ -41,6 +41,7 @@ import play.filters.csrf._
 //import org.combinators.cls.smt.examples.sort.SortExperimentSmtImpl
 import scala.collection.mutable
 
+// $COVERAGE-OFF$Disabling highlighting by default until a workaround for https://issues.scala-lang.org/browse/SI-8596 is found
 
 class DebuggerController(webjarsUtil: WebJarsUtil, assets: Assets) extends InjectedController { // scalastyle:off
 
@@ -696,7 +697,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     newGraph = computeResults(reposit, tgts)
     newGraph = result.get.grammar
     if (newGraph.nonEmpty) {
-      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      graphObj = Json.toJson[Graph](toGraph(newGraph, newTargets.toSet, Set.empty, Set.empty))
       Ok(graphObj.toString)
     } else {
       Ok("Inhabitant not found!")
@@ -995,7 +996,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
       tgtsFilter = tgtFilter.head
       computeTermsForDownload()
       if (filteredTreeGraph.nonEmpty) {
-        graphObj = Json.toJson[Graph](toGraph(filteredTreeGraph, Set.empty, Set.empty, Set.empty))
+        graphObj = Json.toJson[Graph](toGraph(filteredTreeGraph, tgts.toSet, Set.empty, Set.empty))
         //graphObj = Json.toJson[Graph](toBinaryGraph(reachableGrammar, Set.empty, Set.empty, Set.empty))
         tgtFilter = tgtFilter
         actionResult=graphObj.toString
@@ -1027,7 +1028,7 @@ def toBinaryGraph(treeGrammar: Set[Rule], tgts: Set[Type], uninhabitedTypes: Set
     newTargets = NewRequestParser.compute(newRequest)
     newGraph = computeResults(reposit, newTargets)
     if (newGraph.nonEmpty) {
-      graphObj = Json.toJson[Graph](toGraph(newGraph, Set.empty, Set.empty, Set.empty))
+      graphObj = Json.toJson[Graph](toGraph(newGraph, tgts.toSet, Set.empty, Set.empty))
       Ok(graphObj.toString)
     } else {
       Ok("Inhabitant not found!")
